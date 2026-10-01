@@ -24,7 +24,7 @@
     <header class="top">
       <h1 id="title">Ricopio</h1>
       <p class="score" id="scoreBox"><i class="coin-icon"></i><span id="coins">0</span></p>
-      <p class="rates"><span id="perClick">1</span> por toque · <span id="perSec">0</span> por segundo · objetos +<span id="bonus">0</span>%</p>
+      <p class="rates"><span id="perClick">1</span> por toque · <span id="perSec">0</span> por segundo · bonus +<span id="bonus">0</span>%</p>
       <div class="rank">
         <b id="rankName">Pollito sin un duro</b>
         <div class="bar"><div id="rankBar"></div></div>
@@ -74,18 +74,47 @@
       <div id="combo" class="combo"><b id="comboN">x1.0</b><div class="bar"><div id="comboBar"></div></div></div>
     </section>
 
-    <section class="shop" aria-label="Tienda">
-      <button id="wardBtn" class="btn wide">Personalizar a Ricopio</button>
-      <h2>Tienda</h2>
-      <ul id="shop"></ul>
-      <h2 class="sub">Potenciadores</h2>
-      <ul id="boosts"></ul>
-      <h2 class="sub">Colección</h2>
-      <ul id="coll" class="coll"></ul>
-      <div class="foot"><button id="saveBtn" class="reset">Guardar partida</button><button id="loadBtn2" class="reset">Cargar partida</button><button id="mute" class="reset">Sonido: sí</button><button id="reset" class="reset">Empezar de cero</button></div>
-      <input id="file" type="file" accept=".json,application/json" hidden>
-    </section>
+    <nav class="rail" aria-label="Menús">
+      <button class="rbtn" data-open="m-set"><svg viewBox="0 0 24 24" fill="none" stroke="#2b2118" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg><span>Ajustes</span></button>
+      <button class="rbtn" data-open="m-ach"><svg viewBox="0 0 24 24" fill="none" stroke="#2b2118" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H3c0 4 2 5 4 5M17 6h4c0 4-2 5-4 5M12 14v4M8 21h8M9 18h6"/></svg><span>Logros</span></button>
+      <button class="rbtn" data-open="m-egg"><svg viewBox="0 0 24 24" fill="none" stroke="#2b2118" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M12 3c4 0 7 6 7 11a7 7 0 0 1-14 0c0-5 3-11 7-11z"/><path d="M5.500 13l3 2 3-2 3 2 3-2"/></svg><span>Secretos</span></button>
+    </nav>
+    <div class="side">
+      <button id="shopBtn" class="btn wide shopb" data-open="m-shop">Tienda</button>
+      <section class="panel"><h2>Aspectos</h2><ul id="skinGrid" class="skins"></ul><button id="wardBtn" class="btn">Armario</button></section>
+      <section class="panel"><button id="rebBtn" class="btn wide reb" data-open="m-reb">Renacer</button><div class="bar"><div id="rebMini"></div></div><small id="rebTxt"></small></section>
+    </div>
   </main>
+
+  <div id="m-shop" class="modal" hidden><div class="mbox"><header><h2>Tienda</h2><button class="btn" data-close>Cerrar</button></header><div class="mbody">
+    <h3>Mejoras</h3><ul id="shop"></ul>
+    <h3>Potenciadores</h3><ul id="boosts"></ul>
+    <h3>Colección</h3><ul id="coll" class="coll"></ul>
+  </div></div></div>
+
+  <div id="m-set" class="modal" hidden><div class="mbox"><header><h2>Ajustes</h2><button class="btn" data-close>Cerrar</button></header><div class="mbody">
+    <label class="row">Volumen <input id="vol" type="range" min="0" max="100"></label>
+    <label class="row">Estilo de sonido <select id="snd"></select></label>
+    <label class="row">Partículas y confeti <input id="fx" type="checkbox"></label>
+    <label class="row">Sacudida en críticos <input id="shk" type="checkbox"></label>
+    <div class="foot"><button id="mute" class="btn">Sonido: sí</button><button id="saveBtn" class="btn">Guardar partida</button><button id="loadBtn2" class="btn">Cargar partida</button><button id="reset" class="btn">Empezar de cero</button></div>
+    <input id="file" type="file" accept=".json,application/json" hidden>
+  </div></div></div>
+
+  <div id="m-ach" class="modal" hidden><div class="mbox"><header><h2>Logros</h2><button class="btn" data-close>Cerrar</button></header><div class="mbody">
+    <p id="achSum" class="sum"></p><ul id="achBody" class="achs"></ul>
+  </div></div></div>
+
+  <div id="m-egg" class="modal" hidden><div class="mbox"><header><h2>Easter eggs</h2><button class="btn" data-close>Cerrar</button></header><div class="mbody">
+    <p id="eggSum" class="sum"></p><div id="eggGrid" class="eggs"></div><p id="eggHint" class="hintbox">Toca una casilla para ver su pista.</p>
+  </div></div></div>
+
+  <div id="m-reb" class="modal" hidden><div class="mbox"><header><h2>Renacer</h2><button class="btn" data-close>Cerrar</button></header><div class="mbody">
+    <p id="rebInfo" class="sum"></p>
+    <div class="bar"><div id="rebFill"></div></div><p id="rebGoalTxt" class="sum"></p>
+    <button id="rebGo" class="btn wide reb">Renacer ahora</button>
+    <h3>Árbol de habilidades</h3><div id="treeBody" class="tree"></div>
+  </div></div></div>
 
   <aside id="wardrobe" class="wardrobe" hidden><header><h2>Armario</h2><button id="closeWard" class="btn">Cerrar</button></header><div id="wardBody"></div></aside>
   <div id="intro" class="intro"><div id="rain" class="rain"></div><div id="introTitle" aria-label="Ricopio"></div><div id="introChick" class="introChick"></div><div class="menu"><button id="start" class="btn big">Iniciar</button><button id="loadBtn" class="btn">Cargar partida</button></div></div>
