@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ricopio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="scene" aria-hidden="true">
+    <div class="sun"></div>
+    <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+    <svg class="hills" viewBox="0 0 1440 400" preserveAspectRatio="none">
+      <path d="M0 140 C240 60 480 60 720 130 S1200 190 1440 100 V400 H0Z" fill="#8bd078"/>
+      <path d="M0 220 C300 150 600 170 900 220 S1300 260 1440 200 V400 H0Z" fill="#55b35f"/>
+      <path d="M0 300 C360 250 720 280 1080 300 S1340 310 1440 280 V400 H0Z" fill="#37954f"/>
+    </svg>
+  </div>
+
+  <main class="game">
+    <header class="top">
+      <h1>Ricopio</h1>
+      <p class="score"><i class="coin-icon"></i><span id="coins">0</span></p>
+      <p class="rates"><span id="perClick">1</span> por toque · <span id="perSec">0</span> por segundo</p>
+      <div class="rank">
+        <b id="rankName">Pollito sin un duro</b>
+        <div class="bar"><div id="rankBar"></div></div>
+      </div>
+    </header>
+
+    <section class="stage" aria-label="Zona de juego">
+      <div id="aura" class="aura"></div>
+      <button id="chick" class="chick" data-rank="0" aria-label="Tocar a Ricopio">
+        <svg viewBox="0 0 200 230" aria-hidden="true">
+          <ellipse cx="100" cy="222" rx="62" ry="8" fill="rgba(43,33,24,.22)"/>
+          <path d="M84 208 v14 M116 208 v14" stroke="#ff8a1f" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="100" cy="140" r="72" fill="#ffc928" stroke="#2b2118" stroke-width="4"/>
+          <ellipse cx="100" cy="168" rx="44" ry="34" fill="#ffe27a"/>
+          <path d="M30 150 q-24 10 -12 40 q24 -6 32 -24z" fill="#f2b300" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/>
+          <path d="M170 150 q24 10 12 40 q-24 -6 -32 -24z" fill="#f2b300" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/>
+          <path d="M92 70 q-6 -18 8 -20 q14 2 8 20" fill="#ff5d73" stroke="#2b2118" stroke-width="3"/>
+          <g class="eyes">
+            <circle cx="76" cy="124" r="9" fill="#2b2118"/><circle cx="124" cy="124" r="9" fill="#2b2118"/>
+            <circle cx="79" cy="121" r="3.2" fill="#fff"/><circle cx="127" cy="121" r="3.2" fill="#fff"/>
+          </g>
+          <path d="M88 142 L112 142 L100 162 Z" fill="#ff8a1f" stroke="#2b2118" stroke-width="3" stroke-linejoin="round"/>
+          <circle cx="56" cy="148" r="9" fill="#ff9aa8" opacity=".75"/><circle cx="144" cy="148" r="9" fill="#ff9aa8" opacity=".75"/>
+          <g class="bow"><path d="M100 178 l-20 -10 v20z M100 178 l20 -10 v20z" fill="#d8303f" stroke="#2b2118" stroke-width="3" stroke-linejoin="round"/><circle cx="100" cy="178" r="5" fill="#d8303f" stroke="#2b2118" stroke-width="3"/></g>
+          <g class="mono"><circle cx="124" cy="124" r="17" fill="rgba(255,255,255,.3)" stroke="#d9a400" stroke-width="3.5"/><path d="M138 135 q8 22 -2 38" fill="none" stroke="#d9a400" stroke-width="2"/></g>
+          <g class="hat"><rect x="64" y="8" width="72" height="56" rx="6" fill="#2b2118"/><rect x="64" y="42" width="72" height="11" fill="#ff5d73"/><rect x="42" y="60" width="116" height="12" rx="6" fill="#2b2118"/></g>
+          <g class="crown"><path d="M62 70 L66 24 L86 48 L100 14 L114 48 L134 24 L138 70 Z" fill="#ffd84a" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/><circle cx="100" cy="50" r="6" fill="#ff5d73" stroke="#2b2118" stroke-width="2.5"/></g>
+        </svg>
+      </button>
+      <div id="floaters" aria-hidden="true"></div>
+      <button id="golden" class="golden" hidden aria-label="Huevo de oro"></button>
+      <div id="farm" class="farm" aria-hidden="true"></div>
+    </section>
+
+    <section class="shop" aria-label="Tienda">
+      <h2>Tienda</h2>
+      <ul id="shop"></ul>
+      <button id="reset" class="reset">Empezar de cero</button>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="scripts.js"></script>
+</body>
+</html>
