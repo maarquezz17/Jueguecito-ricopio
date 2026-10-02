@@ -38,15 +38,41 @@
 
     <section class="stage" aria-label="Zona de juego">
       <div id="aura" class="aura"></div>
+      <div id="halo" class="halo"></div>
       <button id="chick" class="chick" data-rank="0" aria-label="Tocar a Ricopio">
         <svg viewBox="0 0 200 230" aria-hidden="true">
+          <defs>
+          <radialGradient id="g_gal" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#ff6ad5"/><stop offset=".5" stop-color="#5b3cff"/><stop offset="1" stop-color="#12103a"/></radialGradient>
+          <pattern id="p_star" width="44" height="44" patternUnits="userSpaceOnUse"><circle cx="8" cy="10" r="1.8" fill="#fff"/><circle cx="30" cy="26" r="1.3" fill="#aef"/><circle cx="18" cy="38" r="1.6" fill="#fcf"/><path d="M32 6l1.6 3.6 3.6 1.6-3.6 1.6L32 16.4l-1.6-3.6-3.6-1.6 3.6-1.6z" fill="#fff"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to="44 44" dur="9s" repeatCount="indefinite"/></pattern>
+          <linearGradient id="g_fire" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#c1190a"/><stop offset=".5" stop-color="#ff6a1a"/><stop offset="1" stop-color="#ffe27a"/></linearGradient>
+          <pattern id="p_flame" width="36" height="48" patternUnits="userSpaceOnUse"><path d="M18 46c-12-6-14-18-6-28 2 8 6 8 6 8s-2-10 6-18c0 12 12 14 6 26-2 6-6 10-12 12z" fill="#ffe27a" opacity=".55"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to="0 -48" dur="2.4s" repeatCount="indefinite"/></pattern>
+          <pattern id="p_haz" width="28" height="28" patternUnits="userSpaceOnUse"><rect width="14" height="28" fill="#b6ff1a"/><rect x="14" width="14" height="28" fill="#1c2a05"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to="28 0" dur="1.6s" repeatCount="indefinite"/></pattern>
+          <linearGradient id="g_iris" gradientUnits="userSpaceOnUse" x1="30" y1="70" x2="170" y2="210"><stop offset="0" stop-color="#ff5d73"/><stop offset=".2" stop-color="#ffb400"/><stop offset=".4" stop-color="#6fd06f"/><stop offset=".6" stop-color="#3d9bff"/><stop offset=".8" stop-color="#b05cff"/><stop offset="1" stop-color="#ff5d73"/><animateTransform attributeName="gradientTransform" type="rotate" from="0 100 140" to="360 100 140" dur="5s" repeatCount="indefinite"/></linearGradient>
+          <pattern id="p_arg" width="30" height="30" patternUnits="userSpaceOnUse"><rect width="30" height="30" fill="#4b2a8c"/><path d="M15 0l15 15-15 15L0 15z" fill="#ffd84a"/><path d="M15 6l9 9-9 9-9-9z" fill="#7a3cff"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to="30 30" dur="6s" repeatCount="indefinite"/></pattern>
+          <pattern id="p_scale" width="24" height="16" patternUnits="userSpaceOnUse"><rect width="24" height="16" fill="#1f7a3a"/><path d="M0 16a12 12 0 0 1 24 0M-12 8a12 12 0 0 1 24 0M12 8a12 12 0 0 1 24 0" fill="none" stroke="#7cf08a" stroke-width="2"/></pattern>
+          <pattern id="p_wave" width="40" height="20" patternUnits="userSpaceOnUse"><rect width="40" height="20" fill="#1d6fd6"/><path d="M0 10q10-10 20 0t20 0" fill="none" stroke="#9fe8ff" stroke-width="3"/><animateTransform attributeName="patternTransform" type="translate" from="0 0" to="40 0" dur="3s" repeatCount="indefinite"/></pattern>
+          <pattern id="p_gl" width="32" height="32" patternUnits="userSpaceOnUse"><rect width="32" height="32" fill="#16161e"/><rect x="2" y="4" width="16" height="5" fill="#ff2d9a"/><rect x="14" y="14" width="16" height="4" fill="#00e5ff"/><rect x="4" y="24" width="12" height="5" fill="#9aff3c"/><animateTransform attributeName="patternTransform" type="translate" values="0 0;8 0;-6 4;4 -4;0 0" dur="1.4s" calcMode="discrete" repeatCount="indefinite"/></pattern>
+          <pattern id="p_facet" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="#9ff0ff"/><path d="M0 0l20 20L0 40zM40 0L20 20l20 20z" fill="#e8fcff"/><path d="M0 0h40L20 20z" fill="#5fd0f0"/><path d="M0 40h40L20 20z" fill="#c8f6ff"/></pattern>
+          <linearGradient id="g_shine" x1="0" x2="1" y1="0" y2=".4"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/><animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="1 0" dur="2.2s" repeatCount="indefinite"/></linearGradient>
+        </defs>
           <ellipse cx="100" cy="222" rx="62" ry="8" fill="rgba(43,33,24,.22)"/>
           <path d="M84 208 v14 M116 208 v14" stroke="#ff8a1f" stroke-width="7" stroke-linecap="round"/>
           <g class="a" data-a="capa"><path d="M60 110Q100 100 140 110L166 215Q100 232 34 215Z" fill="#d8303f" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/></g>
           <g class="a" data-a="alas"><path d="M44 120Q-8 66 8 152Q22 140 44 152Z" fill="#fff" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/><path d="M156 120Q208 66 192 152Q178 140 156 152Z" fill="#fff" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/></g>
           <g class="a" data-a="mochila"><rect x="128" y="118" width="46" height="60" rx="12" fill="#6b8e3d" stroke="#2b2118" stroke-width="4"/><rect x="136" y="140" width="30" height="18" rx="5" fill="#8fb04f" stroke="#2b2118" stroke-width="3"/></g>
           <g class="e" data-e="2"><path d="M168 130q38-30 24-66-12 26-32 36z" fill="#ff8a1f" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/></g>
+          <g class="a" data-a="jetpack"><rect x="128" y="116" width="18" height="52" rx="8" fill="#b9c2cf" stroke="#2b2118" stroke-width="3.5"/><rect x="150" y="116" width="18" height="52" rx="8" fill="#b9c2cf" stroke="#2b2118" stroke-width="3.5"/><path d="M130 170l5 22 6-22zM152 170l5 22 6-22z" fill="#ff8a1f" stroke="#2b2118" stroke-width="2"/></g>
+          <g class="a" data-a="alasfuego"><path d="M44 120Q-14 60 6 156Q22 138 44 154Z" fill="#ff6a1a" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/><path d="M156 120Q214 60 194 156Q178 138 156 154Z" fill="#ff6a1a" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/><path d="M30 120Q8 92 14 140Q26 126 38 136Z" fill="#ffe27a"/><path d="M170 120Q192 92 186 140Q174 126 162 136Z" fill="#ffe27a"/></g>
           <circle class="body" cx="100" cy="140" r="72" fill="#ffc928" stroke="#2b2118" stroke-width="4"/>
+          <g class="tx" data-t="galaxia"><circle cx="100" cy="140" r="70" fill="url(#g_gal)"/><circle cx="100" cy="140" r="70" fill="url(#p_star)"/></g>
+          <g class="tx" data-t="fuego"><circle cx="100" cy="140" r="70" fill="url(#g_fire)"/><circle cx="100" cy="140" r="70" fill="url(#p_flame)"/></g>
+          <g class="tx" data-t="radio"><circle cx="100" cy="140" r="70" fill="url(#p_haz)"/></g>
+          <g class="tx" data-t="iris"><circle cx="100" cy="140" r="70" fill="url(#g_iris)"/><circle cx="100" cy="140" r="70" fill="url(#p_star)"/></g>
+          <g class="tx" data-t="pase"><circle cx="100" cy="140" r="70" fill="url(#p_arg)"/><circle cx="100" cy="140" r="70" fill="url(#g_shine)"/></g>
+          <g class="tx" data-t="escamas"><circle cx="100" cy="140" r="70" fill="url(#p_scale)"/><circle cx="100" cy="140" r="70" fill="url(#g_shine)"/></g>
+          <g class="tx" data-t="olas"><circle cx="100" cy="140" r="70" fill="url(#p_wave)"/></g>
+          <g class="tx" data-t="glitch"><circle cx="100" cy="140" r="70" fill="url(#p_gl)"/></g>
+          <g class="tx" data-t="facetas"><circle cx="100" cy="140" r="70" fill="url(#p_facet)"/><circle cx="100" cy="140" r="70" fill="url(#g_shine)"/></g>
           <ellipse class="belly" cx="100" cy="168" rx="44" ry="34" fill="#ffe27a"/>
           <path class="wing" d="M30 150 q-24 10 -12 40 q24 -6 32 -24z" fill="#f2b300" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/>
           <path class="wing" d="M170 150 q24 10 12 40 q-24 -6 -32 -24z" fill="#f2b300" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/>
@@ -77,6 +103,14 @@
           <g class="a" data-a="botas"><rect x="72" y="198" width="24" height="26" rx="5" fill="#8a5a1f" stroke="#2b2118" stroke-width="3.5"/><rect x="104" y="198" width="24" height="26" rx="5" fill="#8a5a1f" stroke="#2b2118" stroke-width="3.5"/></g>
           <g class="e" data-e="1"><path d="M70 80q-12-24 4-28 12 2 4 26M122 80q-6-24 8-26 14 6-2 26" fill="#ff5d73" stroke="#2b2118" stroke-width="3" stroke-linejoin="round"/></g>
           <g class="e" data-e="3"><path d="M64 68L50 34l32 20zM136 68l14-34-32 20z" fill="#d8303f" stroke="#2b2118" stroke-width="3.5" stroke-linejoin="round"/></g>
+          <g class="a" data-a="cuernos"><path d="M66 70Q48 40 62 20 76 40 84 62z" fill="#d8303f" stroke="#2b2118" stroke-width="3.5" stroke-linejoin="round"/><path d="M134 70Q152 40 138 20 124 40 116 62z" fill="#d8303f" stroke="#2b2118" stroke-width="3.5" stroke-linejoin="round"/></g>
+          <g class="a" data-a="flores"><circle cx="70" cy="62" r="8" fill="#ff9ec7" stroke="#2b2118" stroke-width="2.5"/><circle cx="88" cy="53" r="8" fill="#fff" stroke="#2b2118" stroke-width="2.5"/><circle cx="106" cy="51" r="8" fill="#ffd84a" stroke="#2b2118" stroke-width="2.5"/><circle cx="124" cy="57" r="8" fill="#ff9ec7" stroke="#2b2118" stroke-width="2.5"/><circle cx="136" cy="68" r="7" fill="#fff" stroke="#2b2118" stroke-width="2.5"/></g>
+          <g class="a" data-a="vikingo"><path d="M62 74Q64 34 100 34 136 34 138 74Z" fill="#9aa4b3" stroke="#2b2118" stroke-width="4"/><path d="M62 60Q38 54 36 32 56 40 66 52zM138 60Q162 54 164 32 144 40 134 52z" fill="#f3e6c4" stroke="#2b2118" stroke-width="3.5" stroke-linejoin="round"/><rect x="60" y="66" width="80" height="9" fill="#6b7280" stroke="#2b2118" stroke-width="3"/></g>
+          <g class="a" data-a="laser"><rect x="52" y="112" width="96" height="20" rx="9" fill="#2b2118"/><rect x="58" y="118" width="84" height="8" rx="4" fill="#ff2d2d"><animate attributeName="opacity" values=".4;1;.4" dur="1.2s" repeatCount="indefinite"/></rect></g>
+          <g class="a" data-a="fuegoojos"><path d="M70 116q-12-18 2-30 3 12 14 18-2 9-16 12z" fill="#ff8a1f" stroke="#2b2118" stroke-width="2"/><path d="M130 116q12-18-2-30-3 12-14 18 2 9 16 12z" fill="#ff8a1f" stroke="#2b2118" stroke-width="2"/><path d="M72 112q-5-10 2-16 2 7 8 10z" fill="#ffe27a"/><path d="M128 112q5-10-2-16-2 7-8 10z" fill="#ffe27a"/></g>
+          <g class="a" data-a="cadena"><path d="M60 160Q100 194 140 160" fill="none" stroke="#ffd84a" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 10"/><circle cx="100" cy="186" r="9" fill="#ffd84a" stroke="#2b2118" stroke-width="3"/></g>
+          <g class="a" data-a="perlas"><path d="M60 160Q100 194 140 160" fill="none" stroke="#2b2118" stroke-width="11" stroke-linecap="round" stroke-dasharray="1 12"/><path d="M60 160Q100 194 140 160" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 12"/></g>
+          <g class="a" data-a="patines"><rect x="66" y="212" width="34" height="10" rx="4" fill="#d8303f" stroke="#2b2118" stroke-width="3"/><rect x="100" y="212" width="34" height="10" rx="4" fill="#d8303f" stroke="#2b2118" stroke-width="3"/><circle cx="74" cy="228" r="4.5" fill="#fff" stroke="#2b2118" stroke-width="2.5"/><circle cx="92" cy="228" r="4.5" fill="#fff" stroke="#2b2118" stroke-width="2.5"/><circle cx="108" cy="228" r="4.5" fill="#fff" stroke="#2b2118" stroke-width="2.5"/><circle cx="126" cy="228" r="4.5" fill="#fff" stroke="#2b2118" stroke-width="2.5"/></g>
         </svg>
       </button>
       <div id="floaters" aria-hidden="true"></div>
@@ -93,7 +127,7 @@
       <div id="combo" class="combo"><b id="comboN">x1.0</b><div class="bar"><div id="comboBar"></div></div></div>
       <div id="bubble" class="bubble" hidden></div>
       <div id="pets" class="pets"></div>
-      <button id="boss" class="boss" hidden aria-label="Zorro del corral"><svg viewBox="0 0 120 100" aria-hidden="true"><path d="M10 10L40 40 80 40 110 10 112 60Q60 112 8 60Z" fill="#ff7a2e" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/><path d="M30 62Q60 100 90 62Q60 74 30 62Z" fill="#fff" stroke="#2b2118" stroke-width="3"/><circle cx="42" cy="55" r="6" fill="#2b2118"/><circle cx="78" cy="55" r="6" fill="#2b2118"/><path d="M34 44l14 6M86 44l-14 6" stroke="#2b2118" stroke-width="4"/><path d="M54 70h12l-6 8z" fill="#2b2118"/></svg><div class="bar"><div id="bossBar"></div></div></button>
+      <div id="boss" class="boss" hidden></div>
       <div id="slots" class="slots" aria-label="Cofres"></div>
     </section>
 
@@ -151,7 +185,7 @@
     <p id="rebInfo" class="sum"></p>
     <div class="bar"><div id="rebFill"></div></div><p id="rebGoalTxt" class="sum"></p>
     <button id="rebGo" class="btn wide reb">Renacer ahora</button>
-    <h3>Árbol de habilidades</h3><div id="treeBody" class="tree"></div>
+    <h3>Árbol de habilidades</h3><button id="respec" class="btn">Reasignar puntos (gratis)</button><div id="treeBody" class="tree"></div>
   </div></div></div>
 
   <aside id="wardrobe" class="wardrobe" hidden><header><h2>Armario</h2><button id="closeWard" class="btn">Cerrar</button></header><div id="wardBody"></div></aside>

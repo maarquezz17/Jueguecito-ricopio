@@ -111,7 +111,7 @@ let state = load();
 let rank = 0, combo = 0, lastClick = 0, started = false, ac, chestTimer;
 
 function fix(s) {
-  s = { coins: 0, total: 0, owned: {}, items: {}, muted: false, boost: {}, cosm: {}, reb: 0, xp: 0, tree: {}, ach: {}, eggs: {}, mut: {}, slots: [null, null, null, null], wheelAt: 0, asc: 0, gf: 0, gp: {}, q: null, pass: null, pets: {}, petEq: [], cards: {}, gold: {}, br: {}, title: "", name: "", friends: [], gifts: [], redeemed: [], wk: null, wstreak: 0, wday: "", last: 0, tut: 0, hist: [], mgAt: {}, ...s };
+  s = { coins: 0, total: 0, owned: {}, items: {}, muted: false, boost: {}, cosm: {}, reb: 0, xp: 0, tree: {}, ach: {}, eggs: {}, mut: {}, slots: [null, null, null, null], wheelAt: 0, asc: 0, gf: 0, gp: {}, q: null, pass: null, pets: {}, petEq: [], cards: {}, gold: {}, br: {}, title: "", name: "", friends: [], gifts: [], redeemed: [], wk: null, wstreak: 0, wday: "", last: 0, tut: 0, hist: [], mgAt: {}, hs: {}, codes: {}, peggs: 0, cc: 0, pid: "", srv: "", ...s };
   BOOSTS.forEach((b) => (s.boost[b.id] = { lvl: 0, end: 0, len: 0, ...s.boost[b.id] }));
   s.cosm = { own: [], ...s.cosm, eq: { skin: "clasico", hat: "ninguno", eyes: "ninguno", neck: "ninguno", scene: "dia", back: "ninguno", feet: "ninguno", tap: "ninguno", trail: "ninguno", ...s.cosm.eq } };
   s.total = Math.max(s.total, s.coins);
@@ -279,11 +279,12 @@ setInterval(save, 5000);
 
 // Cofres con rareza
 const CHESTS = {
-  madera: { n: "Cofre de madera", w: 59.9, a: "#a8602b", b: "#c27a3a", loot: [70, 25, 5, 0, 0], mins: 5, cb: 1 },
-  plata:  { n: "Cofre de plata",  w: 27, a: "#8797a8", b: "#c4d0db", loot: [30, 50, 18, 2, 0], mins: 10, cb: 3 },
-  oro:    { n: "Cofre de oro",    w: 11, a: "#d99a00", b: "#ffd84a", loot: [5, 30, 55, 10, 0], mins: 20, cb: 10 },
-  arcano: { n: "Cofre arcano",    w: 2,  a: "#6a2fc4", b: "#a566ff", loot: [0, 15, 50, 35, 0], mins: 40, cb: 40 },
-  mitico: { n: "Cofre mítico",    w: .1, a: "#2a1f3d", b: "#4a3470", loot: [0, 0, 0, 40, 60], mins: 90, cb: 400 },
+  madera:     { n: "Cofre de madera",     w: 59.4, a: "#a8602b", b: "#c27a3a", loot: [70, 25, 5, 0, 0], mins: 1, cb: 1 },
+  plata:      { n: "Cofre de plata",      w: 27, a: "#8797a8", b: "#c4d0db", loot: [30, 50, 18, 2, 0], mins: 3, cb: 3 },
+  oro:        { n: "Cofre de oro",        w: 11, a: "#d99a00", b: "#ffd84a", loot: [5, 30, 55, 10, 0], mins: 7, cb: 10 },
+  arcano:     { n: "Cofre arcano",        w: 2,  a: "#6a2fc4", b: "#a566ff", loot: [0, 15, 50, 35, 0], mins: 15, cb: 40 },
+  legendario: { n: "Cofre legendario",    w: .5, a: "#ff8a00", b: "#ffc14d", loot: [0, 0, 10, 70, 20], mins: 30, cb: 150 },
+  mitico:     { n: "Cofre mítico",        w: .1, a: "#2a1f3d", b: "#4a3470", loot: [0, 0, 0, 40, 60], mins: 60, cb: 400 },
 };
 const chest = $("chest");
 let chestKind = "madera";
@@ -382,7 +383,7 @@ const allCosm = () => Object.entries(COSM).flatMap(([cat, l]) => l.map((x) => ({
 const has = (x) => (!x.p && !x.secret && x.rank === undefined && x.reb === undefined && !x.egg && !x.achN) || state.cosm.own.includes(x.key) || (x.rank !== undefined && rankIndex() >= x.rank) || (x.reb !== undefined && state.reb >= x.reb) || (x.achN && Object.keys(state.ach).length >= x.achN) || (x.egg && EGGS.every((e) => state.eggs[e.id]));
 const reqText = (x) => x.secret ? "Secreto" : x.rank !== undefined ? "Rango: " + RANKS[x.rank].name : x.reb !== undefined ? "Renacer " + x.reb + (x.reb > 1 ? " veces" : " vez") : x.achN ? x.achN + " logros" : "Todos los easter eggs";
 function applyLook() {
-  applySet(); applyEvo();
+  applySet(); applyEvo(); applyFx();
   document.body.classList.toggle("glass", state.set.glass);
   const e = state.cosm.eq, ch = $("chick"), root = document.documentElement.style;
   const sk = COSM.skin.find((x) => x.id === e.skin) || COSM.skin[0], sc = COSM.scene.find((x) => x.id === effScene()) || COSM.scene[0];
@@ -397,7 +398,7 @@ function renderWard() {
     const x = { ...o, cat, key: cat + ":" + o.id }, own = has(x), on = state.cosm.eq[cat] === x.id;
     const sw = x.v ? `<i class="sw" style="background:${x.v[0]}"></i>` : "";
     const tag = on ? "Puesto" : own ? "Poner" : x.secret ? "???" : x.p ? fmt(x.p) + " ricoins" : reqText(x);
-    return `<button class="chip${on ? " on" : ""}" data-k="${x.key}"${!own && (x.secret || !x.p) ? " disabled" : ""}><b>${sw}${x.secret && !own ? "Secreto" : x.n}</b><small>${tag}${x.bn ? " · " + bnText(x.bn) : ""}</small></button>`;
+    return `<button class="chip${on ? " on" : ""}" data-k="${x.key}" style="border-color:${rarCol(x)}"${!own && (x.secret || !x.p) ? " disabled" : ""}><b>${sw}${x.secret && !own ? "Secreto" : x.n}</b><small>${tag}${x.bn ? " · " + bnLine(x.bn) : ""}</small></button>`;
   }).join("") + "</div>").join("");
 }
 $("wardBody").addEventListener("click", (e) => {
@@ -565,7 +566,7 @@ $("fx").onchange = () => { state.set.fx = $("fx").checked; save(); };
 $("shk").onchange = () => { state.set.shake = $("shk").checked; save(); };
 
 // ===== Efectos de balance =====
-function critChance() { return .08 + .01 * tl("crit") + skinBn("crit") + petBn("crit") + worldBn("crit") + (wkMod().crit || 0); }
+function critChance() { return Math.min(.9, .08 + .01 * tl("crit") + skinBn("crit") + petBn("crit") + worldBn("crit") + (wkMod().crit || 0)); }
 function critMul() { return 5 + .5 * tl("critmul"); }
 function chestWait() { return 1 - .05 * tl("chest"); }
 function goldWait() { return 1 - .05 * tl("gold"); }
@@ -653,7 +654,7 @@ $("eggGrid").onclick = (e) => {
   const b = e.target.closest(".egg");
   if (!b) return;
   const g = EGGS[+b.dataset.i];
-  $("eggHint").innerHTML = state.eggs[g.id] ? `<b>${g.n}</b> Ya lo tienes.` : `<b>Pista:</b> ${g.h}`;
+  $("eggHint").innerHTML = state.eggs[g.id] ? `<b>${g.n}</b> ✓ Cómo se consigue: ${g.h}` : `<b>Pista:</b> ${g.h}`;
 };
 function tickExtra() {
   checkAch(); tickMore();
@@ -694,7 +695,7 @@ const TREE = [
   { id: "xpg", g: "Fortuna", n: "Aprendizaje", d: "+10% de experiencia al renacer", max: 5, req: ["gold", 2] },
 ];
 const rebGoal = (n = state.reb) => 1e6 * Math.pow(9, n);
-const rebXp = () => Math.floor((3 + 2 * state.reb) * (1 + .1 * tl("xpg")) * (1 + .25 * gl("gxp")) * (1 + petBn("xp")));
+const rebXp = () => Math.floor((3 + 2 * state.reb) * (1 + .1 * tl("xpg")) * (1 + .25 * gl("gxp")) * (1 + petBn("xp") + skinBn("xp")));
 const nodeCost = (n) => tl(n.id) + 1;
 function renderTree() {
   let g = "";
@@ -729,7 +730,7 @@ $("rebGo").onclick = () => {
   if (state.run < rebGoal() || !confirm("Vas a renacer. Pierdes ricoins y mejoras de la tienda. Conservas aspectos, logros, objetos, árbol y experiencia. ¿Seguro?")) return;
   state.xp += rebXp(); state.reb++;
   state.coins = tl("start") ? 500 * Math.pow(6, tl("start") - 1) : 0;
-  state.run = 0; state.owned = {}; combo = 0;
+  state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
   confetti(innerWidth / 2, innerHeight / 3, 60); [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => setTimeout(() => sfx(f, .25), i * 90));
   toast("¡Has renacido! Renacimiento " + state.reb); addChest(rollChest()); passXp(50);
   save(); renderTree(); renderWard(); render();
@@ -754,7 +755,7 @@ function renderSkins() {
 const MUT_MAX = 25;
 const MUTS = [
   ...["comun", "raro", "epico", "legendario", "mitico"].map((r, i) => ({ id: "i_" + r, ic: "estrella", n: "Mutación de objetos " + RAR[r].n.toLowerCase(), base: [500, 3e3, 2e4, 2e5, 5e6][i] })),
-  ...["madera", "plata", "oro", "arcano", "mitico"].map((k, i) => ({ id: "c_" + k, ic: "llave", n: "Mutación del " + CHESTS[k].n.toLowerCase(), base: [400, 2500, 15000, 150000, 4e6][i] })),
+  ...["madera", "plata", "oro", "arcano", "legendario", "mitico"].map((k, i) => ({ id: "c_" + k, ic: "llave", n: "Mutación del " + CHESTS[k].n.toLowerCase(), base: [400, 2500, 15000, 150000, 1e6, 4e6][i] })),
 ];
 const mutLvl = (id) => state.mut[id] || 0;
 function mutI(r) { return 1 + .25 * mutLvl("i_" + r); }
@@ -789,7 +790,7 @@ function chestSvg(k) {
 function rollChest() {
   if (Math.random() < .001) return "mitico";
   let r = Math.random() * 100;
-  for (const k of ["madera", "plata", "oro", "arcano"]) if ((r -= Math.round(CHESTS[k].w)) < 0) return k;
+  for (const k of ["madera", "plata", "oro", "arcano", "legendario"]) if ((r -= Math.round(CHESTS[k].w)) < 0) return k;
   return "madera";
 }
 function addChest(k, onlyStore) {
@@ -840,8 +841,6 @@ slotsEl.addEventListener("click", (e) => {
 // ===== Ruleta (cada 5 min) =====
 const SEG = ["coin", "item", "coin", "chest", "coin", "cosm", "coin", "item", "coin", "chest", "coin", "mitico"];
 const SEGC = { coin: ["#ffd84a", "Ricoins"], item: ["#8bd078", "Objeto"], chest: ["#d9a15b", "Cofre"], cosm: ["#ff9ec7", "Aspecto"], mitico: ["#15151b", "MÍTICO"] };
-$("wheel").style.background = "conic-gradient(" + SEG.map((s, k) => `${SEGC[s][0]} ${k * 30}deg ${k * 30 + 30}deg`).join(",") + ")";
-$("wheel").innerHTML = SEG.map((s, k) => `<span style="--a:${k * 30 + 15}deg;${s === "mitico" ? "color:#fff" : ""}">${SEGC[s][1]}</span>`).join("");
 let wheelRot = 0, spinning = false;
 const wheelCd = () => 300000 * Math.max(.2, 1 - skinBn("wheel") - petBn("wheel")) * (1 - .03 * gl("gwheel"));
 function updWheel() {
@@ -851,7 +850,7 @@ function updWheel() {
 }
 function spin() {
   if (spinning || state.wheelAt > Date.now()) return;
-  spinning = true; bumpStreak(); state.st.spins = (state.st.spins || 0) + 1; passXp(3);
+  spinning = true; $("m-wheel").classList.add("spinning"); bumpStreak(); state.st.spins = (state.st.spins || 0) + 1; passXp(3);
   let r = Math.random() * 100, cat = "coin";
   if (r < .1 + .02 * Math.min(10, state.wstreak || 0)) cat = "mitico"; else if (r < 18.1) cat = "item"; else if (r < 38.1) cat = "chest"; else if (r < 50) cat = "cosm"; else cat = "coin";
   const idx = (() => { const l = SEG.map((s, i) => (s === cat ? i : -1)).filter((i) => i >= 0); return l[Math.floor(Math.random() * l.length)]; })();
@@ -860,7 +859,7 @@ function spin() {
   $("wheel").style.transform = `rotate(${wheelRot}deg)`;
   state.wheelAt = Date.now() + wheelCd(); save(); updWheel();
   for (let i = 0; i < 24; i++) setTimeout(() => sfx(300 + (i % 4) * 40, .04), 250 * Math.pow(i, 1.3));
-  setTimeout(() => { spinning = false; givePrize(cat); updWheel(); }, 4700);
+  setTimeout(() => { spinning = false; $("m-wheel").classList.remove("spinning"); flash(cat === "mitico" ? "#ff2d6f" : "#fff3a6"); givePrize(cat); updWheel(); }, 4700);
 }
 $("spinBtn").onclick = spin;
 function rollItem(loot) {
@@ -916,8 +915,8 @@ function mkModal(id, title, body) { const d = document.createElement("div"); d.i
 { const _o = openM; openM = (id) => { _o(id); if (RENDER[id]) RENDER[id](); applyLang(); }; }
 function gl(id) { return (state.gp && state.gp[id]) || 0; }
 // ---- Menú Más
-mkModal("hub", "Más", '<div class="hubg">' + [["m-quests", "Misiones"], ["m-pass", "Pase"], ["m-pets", "Mascotas"], ["m-fuse", "Fusión"], ["m-album", "Álbum"], ["m-gal", "Huevos de oro"], ["m-games", "Minijuegos"], ["m-stats", "Estadísticas"], ["m-asc", "Ascender"], ["m-social", "Social"]].map(([i, n]) => `<button class="btn" data-open="${i}">${n}</button>`).join("") + "</div>");
-mkModal("quests", "Misiones"); mkModal("pass", "Pase de temporada"); mkModal("pets", "Mascotas"); mkModal("fuse", "Fusión de objetos"); mkModal("album", "Álbum de cartas"); mkModal("gal", "Huevos de oro");
+mkModal("hub", "Más", '<div class="hubg">' + [["m-quests", "Misiones"], ["m-codes", "Códigos"], ["m-pets", "Mascotas"], ["m-fuse", "Fusión"], ["m-album", "Álbum"], ["m-gal", "Huevos de oro"], ["m-games", "Minijuegos"], ["m-stats", "Estadísticas"], ["m-asc", "Ascender"], ["m-social", "Social"]].map(([i, n]) => `<button class="btn" data-open="${i}">${n}</button>`).join("") + "</div>");
+mkModal("quests", "Misiones"); mkModal("pets", "Mascotas"); mkModal("fuse", "Fusión de objetos"); mkModal("album", "Álbum de cartas"); mkModal("gal", "Huevos de oro");
 mkModal("stats", "Estadísticas"); mkModal("asc", "Ascender"); mkModal("social", "Social");
 
 
@@ -957,22 +956,50 @@ function startEvent() {
 }
 (function s() { setTimeout(() => { startEvent(); s(); }, 180000 + Math.random() * 180000); })();
 
-// ---- 11 Jefe del corral
+// ---- 11 Jefes del corral (3 tipos, arena con HUD, rabia, explosión)
+const BART = {
+  zorro: `<svg viewBox="0 0 200 170"><path d="M14 8L58 52 142 52 186 8 196 100Q100 172 4 100Z" fill="#ff7a2e" stroke="#2b2118" stroke-width="6" stroke-linejoin="round"/><path d="M40 104Q100 160 160 104Q100 122 40 104Z" fill="#fff" stroke="#2b2118" stroke-width="4"/><path d="M52 76l30 12M148 76l-30 12" stroke="#2b2118" stroke-width="8" stroke-linecap="round"/><circle cx="74" cy="92" r="9" fill="#ffe27a" stroke="#2b2118" stroke-width="3"/><circle cx="126" cy="92" r="9" fill="#ffe27a" stroke="#2b2118" stroke-width="3"/><circle cx="76" cy="93" r="4" fill="#2b2118"/><circle cx="124" cy="93" r="4" fill="#2b2118"/><path d="M88 118h24l-12 16z" fill="#2b2118"/></svg>`,
+  lobo: `<svg viewBox="0 0 200 170"><path d="M16 6L58 52 142 52 184 6 196 104Q100 176 4 104Z" fill="#8a94a8" stroke="#2b2118" stroke-width="6" stroke-linejoin="round"/><path d="M46 106Q100 158 154 106Q100 124 46 106Z" fill="#dfe6ee" stroke="#2b2118" stroke-width="4"/><path d="M50 72l32 14M150 72l-32 14" stroke="#2b2118" stroke-width="9" stroke-linecap="round"/><circle cx="74" cy="92" r="10" fill="#ffd84a" stroke="#2b2118" stroke-width="3"/><circle cx="126" cy="92" r="10" fill="#ffd84a" stroke="#2b2118" stroke-width="3"/><ellipse cx="74" cy="93" rx="2.500" ry="7" fill="#2b2118"/><ellipse cx="126" cy="93" rx="2.500" ry="7" fill="#2b2118"/><path d="M86 118h28l-14 16z" fill="#2b2118"/><path d="M80 138l8 14 8-14M104 138l8 14 8-14" fill="#fff" stroke="#2b2118" stroke-width="3"/></svg>`,
+  dragon: `<svg viewBox="0 0 200 170"><path d="M36 22L58 66 82 44zM164 22L142 66 118 44z" fill="#ffd84a" stroke="#2b2118" stroke-width="5" stroke-linejoin="round"/><path d="M26 98L0 62 44 80zM174 98L200 62 156 80z" fill="#b05cff" stroke="#2b2118" stroke-width="5" stroke-linejoin="round"/><ellipse cx="100" cy="100" rx="78" ry="62" fill="#7a3cff" stroke="#2b2118" stroke-width="6"/><ellipse cx="100" cy="128" rx="38" ry="26" fill="#9a6bff" stroke="#2b2118" stroke-width="4"/><path d="M50 74l32 14M150 74l-32 14" stroke="#2b2118" stroke-width="9" stroke-linecap="round"/><ellipse cx="68" cy="92" rx="15" ry="10" fill="#ffe27a" stroke="#2b2118" stroke-width="3"/><ellipse cx="132" cy="92" rx="15" ry="10" fill="#ffe27a" stroke="#2b2118" stroke-width="3"/><ellipse cx="68" cy="92" rx="3" ry="9" fill="#2b2118"/><ellipse cx="132" cy="92" rx="3" ry="9" fill="#2b2118"/><circle cx="88" cy="124" r="5" fill="#2b2118"/><circle cx="112" cy="124" r="5" fill="#2b2118"/><path d="M84 148q16 32 32 0z" fill="#ff8a1f" stroke="#2b2118" stroke-width="3"/></svg>`,
+};
+const BOSSES = [
+  { id: "zorro", n: "ZORRO DEL CORRAL", m: 1, min: 0, c: "#ff7a2e", chest: "plata" },
+  { id: "lobo", n: "LOBO FEROZ", m: 2.4, min: 1, c: "#8a94a8", chest: "oro" },
+  { id: "dragon", n: "DRAGÓN DE LA YEMA", m: 5, min: 3, c: "#7a3cff", chest: "legendario" },
+];
 let boss = null;
+const bossEl = $("boss");
+function banner(t, col) {
+  const b = document.createElement("div"); b.className = "bnr"; b.textContent = t; b.style.color = col || "#ffd84a"; stage.appendChild(b); setTimeout(() => b.remove(), 1900);
+}
 function spawnBoss() {
   if (!started || boss) return;
-  const hp = 60 + 15 * state.reb + 25 * state.asc; boss = { hp, max: hp, end: Date.now() + 30000 };
-  $("boss").hidden = false; toast("¡Ha llegado el Zorro del corral! Pícalo 30 s"); say("¡Un zorro!"); sfx(220, .3, "sawtooth");
+  const b = pick(BOSSES.filter((x) => state.reb >= x.min || state.asc)), hp = Math.round((60 + 15 * state.reb + 25 * state.asc) * b.m);
+  boss = { b, hp, max: hp, end: Date.now() + 30000 };
+  bossEl.hidden = false; bossEl.className = "boss in"; bossEl.style.setProperty("--bc", b.c);
+  bossEl.innerHTML = `<div class="bn">${b.n}</div><div class="hpb"><div id="bossBar"></div><span id="bossHp"></span></div><div class="bart">${BART[b.id]}</div><div class="tb"><div id="bossT"></div></div>`;
+  stage.classList.add("bossfight"); banner("¡" + b.n + "!", b.c); say("¡Jefe a la vista!"); sfx(180, .4, "sawtooth"); setTimeout(() => sfx(140, .5, "sawtooth"), 250);
+  if (state.set.shake) replay(stage, "shake");
+}
+function endBossUI() { bossEl.hidden = true; stage.classList.remove("bossfight"); }
+function updBoss() {
+  if (!boss) return; const left = boss.end - Date.now();
+  if (left <= 0) { boss = null; endBossUI(); toast("El jefe escapó…"); return; }
+  $("bossBar").style.width = (Math.max(0, boss.hp) / boss.max) * 100 + "%"; $("bossHp").textContent = fmt(Math.max(0, boss.hp)) + " / " + fmt(boss.max);
+  $("bossT").style.width = (left / 30000) * 100 + "%"; bossEl.classList.toggle("rage", boss.hp / boss.max < .3);
 }
 function hitBoss(n) {
-  if (!boss) return; boss.hp -= n;
+  if (!boss) return; boss.hp -= n; replay(bossEl, "hit");
+  floater("-" + n, 40 + Math.random() * 120, 70 + Math.random() * 90, true); sfx(200 + Math.random() * 80, .05, "square");
   if (boss.hp <= 0) {
-    boss = null; $("boss").hidden = true; state.st.bosses = (state.st.bosses || 0) + 1; passXp(15);
-    const g = Math.max(2000, perSec() * 600); gain(g); addChest(Math.random() < .3 ? "oro" : "plata");
-    confetti(stage.clientWidth / 2, stage.clientHeight / 2, 60); toast("¡Zorro derrotado! +" + fmt(g) + " y un cofre"); say("¡Toma zorro!"); render();
+    const b = boss.b; boss = null; bossEl.classList.add("dead"); setTimeout(endBossUI, 900);
+    state.st.bosses = (state.st.bosses || 0) + 1; passXp(Math.round(15 * b.m));
+    const g = Math.max(2000, perSec() * 600) * b.m; gain(g); addChest(b.chest); if (Math.random() < .35) givePet();
+    confetti(stage.clientWidth / 2, stage.clientHeight / 2, 80); banner("¡DERROTADO!", "#4fcf6a"); toast("+" + fmt(g) + " y un cofre " + b.chest);
+    [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => sfx(f, .2), i * 80)); render();
   }
 }
-$("boss").addEventListener("click", () => hitBoss(2));
+bossEl.addEventListener("click", () => hitBoss(2 + Math.floor(combo / 20)));
 (function s() { setTimeout(() => { spawnBoss(); s(); }, 240000 + Math.random() * 180000); })();
 
 // ---- 15 Mensajes del pollo / 18 Emociones
@@ -982,6 +1009,7 @@ let nextSay = Date.now() + 15000;
 // ---- 10 Hitos de combo
 let hit = {};
 $("chick").addEventListener("click", (e) => {
+  state.cc = (state.cc || 0) + 1; updCC();
   if (combo < 5) hit = {};
   for (const m of [10, 25, 50, 100]) if (combo >= m && !hit[m]) {
     hit[m] = 1; const g = Math.max(100, perSec() * m * 2); gain(g);
@@ -1055,34 +1083,68 @@ function applyEvo() {
   $("chick").style.setProperty("--evo", 1 + Math.min(.3, state.reb * .03));
 }
 
-// ---- 5 Mascotas
-const PETS = [
-  { id: "pip", n: "Pip", r: "comun", c: "#ffd84a", t: "clk", b: .03 }, { id: "nuez", n: "Nuez", r: "comun", c: "#c98a3b", t: "sec", b: .03 }, { id: "lola", n: "Lola", r: "comun", c: "#ff9ec7", t: "chest", b: .05 },
-  { id: "tito", n: "Tito", r: "raro", c: "#3d9bff", t: "crit", b: .005 }, { id: "mora", n: "Mora", r: "raro", c: "#8d54d0", t: "sec", b: .06 }, { id: "kiwi", n: "Kiwi", r: "raro", c: "#8fcf2f", t: "clk", b: .06 },
-  { id: "luna", n: "Luna", r: "epico", c: "#dfe6ee", t: "wheel", b: .04 }, { id: "sol", n: "Sol", r: "epico", c: "#ffb400", t: "all", b: .03 },
-  { id: "zeus", n: "Zeus", r: "legendario", c: "#fff3a6", t: "sec", b: .12 }, { id: "omega", n: "Omega", r: "mitico", c: "#15151b", t: "all", b: .08 },
-];
-const petB = (p) => p.b * (1 + .25 * ((state.pets[p.id] || 1) - 1));
-function petBn(t) { return state.petEq.reduce((n, id) => { const p = PETS.find((x) => x.id === id); return n + (p && p.t === t ? petB(p) : 0); }, 0); }
+// ---- 5 Mascotas (animales; solo salen de huevos) y atributos por rareza
+const RFV = { comun: 1, raro: 1.5, epico: 2.5, legendario: 4, mitico: 7 };
+const BV = { sec: .04, clk: .04, crit: .004, chest: .06, wheel: .02, xp: .04, all: .02 };
+const ATY = Object.keys(BV), NATT = { comun: 1, raro: 2, epico: 3, legendario: 4, mitico: 5 };
+function hashS(s) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
+function genAttrs(id, rar, first) {
+  const out = first ? [first] : [], used = new Set(out.map((a) => a[0])), h = hashS(id); let k = 0;
+  while (out.length < NATT[rar] && k < 40) { const t = ATY[(h + k * 3) % ATY.length]; k++; if (used.has(t)) continue; used.add(t); out.push([t, Math.round(BV[t] * RFV[rar] * 1000) / 1000]); }
+  return out;
+}
+const ATX = { sec: ["+", "% producción"], clk: ["+", "% por toque"], crit: ["+", " pts de crítico"], chest: ["+", "% ricoins de cofres"], wheel: ["-", "% espera de ruleta"], xp: ["+", "% XP al renacer"], all: ["+", "% a todo"] };
+const atText = (a) => ATX[a[0]][0] + (a[1] * 100).toFixed(a[1] * 100 < 10 ? 1 : 0) + ATX[a[0]][1];
+const bnArr = (b) => (typeof b[0] === "string" ? [b] : b);
+const bnLine = (b) => bnArr(b).map(atText).join(" · ");
 const petSvg = (c) => `<svg viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="36" rx="12" ry="3" fill="rgba(0,0,0,.2)"/><circle cx="20" cy="22" r="14" fill="${c}" stroke="#2b2118" stroke-width="3"/><circle cx="15" cy="20" r="2.4" fill="#2b2118"/><circle cx="25" cy="20" r="2.4" fill="#2b2118"/><path d="M17 25h6l-3 5z" fill="#ff8a1f" stroke="#2b2118" stroke-width="1.5"/></svg>`;
+const K = "#2b2118", eyes = `<circle cx="15" cy="21" r="2.2" fill="${K}"/><circle cx="25" cy="21" r="2.2" fill="${K}"/>`;
+const ART = {
+  gato: (c) => `<path d="M7 17L9 3l9 8zM33 17L31 3l-9 8z" fill="${c}" stroke="${K}" stroke-width="2" stroke-linejoin="round"/><circle cx="20" cy="23" r="14" fill="${c}" stroke="${K}" stroke-width="2.5"/>${eyes}<path d="M18 26h4l-2 2.500z" fill="#ff8aa8"/><path d="M4 25h8M4 29h8M28 25h8M28 29h8" stroke="${K}" stroke-width="1.200"/>`,
+  perro: (c) => `<ellipse cx="8" cy="20" rx="5" ry="10" fill="#8a5a1f" stroke="${K}" stroke-width="2"/><ellipse cx="32" cy="20" rx="5" ry="10" fill="#8a5a1f" stroke="${K}" stroke-width="2"/><circle cx="20" cy="22" r="13" fill="${c}" stroke="${K}" stroke-width="2.500"/>${eyes}<ellipse cx="20" cy="27" rx="4" ry="3" fill="${K}"/><path d="M18 30q2 6 4 0z" fill="#ff6a8a"/>`,
+  tortuga: (c) => `<ellipse cx="22" cy="24" rx="15" ry="11" fill="#2f8f46" stroke="${K}" stroke-width="2.500"/><path d="M10 22h24M17 14v20M27 14v20" stroke="#1b5e2a" stroke-width="1.500"/><circle cx="6" cy="22" r="6" fill="${c}" stroke="${K}" stroke-width="2"/><circle cx="4.500" cy="21" r="1.400" fill="${K}"/><rect x="11" y="31" width="6" height="6" rx="2" fill="${c}" stroke="${K}" stroke-width="1.500"/><rect x="28" y="31" width="6" height="6" rx="2" fill="${c}" stroke="${K}" stroke-width="1.500"/>`,
+  conejo: (c) => `<ellipse cx="14" cy="9" rx="4" ry="9" fill="${c}" stroke="${K}" stroke-width="2"/><ellipse cx="26" cy="9" rx="4" ry="9" fill="${c}" stroke="${K}" stroke-width="2"/><ellipse cx="14" cy="9" rx="2" ry="6" fill="#ffb3c8"/><ellipse cx="26" cy="9" rx="2" ry="6" fill="#ffb3c8"/><circle cx="20" cy="26" r="12" fill="${c}" stroke="${K}" stroke-width="2.500"/><circle cx="15" cy="24" r="2" fill="${K}"/><circle cx="25" cy="24" r="2" fill="${K}"/><path d="M18 28h4l-2 2z" fill="#ff8aa8"/><rect x="18.500" y="31" width="3" height="4" fill="#fff" stroke="${K}" stroke-width="1"/>`,
+  cocodrilo: (c) => `<rect x="3" y="16" width="34" height="19" rx="8" fill="${c}" stroke="${K}" stroke-width="2.500"/><circle cx="12" cy="14" r="5" fill="${c}" stroke="${K}" stroke-width="2"/><circle cx="28" cy="14" r="5" fill="${c}" stroke="${K}" stroke-width="2"/><circle cx="12" cy="14" r="2" fill="${K}"/><circle cx="28" cy="14" r="2" fill="${K}"/><circle cx="14" cy="22" r="1.200" fill="${K}"/><circle cx="26" cy="22" r="1.200" fill="${K}"/><path d="M6 30l2 4 2-4 2 4 2-4 2 4 2-4 2 4 2-4 2 4 2-4 2 4 2-4" fill="#fff" stroke="${K}" stroke-width="1"/>`,
+  zorro: (c) => `<path d="M6 18L9 3l9 9zM34 18L31 3l-9 9z" fill="${c}" stroke="${K}" stroke-width="2" stroke-linejoin="round"/><circle cx="20" cy="23" r="14" fill="${c}" stroke="${K}" stroke-width="2.500"/><path d="M7 27Q20 40 33 27Q20 31 7 27z" fill="#fff"/>${eyes}<ellipse cx="20" cy="27" rx="3" ry="2.200" fill="${K}"/>`,
+  elefante: (c) => `<circle cx="8" cy="19" r="8" fill="${c}" stroke="${K}" stroke-width="2"/><circle cx="32" cy="19" r="8" fill="${c}" stroke="${K}" stroke-width="2"/><circle cx="20" cy="21" r="12" fill="${c}" stroke="${K}" stroke-width="2.500"/>${eyes}<path d="M18 26q-4 10 2 12 3 0 3-6" fill="none" stroke="${K}" stroke-width="7" stroke-linecap="round"/><path d="M18 26q-4 10 2 12 3 0 3-6" fill="none" stroke="${c}" stroke-width="4" stroke-linecap="round"/>`,
+  panda: () => `<circle cx="8" cy="9" r="5" fill="${K}"/><circle cx="32" cy="9" r="5" fill="${K}"/><circle cx="20" cy="23" r="14" fill="#fff" stroke="${K}" stroke-width="2.500"/><ellipse cx="14" cy="21" rx="4" ry="5" fill="${K}"/><ellipse cx="26" cy="21" rx="4" ry="5" fill="${K}"/><circle cx="14" cy="21" r="1.300" fill="#fff"/><circle cx="26" cy="21" r="1.300" fill="#fff"/><ellipse cx="20" cy="28" rx="3" ry="2" fill="${K}"/>`,
+  leon: (c) => `<circle cx="20" cy="22" r="18" fill="#c7791a" stroke="${K}" stroke-width="2.500"/><circle cx="20" cy="23" r="12" fill="${c}" stroke="${K}" stroke-width="2"/>${eyes}<path d="M17 26h6l-3 3z" fill="${K}"/><path d="M20 29v2M17 32q3 2 6 0" stroke="${K}" stroke-width="1.200" fill="none"/>`,
+  dragon: (c) => `<path d="M8 14L4 2l10 8zM32 14L36 2l-10 8z" fill="#ffd84a" stroke="${K}" stroke-width="2" stroke-linejoin="round"/><path d="M5 22L-1 14 9 18zM35 22L41 14 31 18z" fill="#b05cff" stroke="${K}" stroke-width="2"/><circle cx="20" cy="23" r="14" fill="${c}" stroke="${K}" stroke-width="2.500"/><ellipse cx="14" cy="20" rx="3.500" ry="2.500" fill="#ffe27a" stroke="${K}" stroke-width="1.200"/><ellipse cx="26" cy="20" rx="3.500" ry="2.500" fill="#ffe27a" stroke="${K}" stroke-width="1.200"/><circle cx="17" cy="28" r="1.200" fill="${K}"/><circle cx="23" cy="28" r="1.200" fill="${K}"/><path d="M15 31l1.500 3 1.500-3M22 31l1.500 3 1.500-3" fill="#fff" stroke="${K}" stroke-width=".8"/>`,
+  unicornio: (c) => `<path d="M20 0l4 12h-8z" fill="#ffd84a" stroke="${K}" stroke-width="1.500" stroke-linejoin="round"/><path d="M8 12Q0 22 7 33" fill="none" stroke="#ff5d73" stroke-width="3"/><path d="M10 12Q3 22 10 33" fill="none" stroke="#ffd84a" stroke-width="3"/><path d="M12 12Q6 22 12 32" fill="none" stroke="#3d9bff" stroke-width="3"/><circle cx="21" cy="24" r="13" fill="${c}" stroke="${K}" stroke-width="2.500"/><circle cx="16" cy="22" r="2.200" fill="${K}"/><circle cx="26" cy="22" r="2.200" fill="${K}"/><ellipse cx="21" cy="29" rx="3" ry="2" fill="#ffb3c8"/>`,
+};
+const animalSvg = (sp, c) => `<svg viewBox="-4 -2 48 44" aria-hidden="true">${ART[sp](c)}</svg>`;
+const PETS = [
+  { id: "gato", n: "Gato Michi", sp: "gato", r: "comun", c: "#f5a25d", f: ["clk", .03] }, { id: "perro", n: "Perro Toby", sp: "perro", r: "comun", c: "#d9a15b", f: ["sec", .03] }, { id: "tortuga", n: "Tortuga Tula", sp: "tortuga", r: "comun", c: "#8fd08a", f: ["chest", .05] },
+  { id: "conejo", n: "Conejo Nube", sp: "conejo", r: "raro", c: "#f4f4f4", f: ["clk", .05] }, { id: "cocodrilo", n: "Cocodrilo Cro", sp: "cocodrilo", r: "raro", c: "#58b04a", f: ["sec", .05] }, { id: "zorro", n: "Zorrito Rojo", sp: "zorro", r: "raro", c: "#ff8a3d", f: ["crit", .005] },
+  { id: "elefante", n: "Elefante Dumbo", sp: "elefante", r: "epico", c: "#9aa4b3", f: ["sec", .08] }, { id: "panda", n: "Panda Bambú", sp: "panda", r: "epico", c: "#fff", f: ["chest", .1] },
+  { id: "leon", n: "León Rey", sp: "leon", r: "legendario", c: "#f0a830", f: ["sec", .15] },
+  { id: "dragon", n: "Dragón Chispa", sp: "dragon", r: "mitico", c: "#7a3cff", f: ["all", .05] }, { id: "unicornio", n: "Unicornio Iris", sp: "unicornio", r: "mitico", c: "#ffe9fb", f: ["clk", .2] },
+].map((p) => ({ ...p, at: genAttrs("pet" + p.id, p.r, p.f) }));
+const petLv = (id) => 1 + .25 * ((state.pets[id] || 1) - 1);
+function petBn(t) { return state.petEq.reduce((n, id) => { const p = PETS.find((x) => x.id === id); return n + (p ? p.at.reduce((m, a) => m + (a[0] === t ? a[1] * petLv(id) : 0), 0) : 0); }, 0); }
 const RW = { comun: 60, raro: 28, epico: 9, legendario: 2.5, mitico: .5 };
 function rollRar() { let r = Math.random() * 100; for (const k in RW) if ((r -= RW[k]) < 0) return k; return "comun"; }
-function givePet() {
-  const p = pick(PETS.filter((x) => x.r === rollRar()).concat(PETS.slice(0, 1))), had = state.pets[p.id] || 0;
-  state.pets[p.id] = Math.min(10, had + 1);
-  if (!had && state.petEq.length < 3) state.petEq.push(p.id);
-  toast(had ? "Mascota " + p.n + " sube a nivel " + state.pets[p.id] : "¡Mascota nueva: " + p.n + "!"); save();
+function givePet() { state.peggs = (state.peggs || 0) + 1; toast("¡Huevo de mascota! Ábrelo en Más → Mascotas"); save(); }
+function hatchPet() {
+  if (!state.peggs) return toast("No tienes huevos de mascota");
+  state.peggs--; const p = pick(PETS.filter((x) => x.r === rollRar())), had = state.pets[p.id] || 0;
+  state.pets[p.id] = Math.min(10, had + 1); if (!had && state.petEq.length < 3) state.petEq.push(p.id);
+  showCard(`${animalSvg(p.sp, p.c)}<b>${p.n}</b><span class="rar">${RAR[p.r].n}</span><small>${had ? "¡Sube a nivel " + state.pets[p.id] + "!" : "¡Mascota nueva!"}</small>`, RAR[p.r].c);
+  save(); setTimeout(() => RENDER["m-pets"] && RENDER["m-pets"](), 1400);
 }
 let _pe = "";
-function petsStage() { const s = state.petEq.join(); if (s === _pe) return; _pe = s; $("pets").innerHTML = state.petEq.map((id, i) => { const p = PETS.find((x) => x.id === id); return `<span class="pet p${i}" title="${p.n}">${petSvg(p.c)}</span>`; }).join(""); }
-const PT = { sec: "producción", clk: "por toque", chest: "ricoins de cofres", crit: "pts de crítico", wheel: "menos espera de ruleta", all: "todo", xp: "XP" };
+function petsStage() {
+  const s = state.petEq.join(); if (s === _pe) return; _pe = s;
+  $("pets").innerHTML = state.petEq.map((id, i) => { const p = PETS.find((x) => x.id === id); return `<span class="pet p${i}" title="${p.n}">${animalSvg(p.sp, p.c)}</span>`; }).join("");
+}
 RENDER["m-pets"] = () => {
-  $("b-pets").innerHTML = `<p class="sum">Consíguelas en cofres (7%). Repetidas suben de nivel (máx. 10). Puedes llevar 3.</p><ul class="pets-list">` + PETS.map((p) => {
-    const l = state.pets[p.id] || 0, on = state.petEq.includes(p.id), v = petB(p);
-    return `<li><button class="sk${on ? " on" : ""}${l ? "" : " lk"}" data-pet="${p.id}" style="border-color:${RAR[p.r].c}"><span class="pi">${petSvg(l ? p.c : "#999")}</span><b>${l ? p.n : "???"}</b><small>${l ? "+" + (p.t === "crit" ? (v * 100).toFixed(1) : Math.round(v * 100)) + (p.t === "crit" ? "" : "%") + " " + PT[p.t] : RAR[p.r].n}</small><em>${l ? "Nv " + l + (on ? " · puesta" : "") : "Sin descubrir"}</em></button></li>`;
+  $("b-pets").innerHTML = `<div class="peggs"><span class="egg-ic" style="background:radial-gradient(circle at 35% 30%,#fff,#ffd0e4 55%,#ff78ad)"></span><b>Huevos de mascota: ${state.peggs || 0}</b><button class="btn" data-hatch="1"${state.peggs ? "" : " disabled"}>Abrir huevo</button></div><p class="sum small">Solo salen de huevos (cofres, misiones, pase, códigos). Repetidas suben de nivel (máx. 10). Llevas hasta 3.</p><ul class="pets-list">` + PETS.map((p) => {
+    const l = state.pets[p.id] || 0, on = state.petEq.includes(p.id);
+    return `<li><button class="sk${on ? " on" : ""}${l ? "" : " lk"}" data-pet="${p.id}" style="border-color:${RAR[p.r].c}"><span class="pi">${animalSvg(p.sp, l ? p.c : "#999")}</span><b>${l ? p.n : "???"}</b><em style="color:${RAR[p.r].c}">${RAR[p.r].n}</em>${l ? p.at.map((a) => `<small>${atText([a[0], a[1] * petLv(p.id)])}</small>`).join("") : "<small>Sin descubrir</small>"}<em>${l ? "Nv " + l + (on ? " · puesta" : "") : ""}</em></button></li>`;
   }).join("") + "</ul>";
 };
 document.addEventListener("click", (e) => {
+  if (e.target.closest("[data-hatch]")) return hatchPet();
   const b = e.target.closest("[data-pet]"); if (!b) return; const id = b.dataset.pet; if (!state.pets[id]) return;
   const i = state.petEq.indexOf(id); if (i >= 0) state.petEq.splice(i, 1); else if (state.petEq.length < 3) state.petEq.push(id); else return toast("Solo 3 mascotas a la vez");
   sfx(700, .08); save(); RENDER["m-pets"](); render();
@@ -1162,7 +1224,7 @@ document.addEventListener("click", (e) => {
   if (k === "w") addChest("oro"); passXp(k === "w" ? 100 : 25);
   confetti(stage.clientWidth / 2, stage.clientHeight / 2, 30); toast("Misión completada +" + fmt(g)); sfx(990, .15); save(); render(); RENDER["m-quests"]();
 });
-const PASS_N = 30, PASS_XP = 100, MESES = "Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre".split(",");
+const PASS_N = 60, PASS_XP = 100, MESES = "Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre".split(",");
 function passState() { const k = monthKey(); if (!state.pass || state.pass.key !== k) state.pass = { key: k, xp: 0, claimed: [] }; return state.pass; }
 function passXp(n) { passState().xp += n; }
 const passLvl = () => Math.min(PASS_N, Math.floor(passState().xp / PASS_XP));
@@ -1171,71 +1233,21 @@ for (let i = 0; i < 12; i++) {
   const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); const k = dayKey(d).slice(0, 7), m = d.getMonth();
   COSM.skin.push({ id: seasonId(k), n: "Temporada " + MESES[m] + (i ? " " + d.getFullYear() : ""), secret: 1, bn: ["sec", .4], cls: "shine", v: [`hsl(${m * 30} 80% 60%)`, `hsl(${m * 30} 70% 45%)`, `hsl(${m * 30} 90% 85%)`] });
 }
-function passReward(i) {
-  if (i === PASS_N) return { t: "skin", x: "Aspecto de temporada exclusivo + cofre mítico" };
-  if (i % 10 === 0) return { t: "chest", k: "arcano", x: "Cofre arcano" };
-  if (i % 5 === 0) return { t: "chest", k: "oro", x: "Cofre de oro" };
-  return { t: "coin", x: "Ricoins" };
-}
-RENDER["m-pass"] = () => {
-  const ps = passState(), L = passLvl();
-  $("b-pass").innerHTML = `<p class="sum">Temporada de ${MESES[new Date().getMonth()]} · nivel <b>${L}</b>/${PASS_N} · ${ps.xp % PASS_XP}/${PASS_XP} XP. Gana XP con misiones, logros, cofres, zorros y renaciendo.</p><div class="bar"><div style="width:${L >= PASS_N ? 100 : ps.xp % PASS_XP}%"></div></div><div class="passl">` + Array.from({ length: PASS_N }, (_, j) => {
-    const i = j + 1, r = passReward(i), done = ps.claimed.includes(i), ok = L >= i;
-    return `<button class="node${done ? " has" : ""}" data-pass="${i}"${!ok || done ? " disabled" : ""}><b>Nivel ${i}</b><small>${r.x}</small><span>${done ? "✓" : ok ? "Reclamar" : "🔒"}</span></button>`;
-  }).join("") + "</div>";
-};
-document.addEventListener("click", (e) => {
-  const b = e.target.closest("[data-pass]"); if (!b) return; const i = +b.dataset.pass, ps = passState();
-  if (passLvl() < i || ps.claimed.includes(i)) return; ps.claimed.push(i); const r = passReward(i);
-  if (r.t === "coin") gain(Math.max(500, perSec() * 60) * (1 + i / 5)); else if (r.t === "chest") addChest(r.k);
-  else { state.cosm.own.push("skin:" + seasonId(ps.key)); addChest("mitico"); toast("¡Aspecto de temporada desbloqueado!"); renderWard(); }
-  confetti(stage.clientWidth / 2, stage.clientHeight / 2, 25); sfx(990, .15); save(); render(); RENDER["m-pass"]();
-});
-
 // ---- 4 Ascender
 const PERKS = [{ id: "gprod", n: "Plumas de poder", d: "+20% producción global", c: 1 }, { id: "gxp", n: "Sabiduría", d: "+25% XP al renacer", c: 2 }, { id: "gchest", n: "Cofres veloces", d: "-5% espera de cofres", c: 2 }, { id: "gwheel", n: "Ruleta veloz", d: "-3% espera de ruleta", c: 3 }];
 RENDER["m-asc"] = () => {
   const can = state.reb >= 5, g = Math.max(1, Math.floor(state.reb / 5));
-  $("b-asc").innerHTML = `<p class="sum">Ascensiones: <b>${state.asc}</b> (cada una da +50% de producción global) · Plumas doradas: <b>${state.gf}</b></p><p class="sum small">Necesitas 5 renacimientos. Ascender reinicia renacimientos, árbol, XP, ricoins y mejoras. Conservas aspectos, logros, objetos, cartas, mascotas y mutaciones. Ganarías <b>${g}</b> pluma${g > 1 ? "s" : ""}.</p><button id="ascGo" class="btn wide reb"${can ? "" : " disabled"}>Ascender</button><h3>Plumas doradas</h3>` + PERKS.map((p) => { const l = gl(p.id), c = p.c * (l + 1); return `<button class="node${l ? " has" : ""}" data-perk="${p.id}"${l >= 10 || state.gf < c ? " disabled" : ""}><b>${p.n} ${l}/10</b><small>${p.d}</small><span>${l >= 10 ? "Máx." : c + " 🪶"}</span></button>`; }).join("");
+  $("b-asc").innerHTML = `<p class="sum">Ascensiones: <b>${state.asc}</b> (cada una da +50% de producción global) · Plumas doradas: <b>${state.gf}</b></p><p class="sum small">Necesitas 5 renacimientos. Ascender reinicia renacimientos, ricoins y mejoras. Conservas el árbol, la XP, aspectos, logros, objetos, cartas, mascotas y mutaciones. Ganarías <b>${g}</b> pluma${g > 1 ? "s" : ""}.</p><button id="ascGo" class="btn wide reb"${can ? "" : " disabled"}>Ascender</button><h3>Plumas doradas</h3>` + PERKS.map((p) => { const l = gl(p.id), c = p.c * (l + 1); return `<button class="node${l ? " has" : ""}" data-perk="${p.id}"${l >= 10 || state.gf < c ? " disabled" : ""}><b>${p.n} ${l}/10</b><small>${p.d}</small><span>${l >= 10 ? "Máx." : c + " 🪶"}</span></button>`; }).join("");
 };
 document.addEventListener("click", (e) => {
   if (e.target.id === "ascGo") {
-    if (state.reb < 5 || !confirm("Vas a ascender y reiniciar renacimientos, árbol, XP, ricoins y mejoras. ¿Seguro?")) return;
-    state.gf += Math.max(1, Math.floor(state.reb / 5)); state.asc++; state.reb = 0; state.xp = 0; state.tree = {}; state.coins = 0; state.run = 0; state.owned = {}; combo = 0;
+    if (state.reb < 5 || !confirm("Vas a ascender y reiniciar renacimientos, ricoins y mejoras (conservas el árbol y la XP). ¿Seguro?")) return;
+    state.gf += Math.max(1, Math.floor(state.reb / 5)); state.asc++; state.reb = 0; state.coins = 0; state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
     confetti(innerWidth / 2, innerHeight / 3, 80); toast("¡Has ascendido! Ascensión " + state.asc); passXp(100); save(); render(); renderTree(); RENDER["m-asc"]();
   }
   const p = e.target.closest("[data-perk]"); if (!p) return; const pk = PERKS.find((x) => x.id === p.dataset.perk), c = pk.c * (gl(pk.id) + 1);
   if (state.gf < c || gl(pk.id) >= 10) return; state.gf -= c; state.gp[pk.id] = gl(pk.id) + 1; sfx(880, .12); save(); render(); RENDER["m-asc"]();
 });
-
-// ---- 12 Minijuegos
-mkModal("games", "Minijuegos", `<p class="sum">Atrapahuevos y Memoria: gratis cada 10 min. Tragaperras: cuesta ricoins.</p><div class="foot"><button class="btn" id="mgC">Atrapahuevos</button><button class="btn" id="mgM">Memoria</button><button class="btn" id="mgS">Tragaperras</button></div><p id="mgHud" class="sum"></p><div id="mgArena" class="arena"></div>`);
-const mgCd = (k) => { const l = (state.mgAt[k] || 0) - Date.now(); return l > 0 ? l : 0; };
-$("mgC").onclick = () => {
-  if (mgCd("c")) return toast("Disponible en " + fmtT(mgCd("c")));
-  state.mgAt.c = Date.now() + 600000; const ar = $("mgArena"), hud = $("mgHud"); let sc = 0, t = 20; ar.innerHTML = ""; hud.textContent = "¡Atrapa los huevos! 20 s · 0";
-  const sp = setInterval(() => { const e = document.createElement("button"); e.className = "mgegg" + (Math.random() < .12 ? " gold" : ""); e.style.left = Math.random() * 86 + "%"; e.style.animationDuration = 1.5 + Math.random() + "s"; e.onclick = () => { sc += e.classList.contains("gold") ? 5 : 1; hud.textContent = "¡Atrapa los huevos! " + t + " s · " + sc; e.remove(); sfx(600 + sc * 8, .05); }; e.addEventListener("animationend", () => e.remove()); ar.appendChild(e); }, 380);
-  const tm = setInterval(() => { t--; hud.textContent = "¡Atrapa los huevos! " + t + " s · " + sc; if (t <= 0) { clearInterval(sp); clearInterval(tm); ar.innerHTML = ""; const g = sc * Math.max(100, perSec() * 8); gain(g); state.st.games = (state.st.games || 0) + 1; passXp(5); hud.textContent = "Atrapados " + sc + ": +" + fmt(g) + " ricoins"; confetti(stage.clientWidth / 2, stage.clientHeight / 2, 25); save(); render(); } }, 1000);
-};
-$("mgM").onclick = () => {
-  if (mgCd("m")) return toast("Disponible en " + fmtT(mgCd("m")));
-  state.mgAt.m = Date.now() + 600000; const ar = $("mgArena"), hud = $("mgHud"), ic = ITEMS.slice(0, 6), deck = [...ic, ...ic].sort(() => Math.random() - .5); let open = [], moves = 0, found = 0, lock = false;
-  hud.textContent = "Encuentra las 6 parejas · movimientos: 0";
-  ar.innerHTML = '<div class="mem">' + deck.map((it, i) => `<button class="mc" data-i="${i}"><span>${svg(it.id, it.col)}</span></button>`).join("") + "</div>";
-  ar.onclick = (e) => {
-    const b = e.target.closest(".mc"); if (!b || lock || b.classList.contains("up")) return; b.classList.add("up"); open.push(b); sfx(500, .05);
-    if (open.length === 2) { moves++; hud.textContent = "Encuentra las 6 parejas · movimientos: " + moves; const [a, c] = open;
-      if (deck[+a.dataset.i].id === deck[+c.dataset.i].id) { found++; open = []; sfx(900, .1); if (found === 6) { const g = Math.max(500, perSec() * 200) * Math.max(1, (20 - moves) / 6); gain(g); state.st.games = (state.st.games || 0) + 1; passXp(5); hud.textContent = "¡Completado en " + moves + " movimientos! +" + fmt(g); confetti(stage.clientWidth / 2, stage.clientHeight / 2, 30); save(); render(); } }
-      else { lock = true; setTimeout(() => { a.classList.remove("up"); c.classList.remove("up"); open = []; lock = false; }, 700); } }
-  };
-};
-$("mgS").onclick = () => {
-  const c = Math.max(100, perSec() * 20); if (state.coins < c) return toast("Necesitas " + fmt(c) + " ricoins");
-  state.coins -= c; const S = ["gema", "estrella", "trebol", "llave", "diamante", "nido"], ar = $("mgArena"), hud = $("mgHud"), r = [pick(S), pick(S), pick(S)];
-  ar.onclick = null; let n = 0; hud.textContent = "Cuesta " + fmt(c) + " ricoins";
-  const iv = setInterval(() => { n++; ar.innerHTML = '<div class="reels">' + [0, 1, 2].map((i) => `<span>${svg(n > 6 + i * 3 ? r[i] : pick(S), "#ffd84a")}</span>`).join("") + "</div>"; sfx(300 + n * 20, .04);
-    if (n > 12) { clearInterval(iv); const u = new Set(r).size, m = u === 1 ? 12 : u === 2 ? 1.2 : 0, g = c * m; state.st.games = (state.st.games || 0) + 1; if (g) { gain(g); confetti(stage.clientWidth / 2, stage.clientHeight / 2, u === 1 ? 70 : 15); } hud.textContent = g ? "¡Premio! +" + fmt(g) : "Mala suerte…"; render(); } }, 120);
-};
 
 // ---- 29 Estadísticas y 27 Títulos
 const TITLES = [
@@ -1262,25 +1274,6 @@ const WK = [
 const wkMod = () => WK[Math.floor(seedRand("wk" + weekKey())() * WK.length)];
 function wkM(t) { const m = wkMod(); return t === "crit" ? 1 : m[t] || 1; }
 function wkScore() { if (!state.wk || state.wk.key !== weekKey()) state.wk = { key: weekKey(), start: state.total }; return state.total - state.wk.start; }
-const myCard = () => "RC1." + enc(JSON.stringify({ n: state.name || "Anónimo", t: state.total, r: state.reb, a: state.asc, k: Object.keys(state.ach).length, w: weekKey(), ws: wkScore() }));
-function copyText(c, msg) { (typeof navigator !== "undefined" && navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast(msg), () => prompt("Copia el código:", c)); }
-RENDER["m-social"] = () => {
-  const me = { n: state.name || "Anónimo", t: state.total, r: state.reb, a: state.asc, w: weekKey(), ws: wkScore(), me: 1 }, all = [me, ...state.friends].sort((a, b) => b.t - a.t), wk = all.filter((x) => x.w === weekKey()).sort((a, b) => b.ws - a.ws);
-  $("b-social").innerHTML = `<p class="sum small">Sin servidor: os pasáis códigos entre amigos (por chat). Los datos se guardan en tu navegador.</p><label class="row">Tu nombre <input id="myName" maxlength="14" value="${(state.name || "").replace(/"/g, "")}"></label><div class="foot"><button class="btn" data-s="card">Copiar mi tarjeta</button><button class="btn" data-s="add">Añadir amigo (pegar tarjeta)</button></div>
-  <h3>Ranking (ricoins totales)</h3><ol class="rank-l">${all.map((x) => `<li class="${x.me ? "me" : ""}"><b>${x.n}</b> · ${fmt(x.t)} · ren ${x.r}${x.a ? " · asc " + x.a : ""}</li>`).join("")}</ol>
-  <h3>Reto semanal ${weekKey()}</h3><p class="sum">${wkMod().n}. Tu puntuación: <b>${fmt(wkScore())}</b> ricoins esta semana (el modificador afecta a toda la partida).</p><ol class="rank-l">${wk.map((x) => `<li class="${x.me ? "me" : ""}"><b>${x.n}</b> · ${fmt(x.ws)}</li>`).join("")}</ol>
-  <h3>Regalos</h3><div class="foot"><button class="btn" data-s="coin">Regalar ricoins</button><button class="btn" data-s="redeem">Canjear regalo</button></div><ul class="fuse">${ITEMS.filter((i) => state.items[i.id]).map((i) => `<li><span class="fi">${svg(i.id, i.col)}</span><span><b>${i.name} x${state.items[i.id]}</b></span><button class="btn" data-s="gift:${i.id}">Regalar 1</button></li>`).join("")}</ul>`;
-};
-$("b-social").addEventListener("change", (e) => { if (e.target.id === "myName") { state.name = e.target.value.trim(); save(); } });
-$("b-social").addEventListener("click", (e) => {
-  const b = e.target.closest("[data-s]"); if (!b) return; const a = b.dataset.s;
-  if (a === "card") return copyText(myCard(), "Tarjeta copiada");
-  if (a === "add") { const c = prompt("Pega la tarjeta de tu amigo:"); if (!c) return; try { const d = JSON.parse(dec(c.trim().replace(/^RC1\./, ""))); if (typeof d.t !== "number") throw 0; state.friends = state.friends.filter((x) => x.n !== d.n).concat(d).slice(-20); save(); RENDER["m-social"](); } catch { toast("Tarjeta no válida"); } return; }
-  if (a === "coin") { const v = Math.floor(+prompt("¿Cuántos ricoins regalas?") || 0); if (v <= 0 || v > state.coins) return toast("Cantidad no válida"); const x = Math.random().toString(36).slice(2, 9); state.coins -= v; state.gifts.push(x); save(); render(); return copyText("RG1." + enc(JSON.stringify({ t: "c", a: v, f: state.name || "Anónimo", x })), "Regalo copiado: pásaselo a tu amigo"); }
-  if (a === "redeem") { const c = prompt("Pega el código de regalo:"); if (!c) return; try { const d = JSON.parse(dec(c.trim().replace(/^RG1\./, ""))); if (state.gifts.includes(d.x)) return toast("No puedes canjear tu propio regalo"); if (state.redeemed.includes(d.x)) return toast("Regalo ya canjeado"); state.redeemed.push(d.x); if (d.t === "c") gain(d.a); else state.items[d.id] = (state.items[d.id] || 0) + 1; confetti(stage.clientWidth / 2, stage.clientHeight / 2, 40); toast("¡Regalo de " + d.f + " recibido!"); save(); render(); renderColl(); } catch { toast("Código no válido"); } return; }
-  if (a.startsWith("gift:")) { const id = a.slice(5), it = ITEMS.find((i) => i.id === id), x = Math.random().toString(36).slice(2, 9); if (!state.items[id]) return; state.items[id]--; state.gifts.push(x); save(); renderColl(); RENDER["m-social"](); copyText("RG1." + enc(JSON.stringify({ t: "i", id, f: state.name || "Anónimo", x })), "Regalo copiado: " + it.name); }
-});
-
 // ---- 9 Huevo sorpresa al abrir
 const crack = document.createElement("div"); crack.id = "crack"; crack.className = "crack"; crack.hidden = true;
 crack.innerHTML = '<svg viewBox="0 0 100 130" aria-hidden="true"><path class="eg" d="M50 6C78 6 94 56 94 82a44 44 0 0 1-88 0C6 56 22 6 50 6z" fill="#fff8e6" stroke="#2b2118" stroke-width="5"/><path class="ck" d="M18 70l14 12 12-14 12 14 14-12 14 12" fill="none" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/></svg>';
@@ -1368,7 +1361,7 @@ ACH.push(
   { id: "s5", n: "Ascendido", d: "Asciende por primera vez", r: "legendario", sec: 1, f: () => state.asc >= 1 },
   { id: "s6", n: "Álbum completo", d: "Consigue las 24 cartas", r: "mitico", sec: 1, f: () => CARDS.every((c) => state.cards[c.id]) },
   { id: "s7", n: "Cazazorros", d: "Derrota 10 zorros", r: "raro", f: () => (state.st.bosses || 0) >= 10 },
-  { id: "s8", n: "Nivel pase 30", d: "Completa el pase de temporada", r: "epico", f: () => passLvl() >= PASS_N });
+  { id: "s8", n: "Pase completo", d: "Completa los 60 niveles del pase de temporada", r: "epico", f: () => passLvl() >= PASS_N });
 
 // ---- Bucle extra
 let T3 = 0, notified = {}, _tl = "";
@@ -1394,7 +1387,7 @@ function tick3() {
   if (T3 % 20 === 0) { applyEvo(); petsStage(); const t = TITLES.find((x) => x.id === (state.title || "nov")); titleLbl.textContent = t && t.f() ? t.n : "Pollito novato"; if (state.set.auto) applyLook(); }
   if (Date.now() > nextSay) { nextSay = Date.now() + 25000 + Math.random() * 20000; say(pick(idle > 45000 ? ["¿Hola? ¿Sigues ahí?", "Me aburro…"] : h < 6 ? ["Zzz…", "¿No es hora de dormir?"] : ["¡Pío!", "Hoy me siento rico.", "Dame toquecitos.", "¿Ya giraste la ruleta?", "Hay cofres esperando."])); }
   if (ev) { if (Date.now() >= ev.end) { ev = null; evBan.hidden = true; } else { evBan.hidden = false; evBan.textContent = ev.n.split("!")[0] + "! " + Math.ceil((ev.end - Date.now()) / 1000) + " s"; if (ev.id === "tormenta" && T3 % 3 === 0) spray("coin", Math.random() * stage.clientWidth, 0, 1, 800, 40); } }
-  if (boss) { if (Date.now() >= boss.end) { boss = null; $("boss").hidden = true; toast("El zorro escapó…"); } else $("bossBar").style.width = (boss.hp / boss.max) * 100 + "%"; }
+  updBoss();
   const wl = state.wheelAt - Date.now(); if (wl <= 0) notify("w", "¡La ruleta está lista!"); else delete notified.w;
   state.slots.forEach((s, i) => { if (s && s.end && s.end <= Date.now()) notify("s" + i, "¡Un cofre está listo!"); else delete notified["s" + i]; });
 }
@@ -1414,10 +1407,347 @@ $("start").addEventListener("click", () => {
   if (!state.tut) setTimeout(() => showTut(0), 1500);
 });
 ensureQuests(); passState(); wkScore();
-function extraMult() { return (1 + .2 * gl("gprod")) * (1 + .5 * state.asc) * (1 + cardBonus()) * (1 + petBn("all")); }
+function extraMult() { return (1 + .2 * gl("gprod")) * (1 + .5 * state.asc) * (1 + cardBonus()) * (1 + petBn("all") + skinBn("all")); }
 function secX() { return (1 + petBn("sec")) * (1 + worldBn("sec")) * evM("sec") * wkM("sec"); }
 function clkX() { return (1 + petBn("clk")) * (1 + worldBn("clk")) * evM("clk") * wkM("clk"); }
 if (typeof navigator !== "undefined" && "serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+// ===================== RONDA 2 =====================
+// ---- Rareza y atributos de aspectos y cosméticos
+function rarOf(x) {
+  if (x.rar) return x.rar; if (x.id === "ninguno") return "comun";
+  if (x.rank !== undefined) return ["comun", "epico", "legendario", "mitico"][x.rank] || "epico";
+  if (x.reb !== undefined) return x.reb <= 2 ? "epico" : x.reb <= 6 ? "legendario" : "mitico";
+  if (x.achN) return x.achN >= 30 ? "mitico" : "legendario"; if (x.egg) return "mitico";
+  const p = x.p || 0; return p <= 1500 ? "comun" : p <= 6000 ? "raro" : p <= 60000 ? "epico" : p <= 1e6 ? "legendario" : "mitico";
+}
+const rarCol = (x) => { const r = x.rar || rarOf(x); return RAR[r] ? RAR[r].c : "#2b2118"; };
+const SKR = { clasico: "comun", rosa: "comun", menta: "comun", hielo: "comun", coral: "comun", lima: "raro", uva: "raro", noche: "raro", cielo: "raro", carbon: "raro", sandia: "raro", oro: "epico", plata: "epico", esmeralda: "epico", veterano: "epico", lava: "legendario", cosmos: "legendario", leyenda: "legendario", fantasma: "legendario", arcoiris: "legendario", fenix: "mitico", galaxia: "mitico", radio: "mitico", supremo: "mitico" };
+const SKT = { fenix: "fuego", galaxia: "galaxia", radio: "radio", supremo: "iris" };
+const SKA = { lava: "#ff7a2e", cosmos: "#8a7bdc", leyenda: "#ffd84a", fantasma: "#ffffff", arcoiris: "#ff5d73", fenix: "#ff6a1a", galaxia: "#ff3ca8", radio: "#b6ff1a", supremo: "#ffd84a" };
+COSM.skin.push(
+  { id: "naranja", n: "Naranja", p: 80, v: ["#ffa24a", "#ee8a2b", "#ffd9ae"], rar: "comun" },
+  { id: "turquesa", n: "Turquesa", p: 2200, v: ["#3fd6c9", "#1fa89c", "#b8f5ee"], rar: "raro" },
+  { id: "rubi", n: "Rubí", p: 6000, v: ["#e0314b", "#a8142f", "#ff9aa8"], rar: "raro" },
+  { id: "amatista", n: "Amatista", p: 20000, v: ["#9b5de5", "#6a2fc4", "#d9b8ff"], rar: "epico", cls: "shine" },
+  { id: "jade", n: "Jade", p: 40000, v: ["#3ec28f", "#1d8a63", "#b4f0d8"], rar: "epico", cls: "shine" },
+  { id: "bronce", n: "Bronce", p: 90000, v: ["#cd7f32", "#9a5a1c", "#f0c58f"], rar: "epico", cls: "shine" },
+  { id: "tormenta", n: "Tormenta", p: 8e6, v: ["#3a4a7a", "#2b3560", "#9fd0ff"], rar: "legendario", au: "#3db8ff", cls: "shine" },
+  { id: "aurora", n: "Aurora", p: 3e7, v: ["#2de0b0", "#3d6cff", "#b6ffe8"], rar: "legendario", au: "#5fffd0", cls: "shine" },
+  { id: "sombra", n: "Sombra", p: 1e8, v: ["#2a2a35", "#15151b", "#6a5acd"], rar: "legendario", au: "#b05cff" },
+  { id: "dragon", n: "Dragón", p: 5e8, v: ["#1f7a3a", "#124d25", "#7cf08a"], rar: "mitico", tx: "escamas", au: "#3ccf6a" },
+  { id: "oceano", n: "Océano", p: 2e9, v: ["#1d6fd6", "#0f4a99", "#9fe8ff"], rar: "mitico", tx: "olas", au: "#4fc3ff" },
+  { id: "glitch", n: "Glitch", p: 1e10, v: ["#16161e", "#ff2d9a", "#00e5ff"], rar: "mitico", tx: "glitch", au: "#ff2d9a" },
+  { id: "diamante", n: "Diamante", achN: 45, v: ["#9ff0ff", "#5fd0f0", "#e8fcff"], rar: "mitico", tx: "facetas", au: "#9ff0ff" });
+COSM.hat.push({ id: "cuernos", n: "Cuernos de diablo", p: 12000 }, { id: "flores", n: "Corona de flores", p: 3500 }, { id: "vikingo", n: "Casco vikingo", p: 120000 });
+COSM.eyes.push({ id: "laser", n: "Visor láser", p: 80000 }, { id: "fuegoojos", n: "Ojos de fuego", p: 2e6 });
+COSM.neck.push({ id: "cadena", n: "Cadena de oro", p: 25000 }, { id: "perlas", n: "Collar de perlas", p: 4000 });
+COSM.back.push({ id: "jetpack", n: "Jetpack", p: 400000 }, { id: "alasfuego", n: "Alas de fuego", p: 5e6 });
+COSM.feet.push({ id: "patines", n: "Patines", p: 15000 });
+COSM.skin.forEach((s) => {
+  if (/^pase/.test(s.id)) { s.rar = "mitico"; s.tx = "pase"; s.au = "#ffd84a"; } else { s.rar = SKR[s.id] || s.rar || rarOf(s); if (SKT[s.id]) s.tx = SKT[s.id]; if (SKA[s.id]) s.au = SKA[s.id]; }
+  if (s.id !== "clasico") s.bn = genAttrs("sk" + s.id, s.rar, s.bn ? bnArr(s.bn)[0] : null);
+});
+["hat", "eyes", "neck", "back", "feet", "tap", "trail"].forEach((c) => COSM[c].forEach((x) => { if (x.id === "ninguno") return; x.rar = rarOf(x); x.bn = genAttrs(c + x.id, x.rar, null); }));
+const EQC = ["skin", "hat", "eyes", "neck", "back", "feet", "tap", "trail"];
+function skinBn(t) {
+  let n = 0;
+  for (const c of EQC) { const x = COSM[c].find((y) => y.id === state.cosm.eq[c]); if (x && x.bn) for (const a of bnArr(x.bn)) if (a[0] === t) n += a[1]; }
+  return n;
+}
+const TXCSS = { galaxia: "radial-gradient(circle at 35% 30%,#ff6ad5,#5b3cff 50%,#12103a)", fuego: "linear-gradient(0deg,#c1190a,#ff6a1a,#ffe27a)", radio: "repeating-linear-gradient(90deg,#b6ff1a 0 6px,#1c2a05 6px 12px)", iris: "conic-gradient(#ff5d73,#ffb400,#6fd06f,#3d9bff,#b05cff,#ff5d73)", pase: "conic-gradient(#4b2a8c,#ffd84a,#4b2a8c,#ffd84a,#4b2a8c)", escamas: "radial-gradient(circle,#7cf08a 18%,#1f7a3a 22% 60%,#124d25)", olas: "repeating-linear-gradient(0deg,#1d6fd6 0 5px,#9fe8ff 5px 7px)", glitch: "linear-gradient(90deg,#ff2d9a,#16161e,#00e5ff,#16161e)", facetas: "conic-gradient(#e8fcff,#5fd0f0,#c8f6ff,#9ff0ff,#e8fcff)" };
+function renderSkins() {
+  $("skinGrid").innerHTML = COSM.skin.map((o) => {
+    const x = { ...o, cat: "skin", key: "skin:" + o.id }, own = has(x), on = state.cosm.eq.skin === o.id, hid = !own && x.secret;
+    const st = on ? "Puesto" : own ? "Poner" : x.p ? fmt(x.p) + " ricoins" : reqText(x), bg = o.tx ? TXCSS[o.tx] : `radial-gradient(circle at 30% 30%,${o.v[2]},${o.v[0]} 55%,${o.v[1]})`;
+    return `<li><button class="sk r-${o.rar}${on ? " on" : ""}${own ? "" : " lk"}" data-k="${x.key}" style="--rc:${rarCol(o)}"><i class="${o.tx ? "txi" : ""}" style="background:${bg}"></i><b>${hid ? "Secreto" : o.n}</b><em class="rt" style="color:${rarCol(o)}">${RAR[o.rar].n}${o.tx ? " · textura" : ""}${o.rar === "legendario" || o.rar === "mitico" ? " · aura" : ""}</em>${hid ? "<small>???</small>" : o.bn ? bnArr(o.bn).map((a) => `<small>${atText(a)}</small>`).join("") : "<small>Sin bonus</small>"}<em>${st}</em>${own ? "" : LOCK}</button></li>`;
+  }).join("");
+}
+function applyFx() {
+  const e = state.cosm.eq, sk = COSM.skin.find((x) => x.id === e.skin) || COSM.skin[0], ch = $("chick"), halo = $("halo"), r = sk.rar || "comun", au = sk.au || sk.v[1];
+  document.querySelectorAll("#chick .tx").forEach((g) => (g.style.display = sk.tx && g.dataset.t === sk.tx ? "inline" : "none"));
+  ch.classList.toggle("al", r === "legendario"); ch.classList.toggle("am", r === "mitico"); ch.style.setProperty("--au", au);
+  halo.className = "halo" + (r === "legendario" ? " l" : r === "mitico" ? " m" : ""); halo.style.setProperty("--au", au);
+  const m = { hat: e.hat, eyes: e.eyes, neck: e.neck, back: e.back, feet: e.feet };
+  document.querySelectorAll("#chick .a").forEach((g) => {
+    let cat = null; for (const c in m) if (m[c] === g.dataset.a) cat = c;
+    const x = cat && COSM[cat].find((y) => y.id === g.dataset.a), rr = (x && x.rar) || "comun";
+    g.setAttribute("class", "a" + (rr === "legendario" || rr === "mitico" ? " r-" + rr : "")); g.style.setProperty("--ac", RAR[rr] ? RAR[rr].c : "#fff");
+  });
+}
+const FXA = ["legendario", "mitico"];
+{ const _amb = ambient; ambient = () => { _amb(); const sk = COSM.skin.find((x) => x.id === state.cosm.eq.skin); if (sk && FXA.includes(sk.rar) && state.set.fx && !FXC[sk.id]) spray("conf", stage.clientWidth / 2 + (Math.random() - .5) * 160, stage.clientHeight / 2 + 40 + (Math.random() - .5) * 100, 1, 1100, 60, () => `--c:${sk.au || sk.v[1]}`); }; }
+
+// ---- Contador de clicks visual (hasta renacer)
+const ccEl = document.createElement("div"); ccEl.id = "cc"; ccEl.className = "cc"; ccEl.innerHTML = '<span>CLICK</span><b id="ccN">x0</b>'; stage.appendChild(ccEl);
+function updCC(quiet) {
+  const n = state.cc || 0; $("ccN").textContent = "x" + n.toLocaleString("es"); ccEl.dataset.t = n >= 5000 ? 5 : n >= 1000 ? 4 : n >= 500 ? 3 : n >= 100 ? 2 : 1;
+  if (quiet) return; replay(ccEl, "pop");
+  if ([100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000].includes(n)) { replay(ccEl, "big"); toast("¡CLICK x" + n.toLocaleString("es") + "!"); confetti(stage.clientWidth * .85, 120, 20); sfx(1000, .15); }
+}
+
+// ---- Pase de batalla visual (abajo a la izquierda, 60 marcas, gratis + premium 50M)
+const PASS_PREM = 50e6;
+function passState() { const k = monthKey(); if (!state.pass || state.pass.key !== k) state.pass = { key: k, xp: 0, cf: [], cp: [], prem: false }; if (!state.pass.cf) { state.pass.cf = []; state.pass.cp = []; } return state.pass; }
+const CK = { 10: "plata", 20: "oro", 40: "arcano", 50: "legendario" }, CKP = { 10: "oro", 20: "arcano", 40: "legendario", 50: "mitico" };
+function passFree(i) {
+  if (i === 30) return { t: "item", r: "mitico", x: "Objeto mítico", s: "Mítico" }; if (i === 60) return { t: "chest", k: "mitico", x: "Cofre mítico", s: "Mítico" };
+  if (CK[i]) return { t: "chest", k: CK[i], x: "Cofre " + CK[i], s: CK[i] }; if (i % 5 === 0) return { t: "egg", n: 1, x: "Huevo de mascota", s: "x1" };
+  if (i % 3 === 0) return { t: "chest", k: "madera", x: "Cofre de madera", s: "Madera" }; return { t: "coin", m: i, x: "Ricoins", s: "Ricoins" };
+}
+function passPrem(i) {
+  if (i === 30) return { t: "item", r: "mitico", x: "Objeto mítico", s: "Mítico" }; if (i === 60) return { t: "skin", x: "Skin mítica exclusiva del pase", s: "SKIN" };
+  if (CKP[i]) return { t: "chest", k: CKP[i], x: "Cofre " + CKP[i], s: CKP[i] }; if (i % 5 === 0) return { t: "egg", n: 2, x: "2 huevos de mascota", s: "x2" };
+  if (i % 2 === 0) return { t: "chest", k: i % 4 === 0 ? "oro" : "plata", x: "Cofre", s: i % 4 === 0 ? "Oro" : "Plata" }; return { t: "coin", m: i * 3, x: "Ricoins x3", s: "Ricoins" };
+}
+const EGGSV = '<svg viewBox="0 0 40 40"><path d="M20 3c8 0 13 12 13 20a13 13 0 0 1-26 0C7 15 12 3 20 3z" fill="#fff8e6" stroke="#2b2118" stroke-width="2.500"/><circle cx="15" cy="22" r="2.500" fill="#ff9ec7"/><circle cx="24" cy="16" r="2" fill="#8fe0ff"/><circle cx="23" cy="27" r="2.400" fill="#ffd84a"/></svg>';
+function ptIcon(r) {
+  if (r.t === "coin") return svg("gema", "#ffd84a"); if (r.t === "chest") return chestSvg(r.k); if (r.t === "egg") return EGGSV; if (r.t === "item") return svg("huevonegro", "#2b2b33");
+  const k = passState().key, m = +k.slice(5) - 1; return `<i class="psw" style="background:conic-gradient(#4b2a8c,#ffd84a,hsl(${m * 30} 80% 60%),#ffd84a,#4b2a8c)"></i>`;
+}
+function grantPass(r) {
+  if (r.t === "coin") gain(Math.max(500, perSec() * 60) * (1 + r.m / 5)); else if (r.t === "chest") addChest(r.k); else if (r.t === "egg") state.peggs = (state.peggs || 0) + r.n;
+  else if (r.t === "item") { const it = pick(ITEMS.filter((i) => i.r === r.r)); state.items[it.id] = (state.items[it.id] || 0) + 1; renderColl(); showCard(`${svg(it.id, it.col)}<b>${it.name}</b><span class="rar">${RAR[it.r].n}</span><small>Recompensa del pase</small>`, RAR[it.r].c); }
+  else if (r.t === "skin") { const key = "skin:" + seasonId(passState().key); if (!state.cosm.own.includes(key)) state.cosm.own.push(key); renderWard(); showCard(`${ptIcon(r)}<b>Skin del pase</b><span class="rar">Mítico · exclusiva</span><small>Ya está en tus aspectos</small>`, "#ff2d6f"); }
+}
+function claimPass(lane, i) {
+  const ps = passState(), arr = lane === "p" ? ps.cp : ps.cf; if (passLvl() < i || arr.includes(i) || (lane === "p" && !ps.prem)) return false;
+  arr.push(i); grantPass(lane === "p" ? passPrem(i) : passFree(i)); return true;
+}
+const pw = document.createElement("div"); pw.id = "pw"; pw.className = "pw"; document.body.appendChild(pw);
+let pwOpen = innerWidth > 900, _pwSig = "", _pwL = -1;
+function renderPW(force) {
+  const ps = passState(), L = passLvl(), sig = [L, ps.xp, ps.prem, ps.cf.length, ps.cp.length, pwOpen].join("|"); if (!force && sig === _pwSig) return; _pwSig = sig;
+  const old = $("pwS") ? $("pwS").scrollLeft : 0, rdy = [...Array(PASS_N)].filter((_, j) => { const i = j + 1; return L >= i && (!ps.cf.includes(i) || (ps.prem && !ps.cp.includes(i))); }).length;
+  const tile = (lane, i) => {
+    const r = lane === "p" ? passPrem(i) : passFree(i), done = (lane === "p" ? ps.cp : ps.cf).includes(i), ok = L >= i && (lane === "f" || ps.prem);
+    return `<button class="pt ${lane}${done ? " done" : ok ? " ready" : ""}${i === 30 || i === 60 ? " star" : ""}" data-pt="${lane}:${i}" title="${r.x}">${ptIcon(r)}<small>${done ? "✓" : r.s}</small>${lane === "p" && !ps.prem ? '<u class="lk">🔒</u>' : ""}</button>`;
+  };
+  pw.innerHTML = `<div class="pwh"><b>Pase Ricopio · Nv ${L}/${PASS_N}</b><div class="bar"><div style="width:${L >= PASS_N ? 100 : ps.xp % PASS_XP}%"></div></div>${ps.prem ? '<em class="pm">PREMIUM</em>' : `<button class="btn" data-pw="prem">Premium ${fmt(PASS_PREM)}</button>`}${rdy ? `<button class="btn rd" data-pw="all">Reclamar (${rdy})</button>` : ""}<button class="btn tg" data-pw="tog">${pwOpen ? "▾" : "▴"}</button></div>` +
+    (pwOpen ? `<div class="pws" id="pwS"><div class="pwl">${[...Array(PASS_N)].map((_, j) => `<div class="pwc"><span class="pwn">${j + 1}</span>${tile("p", j + 1)}${tile("f", j + 1)}</div>`).join("")}</div></div>` : "");
+  const s = $("pwS"); if (s) s.scrollLeft = L !== _pwL ? Math.max(0, (L - 2) * 62) : old; _pwL = L;
+}
+pw.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-pt],[data-pw]"); if (!b) return;
+  if (b.dataset.pt) { const [l, i] = b.dataset.pt.split(":"); if (l === "p" && !passState().prem) return toast("Necesitas el pase premium (" + fmt(PASS_PREM) + " ricoins)"); if (claimPass(l, +i)) { confetti(innerWidth * .2, innerHeight * .8, 20); sfx(990, .12); save(); render(); renderPW(true); } return; }
+  const a = b.dataset.pw;
+  if (a === "tog") { pwOpen = !pwOpen; return renderPW(true); }
+  if (a === "prem") { if (state.coins < PASS_PREM) return toast("Te faltan ricoins (" + fmt(PASS_PREM) + ")"); if (!confirm("¿Comprar el pase premium por " + fmt(PASS_PREM) + " ricoins?")) return; state.coins -= PASS_PREM; passState().prem = true; confetti(innerWidth * .2, innerHeight * .8, 50); sfx(1200, .3); save(); render(); return renderPW(true); }
+  if (a === "all") { let n = 0; for (let i = 1; i <= PASS_N; i++) { if (claimPass("f", i)) n++; if (claimPass("p", i)) n++; } if (n) { toast(n + " recompensas reclamadas"); confetti(innerWidth * .2, innerHeight * .8, 40); save(); render(); renderPW(true); } }
+});
+
+// ---- Códigos de canje
+const CODES = {
+  RICOPIO2026: { x: "1 hora de producción y un cofre de plata", f() { gain(Math.max(10000, perSec() * 3600)); addChest("plata"); } },
+  BIENVENIDO: { x: "2 cofres de madera y ricoins", f() { addChest("madera"); addChest("madera"); gain(Math.max(2000, perSec() * 300)); } },
+  POLLITO100: { x: "30 minutos de producción", f() { gain(Math.max(5000, perSec() * 1800)); } },
+  HUEVODORADO: { x: "un cofre de oro", f() { addChest("oro"); } },
+  LEYENDA2026: { x: "un cofre legendario", f() { addChest("legendario"); } },
+  MITICO2026: { x: "un cofre mítico", f() { addChest("mitico"); } },
+  MASCOTA2026: { x: "2 huevos de mascota", f() { state.peggs = (state.peggs || 0) + 2; } },
+  PASE2026: { x: "600 XP de pase", f() { passXp(600); } },
+  DOPAMINA: { x: "ruleta lista y 15 min de producción", f() { state.wheelAt = 0; gain(Math.max(2000, perSec() * 900)); } },
+  AMIGOS2026: { x: "aspecto Menta y lazo", f() { ["skin:menta", "hat:lazo"].forEach((k) => { if (!state.cosm.own.includes(k)) state.cosm.own.push(k); }); renderWard(); } },
+  ROBLOX2026: { x: "5 cofres de madera y 2 h de producción", f() { for (let i = 0; i < 5; i++) addChest("madera"); gain(Math.max(10000, perSec() * 7200)); } },
+  FIESTA2026: { x: "hora dorada y un cofre de oro", f() { ev = { ...EVS[0], end: Date.now() + 60000 }; addChest("oro"); } },
+};
+mkModal("codes", "Códigos de canje", '<p class="sum">Escribe un código y pulsa Canjear. Cada código se usa una sola vez.</p><div class="cdrow"><input id="codeIn" placeholder="Tu código" maxlength="24" autocomplete="off"><button id="codeGo" class="btn">Canjear</button></div><p id="codeMsg" class="hintbox"></p>');
+function redeem() {
+  const c = $("codeIn").value.trim().toUpperCase().replace(/\s/g, ""), d = CODES[c], m = $("codeMsg");
+  if (!d) { m.textContent = "Código no válido."; return toast("Código no válido"); }
+  if (state.codes[c]) { m.textContent = "Ya has canjeado este código."; return toast("Código ya canjeado"); }
+  state.codes[c] = 1; d.f(); m.textContent = "¡Código canjeado! Recibes " + d.x + "."; confetti(stage.clientWidth / 2, stage.clientHeight / 2, 50); [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => sfx(f, .15), i * 80)); $("codeIn").value = ""; save(); render();
+}
+$("codeGo").onclick = redeem;
+$("codeIn").addEventListener("keydown", (e) => { if (e.key === "Enter") redeem(); });
+
+// ---- Fusión visual (altar)
+let fzSel = null;
+RENDER["m-fuse"] = () => {
+  const own = ITEMS.filter((i) => state.items[i.id]), sel = fzSel && state.items[fzSel] ? ITEMS.find((i) => i.id === fzSel) : null, nx = sel && RK[RK.indexOf(sel.r) + 1], can = !!(sel && nx && state.items[sel.id] >= 3);
+  $("b-fuse").innerHTML = `<div class="altar${can ? " can" : ""}" style="--rc:${nx ? RAR[nx].c : "#999"}"><div class="fz-in">${[0, 1, 2].map((i) => `<div class="fz-s${sel && state.items[sel.id] > i ? " on" : ""}" style="--rc:${sel ? RAR[sel.r].c : "#999"}">${sel ? svg(sel.id, sel.col) : "?"}</div>`).join("")}</div><div class="fz-arrow">➜</div><div class="fz-out"><div class="fz-r">${nx ? "?" : "—"}</div><small>${nx ? RAR[nx].n : ""}</small></div></div><p class="sum">${sel ? (nx ? (can ? "Listo para fusionar 3 × " + sel.name : "Necesitas 3 iguales (tienes " + state.items[sel.id] + ")") : "Rareza máxima: no se puede fusionar más") : "Elige un objeto de abajo."}</p><button class="btn big reb" id="fzGo"${can ? "" : " disabled"}>FUSIONAR</button><div class="fz-grid">` + (own.map((i) => { const n = state.items[i.id]; return `<button class="fz-c${sel && sel.id === i.id ? " sel" : ""}${n >= 3 && RK.indexOf(i.r) < 4 ? " ok" : ""}" data-fz="${i.id}" style="--rc:${RAR[i.r].c}">${svg(i.id, i.col)}<b>${i.name}</b><small>${RAR[i.r].n} x${n}</small></button>`; }).join("") || '<p class="sum">Aún no tienes objetos.</p>') + "</div>";
+};
+document.addEventListener("click", (e) => {
+  const c = e.target.closest("[data-fz]"); if (c) { fzSel = c.dataset.fz; sfx(600, .06); return RENDER["m-fuse"](); }
+  if (e.target.id !== "fzGo") return; const it = ITEMS.find((i) => i.id === fzSel), nx = it && RK[RK.indexOf(it.r) + 1]; if (!nx || state.items[it.id] < 3) return;
+  const al = document.querySelector("#b-fuse .altar"); if (al) al.classList.add("fusing"); e.target.disabled = true;
+  [300, 400, 520, 680, 880].forEach((f, i) => setTimeout(() => sfx(f, .15), i * 160));
+  setTimeout(() => {
+    state.items[it.id] -= 3; const r = pick(ITEMS.filter((i) => i.r === nx)); state.items[r.id] = (state.items[r.id] || 0) + 1; state.st.fusions = (state.st.fusions || 0) + 1; flash(RAR[nx].c); renderColl();
+    showCard(`${svg(r.id, r.col)}<b>${r.name}</b><span class="rar">${RAR[r.r].n}</span><small>¡Fusión conseguida!</small>`, RAR[r.r].c); save(); RENDER["m-fuse"]();
+  }, 1000);
+});
+function flash(c) { const f = document.createElement("div"); f.className = "flash"; f.style.background = c; document.body.appendChild(f); setTimeout(() => f.remove(), 700); }
+
+// ---- Ruleta nueva (SVG con luces)
+const WG = { coin: ["#fff3a6", "#e0a800"], item: ["#c8f5b0", "#3d9b4f"], chest: ["#f0c08a", "#8a4d1a"], cosm: ["#ffd0e4", "#e0508a"], mitico: ["#4a3470", "#0b0b10"] };
+const GLY = {
+  coin: '<circle cy="-72" r="10" fill="#ffd84a" stroke="#2b2118" stroke-width="2.500"/><text y="-68" font-size="12" font-weight="800" text-anchor="middle" fill="#2b2118">R</text>',
+  item: '<path d="M0 -84l11 9-11 17-11-17z" fill="#8fe0ff" stroke="#2b2118" stroke-width="2.500" stroke-linejoin="round"/>',
+  chest: '<rect x="-12" y="-78" width="24" height="16" rx="3" fill="#c27a3a" stroke="#2b2118" stroke-width="2.500"/><rect x="-3" y="-73" width="6" height="7" fill="#ffd84a"/>',
+  cosm: '<path d="M0 -84l4 9 10 1-8 7 3 10-9-6-9 6 3-10-8-7 10-1z" fill="#ffd84a" stroke="#2b2118" stroke-width="2" stroke-linejoin="round"/>',
+  mitico: '<path d="M-12 -64l-3-16 8 7 7-11 7 11 8-7-3 16z" fill="#ffd84a" stroke="#2b2118" stroke-width="2" stroke-linejoin="round"/>',
+};
+function buildWheel() {
+  const R = 96, P = (a, r) => [(r * Math.sin(a * Math.PI / 180)).toFixed(1), (-r * Math.cos(a * Math.PI / 180)).toFixed(1)];
+  let s = '<svg viewBox="-112 -112 224 224" class="wsvg"><defs>' + Object.entries(WG).map(([k, [a, b]]) => `<radialGradient id="wg_${k}" cx="0" cy="0" r="100" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient>`).join("") + '</defs><circle r="109" fill="#2b2118"/><circle r="104" fill="#ffd84a" stroke="#2b2118" stroke-width="2"/>';
+  SEG.forEach((c, k) => { const [x0, y0] = P(k * 30, R), [x1, y1] = P(k * 30 + 30, R); s += `<path d="M0 0L${x0} ${y0}A${R} ${R} 0 0 1 ${x1} ${y1}Z" fill="url(#wg_${c})" stroke="#2b2118" stroke-width="2.500"${c === "mitico" ? ' class="wmit"' : ""}/><g transform="rotate(${k * 30 + 15})">${GLY[c]}<text y="-46" font-size="9" font-weight="800" text-anchor="middle" fill="${c === "mitico" ? "#ffd84a" : "#2b2118"}">${SEGC[c][1]}</text></g>`; });
+  for (let i = 0; i < 24; i++) { const [x, y] = P(i * 15, 101); s += `<circle cx="${x}" cy="${y}" r="3" fill="#fff" stroke="#2b2118" stroke-width="1" class="wb" style="animation-delay:${i % 2 ? .35 : 0}s"/>`; }
+  s += '<circle r="17" fill="#ffc928" stroke="#2b2118" stroke-width="4"/><circle cx="-6" cy="-3" r="2.500" fill="#2b2118"/><circle cx="6" cy="-3" r="2.500" fill="#2b2118"/><path d="M-4 3h8l-4 6z" fill="#ff8a1f"/></svg>';
+  $("wheel").innerHTML = s;
+}
+buildWheel();
+
+// ---- Salón de juegos
+mkModal("games", "Salón de juegos", "");
+const GCD = 240000, gcd = (k) => Math.max(0, (state.mgAt[k] || 0) - Date.now());
+const GI = { c: '<svg viewBox="0 0 60 60"><path d="M8 32h44l-7 20H15z" fill="#c27a3a" stroke="#2b2118" stroke-width="3"/><ellipse cx="30" cy="20" rx="9" ry="12" fill="#fff8e6" stroke="#2b2118" stroke-width="3"/></svg>', m: '<svg viewBox="0 0 60 60"><rect x="6" y="10" width="22" height="30" rx="4" fill="#ff5d73" stroke="#2b2118" stroke-width="3"/><rect x="32" y="20" width="22" height="30" rx="4" fill="#ffd84a" stroke="#2b2118" stroke-width="3"/></svg>', s: '<svg viewBox="0 0 60 60"><rect x="6" y="14" width="48" height="32" rx="6" fill="#d8303f" stroke="#2b2118" stroke-width="3"/><text x="30" y="38" font-size="20" font-weight="800" text-anchor="middle" fill="#ffd84a">777</text></svg>' };
+let gameStop = null;
+function stopGame() { if (gameStop) { gameStop(); gameStop = null; } }
+RENDER["m-games"] = () => {
+  stopGame();
+  $("b-games").innerHTML = '<div class="gcards">' + [["c", "Cesta Loca", "Mueve la cesta, atrapa huevos y esquiva los podridos. ¡Combos de hasta x5!"], ["m", "Memoria Pop", "Encuentra las 8 parejas contra el reloj. Cada acierto da tiempo extra."], ["s", "Tragaperras", "Apuesta, tira de la palanca y busca el jackpot de diamantes."]].map(([k, n, d]) => `<div class="gcard g-${k}"><div class="gi">${GI[k]}</div><b>${n}</b><small>${d}</small><small>Récord: ${state.hs[k] || 0}</small><button class="btn" data-g="${k}"${gcd(k) ? " disabled" : ""}>${gcd(k) ? fmtT(gcd(k)) : "¡Jugar!"}</button></div>`).join("") + "</div>";
+};
+$("b-games").addEventListener("click", (e) => { if (e.target.id === "gExit") return RENDER["m-games"](); const b = e.target.closest("[data-g]"); if (b) ({ c: gameCatch, m: gameMem, s: gameSlot })[b.dataset.g](); });
+document.addEventListener("click", (e) => { if (e.target.closest("[data-close]") || e.target.classList.contains("modal")) stopGame(); });
+function finishGame(k, score, rk, mult) {
+  const g = Math.round(score * Math.max(100, perSec() * 8) * mult); if (g) gain(g); state.st.games = (state.st.games || 0) + 1; passXp(5);
+  const best = score > (state.hs[k] || 0); if (best) state.hs[k] = score; confetti(stage.clientWidth / 2, stage.clientHeight / 2, 30 + Math.min(60, score / 2)); [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => sfx(f, .15), i * 80)); save(); render();
+  $("b-games").innerHTML = `<div class="gres"><h3>${rk}</h3><p>${score} puntos · multiplicador x${mult}</p><p class="gwin">+${fmt(g)} ricoins</p>${best ? '<p class="gwin">¡NUEVO RÉCORD!</p>' : ""}<button class="btn big" id="gExit">Volver al salón</button></div>`;
+}
+function gameCatch() {
+  state.mgAt.c = Date.now() + GCD; const box = $("b-games");
+  box.innerHTML = '<div class="gA" id="gA"><div class="ghud"><span id="gT">30</span>s · <b id="gS">0</b> pts · <i id="gM">x1</i></div><div class="gcl"></div><div class="bk" id="bk">' + petSvg("#ffc928") + '<span class="bsk"></span></div></div><p class="sum small">Mueve el ratón o el dedo. Dorados +5, relojes +3 s, podridos -3 pts.</p>';
+  const A = $("gA"), bk = $("bk"); let W = A.clientWidth || 320, H = A.clientHeight || 340, bx = W / 2, tx = bx, t = 30, sc = 0, st = 0, items = [], fr = 0;
+  const mv = (e) => { const r = A.getBoundingClientRect(); tx = e.clientX - r.left; }; A.addEventListener("pointermove", mv); A.addEventListener("pointerdown", mv);
+  const kd = (e) => { if (e.key === "ArrowLeft") tx -= 50; if (e.key === "ArrowRight") tx += 50; }; addEventListener("keydown", kd);
+  const mult = () => Math.min(5, 1 + Math.floor(st / 5)), hud = () => { $("gT").textContent = t; $("gS").textContent = sc; $("gM").textContent = "x" + mult(); };
+  const pop = (x, y, txt, col) => { const p = document.createElement("i"); p.className = "gpop"; p.textContent = txt; p.style.cssText = `left:${x}px;top:${y}px;color:${col}`; A.appendChild(p); setTimeout(() => p.remove(), 700); };
+  const spawn = () => { const r = Math.random(), type = r < .56 ? "egg" : r < .68 ? "gold" : r < .86 ? "bad" : r < .93 ? "clock" : "gold", el = document.createElement("i"), x = 20 + Math.random() * (W - 40); el.className = "ge " + type; el.style.left = x + "px"; A.appendChild(el); items.push({ el, x, y: -30, v: 2.4 + Math.random() * 1.6 + (30 - t) * .07, type }); };
+  const loop = setInterval(() => {
+    fr++; bx += (tx - bx) * .25; bx = Math.max(35, Math.min(W - 35, bx)); bk.style.left = bx - 35 + "px";
+    if (fr % Math.max(12, 30 - Math.floor((30 - t) * .6)) === 0) spawn();
+    items = items.filter((it) => {
+      it.y += it.v; it.el.style.top = it.y + "px";
+      if (it.y > H - 74 && it.y < H - 24 && Math.abs(it.x - bx) < 46) {
+        if (it.type === "egg") { sc += mult(); st++; pop(it.x, H - 90, "+" + mult(), "#fff"); sfx(500 + Math.min(st, 30) * 18, .05); }
+        else if (it.type === "gold") { sc += 5 * mult(); st++; pop(it.x, H - 90, "+" + 5 * mult(), "#ffd84a"); sfx(1100, .1); }
+        else if (it.type === "clock") { t += 3; pop(it.x, H - 90, "+3s", "#8fe0ff"); sfx(900, .1); }
+        else { sc = Math.max(0, sc - 3); st = 0; replay(A, "shake"); pop(it.x, H - 90, "-3", "#ff5d73"); sfx(120, .2, "sawtooth"); }
+        it.el.remove(); hud(); return false;
+      }
+      if (it.y > H) { if (it.type === "egg") st = 0; it.el.remove(); return false; } return true;
+    });
+  }, 16);
+  const clock = setInterval(() => { t--; hud(); if (t <= 0) { stopGame(); const rk = sc >= 120 ? ["DIAMANTE", 5] : sc >= 70 ? ["ORO", 2.5] : sc >= 30 ? ["PLATA", 1.5] : ["BRONCE", 1]; finishGame("c", sc, "Rango " + rk[0], rk[1]); } }, 1000);
+  gameStop = () => { clearInterval(loop); clearInterval(clock); removeEventListener("keydown", kd); };
+}
+function gameMem() {
+  state.mgAt.m = Date.now() + GCD; const S = ["gema", "estrella", "trebol", "llave", "diamante", "nido", "bolsa", "reloj"], C = ["#6fd3ff", "#ffe45c", "#6fd06f", "#ffd84a", "#9ff0ff", "#ff9ec7", "#d9a15b", "#ffe08a"];
+  const deck = [...S, ...S].map((s) => ({ s, c: C[S.indexOf(s)] })).sort(() => Math.random() - .5); let open = [], moves = 0, found = 0, lock = false, t = 45;
+  $("b-games").innerHTML = '<div class="ghud2"><span id="mT">45</span>s · <b id="mP">0/8</b> parejas · <span id="mV">0</span> mov.</div><div class="mem">' + deck.map((d, i) => `<button class="mcd" data-i="${i}"><span class="mf">${svg(d.s, d.c)}</span><span class="mb">?</span></button>`).join("") + "</div>";
+  const hud = () => { $("mT").textContent = t; $("mP").textContent = found + "/8"; $("mV").textContent = moves; };
+  const end = () => { stopGame(); const stars = found < 8 ? 0 : moves <= 12 ? 3 : moves <= 18 ? 2 : 1, score = Math.max(0, found * 100 + t * 10 - moves * 5); finishGame("m", score, found < 8 ? "Tiempo agotado (" + found + "/8)" : "¡Completado! " + "★".repeat(stars) + "☆".repeat(3 - stars), Math.max(.5, stars)); };
+  const onc = (e) => {
+    const b = e.target.closest(".mcd"); if (!b || lock || b.classList.contains("up")) return; b.classList.add("up"); open.push(b); sfx(500, .05);
+    if (open.length === 2) { moves++; const [a, c] = open;
+      if (deck[+a.dataset.i].s === deck[+c.dataset.i].s) { found++; t += 3; a.classList.add("ok"); c.classList.add("ok"); open = []; sfx(900, .12); confetti(stage.clientWidth / 2, stage.clientHeight / 2, 8); hud(); if (found === 8) end(); }
+      else { lock = true; hud(); setTimeout(() => { a.classList.remove("up"); c.classList.remove("up"); open = []; lock = false; }, 650); } }
+  };
+  $("b-games").addEventListener("click", onc); const clock = setInterval(() => { t--; hud(); if (t <= 0) end(); }, 1000);
+  gameStop = () => { clearInterval(clock); $("b-games").removeEventListener("click", onc); };
+}
+function gameSlot() {
+  const base = Math.max(100, perSec() * 20), SY = ["gema", "estrella", "trebol", "llave", "diamante", "nido"], COL = { gema: "#6fd3ff", estrella: "#ffe45c", trebol: "#6fd06f", llave: "#ffd84a", diamante: "#9ff0ff", nido: "#d9a15b" }, PAY = { diamante: 50, estrella: 25, gema: 15, llave: 10, trebol: 8, nido: 5 }; let bet = 1, busy = false, cur = [pick(SY), pick(SY), pick(SY)];
+  const cell = (s) => `<span class="sy">${svg(s, COL[s])}</span>`;
+  const draw = () => { $("b-games").innerHTML = `<div class="slotm"><div class="reels2">${cur.map((s, i) => `<div class="reel"><div class="strip" id="st${i}">${cell(s)}</div></div>`).join("")}</div><p id="sMsg" class="gwin">Apuesta: ${fmt(base * bet)} ricoins</p><div class="bets">${[1, 5, 25].map((b) => `<button class="btn${b === bet ? " on" : ""}" data-bet="${b}">x${b}</button>`).join("")}<button class="btn big reb" id="sGo">¡TIRAR!</button></div><p class="sum small">3 iguales: diamante x50 · estrella x25 · gema x15 · llave x10 · trébol x8 · nido x5. 2 iguales: recuperas la apuesta.</p><button class="btn" id="gExit">Salir</button></div>`; };
+  draw();
+  const onc = (e) => {
+    const b = e.target.closest("[data-bet]"); if (b && !busy) { bet = +b.dataset.bet; return draw(); }
+    if (e.target.id !== "sGo" || busy) return; const cost = base * bet; if (state.coins < cost) return toast("Necesitas " + fmt(cost) + " ricoins");
+    state.coins -= cost; busy = true; render(); const res = [pick(SY), pick(SY), pick(SY)];
+    res.forEach((r, i) => { const st = $("st" + i); st.style.transition = "none"; st.style.transform = "translateY(0)"; st.innerHTML = cell(cur[i]) + Array.from({ length: 17 }, () => cell(pick(SY))).join("") + cell(r); void st.offsetWidth; st.style.transition = `transform ${1.3 + i * .55}s cubic-bezier(.2,.8,.2,1)`; st.style.transform = "translateY(-" + 18 * 84 + "px)"; for (let k = 0; k < 8; k++) setTimeout(() => sfx(280 + k * 25 + i * 60, .04), k * 150 + i * 200); });
+    setTimeout(() => {
+      cur = res; const u = new Set(res).size, m = u === 1 ? PAY[res[0]] : u === 2 ? 1 : 0, g = cost * m, msg = $("sMsg"); state.st.games = (state.st.games || 0) + 1; busy = false;
+      if (u === 1) { flash("#ffd84a"); confetti(stage.clientWidth / 2, stage.clientHeight / 2, 40 + m * 2); [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => sfx(f, .2), i * 90)); if (m >= 50) { state.hs.s = (state.hs.s || 0) + 1; replay(stage, "shake"); } }
+      if (g) gain(g); if (msg) { msg.textContent = g ? (u === 1 ? "¡PREMIAZO! +" : "Recuperas ") + fmt(g) : "Mala suerte… ¡otra!"; msg.className = "gwin " + (u === 1 ? "jack" : ""); } render(); save();
+    }, 3000);
+  };
+  $("b-games").addEventListener("click", onc); gameStop = () => $("b-games").removeEventListener("click", onc);
+}
+
+// ---- Árbol: reasignar puntos gratis
+$("respec").onclick = () => {
+  const spent = Object.values(state.tree).reduce((a, l) => a + (l * (l + 1)) / 2, 0); if (!spent) return toast("No tienes puntos gastados");
+  state.xp += spent; state.tree = {}; sfx(700, .15); toast("Puntos devueltos: " + spent + " XP"); save(); renderTree(); render();
+};
+
+// ---- Social con códigos de jugador y servidor opcional
+const ONLINE_URL = "", ID_CH = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+function genId() { let s = ""; for (let i = 0; i < 7; i++) s += ID_CH[Math.floor(Math.random() * ID_CH.length)]; return s; }
+function ensurePid() { if (!state.pid) { state.pid = genId(); save(); } return state.pid; }
+const pname = () => state.name || "Jugador " + ensurePid();
+const srvUrl = () => (state.srv || ONLINE_URL || "").trim().replace(/\/+$/, "");
+const meData = () => ({ id: ensurePid(), n: pname(), t: state.total, r: state.reb, a: state.asc, w: weekKey(), ws: wkScore(), u: Date.now() });
+const myCard = () => "RC1." + enc(JSON.stringify(meData()));
+function copyText(c, msg) { (typeof navigator !== "undefined" && navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast(msg), () => prompt("Copia el código:", c)); }
+async function pub() { const u = srvUrl(); if (!u || typeof fetch === "undefined") return false; try { const r = await fetch(u + "/players/" + ensurePid() + ".json", { method: "PUT", body: JSON.stringify(meData()) }); return r.ok; } catch { return false; } }
+async function getJ(p) { const u = srvUrl(); if (!u || typeof fetch === "undefined") return null; try { const r = await fetch(u + p); return await r.json(); } catch { return null; } }
+let world = [], online = null;
+async function refreshSocial() {
+  const ok = await pub(); online = srvUrl() ? ok : null;
+  if (ok) { const all = await getJ("/players.json"); world = all ? Object.values(all).filter((x) => x && typeof x.t === "number").sort((a, b) => b.t - a.t).slice(0, 50) : []; for (const f of state.friends) if (f.id) { const d = await getJ("/players/" + f.id + ".json"); if (d && typeof d.t === "number") Object.assign(f, d); } save(); }
+  if ($("m-social") && !$("m-social").hidden) RENDER["m-social"]();
+}
+async function addFriend(raw) {
+  const c = raw.trim().toUpperCase();
+  if (/^[A-Z0-9]{7}$/.test(c)) {
+    if (c === ensurePid()) return toast("Ese es tu propio código");
+    if (!srvUrl()) return toast("Para añadir por código de 7 caracteres necesitas el servidor online (ver abajo). Offline usa la tarjeta larga.");
+    const d = await getJ("/players/" + c + ".json"); if (!d || typeof d.t !== "number") return toast("No existe ese jugador (¿ha abierto el juego con el mismo servidor?)");
+    state.friends = state.friends.filter((x) => x.id !== c).concat(d).slice(-20); save(); toast("¡" + d.n + " añadido!"); return RENDER["m-social"]();
+  }
+  try { const d = JSON.parse(dec(raw.trim().replace(/^RC1\./, ""))); if (typeof d.t !== "number") throw 0; d.id = d.id || d.n; state.friends = state.friends.filter((x) => x.id !== d.id).concat(d).slice(-20); save(); toast("¡" + d.n + " añadido!"); RENDER["m-social"](); } catch { toast("Código no válido"); }
+}
+RENDER["m-social"] = () => {
+  const me = { ...meData(), me: 1 }, fr = [me, ...state.friends].sort((a, b) => b.t - a.t), wk = [me, ...state.friends].filter((x) => x.w === weekKey()).sort((a, b) => b.ws - a.ws);
+  const li = (x, i, f) => `<li class="${x.me || x.id === state.pid ? "me" : ""}"><span class="rk">${i + 1}</span><b>${x.n}</b> <small>#${x.id || "—"}</small><span class="rv">${fmt(f === "w" ? x.ws : x.t)}</span></li>`;
+  $("b-social").innerHTML = `<div class="myid"><small>Tu código de jugador</small><b id="myId">${ensurePid()}</b><button class="btn" data-s="copyid">Copiar</button></div>
+  <label class="row">Tu nombre <input id="myName" maxlength="14" placeholder="Jugador ${state.pid}" value="${(state.name || "").replace(/"/g, "")}"></label>
+  <div class="foot"><button class="btn" data-s="add">Añadir amigo (código o tarjeta)</button><button class="btn" data-s="card">Copiar mi tarjeta</button><button class="btn" data-s="refresh">Actualizar</button></div>
+  <p class="sum small">${online === true ? "● Conectado al servidor online" : online === false ? "● Servidor no responde" : "● Sin servidor: ranking local con tarjetas"}</p>
+  ${online ? `<h3>Ranking del mundo (ricoins totales)</h3><ol class="rank-l">${world.map((x, i) => li(x, i)).join("") || "<li>Aún no hay jugadores</li>"}</ol>` : ""}
+  <h3>Ranking de amigos</h3><ol class="rank-l">${fr.map((x, i) => li(x, i)).join("")}</ol>
+  <h3>Reto semanal ${weekKey()}</h3><p class="sum">${wkMod().n}. Tu puntuación: <b>${fmt(wkScore())}</b></p><ol class="rank-l">${wk.map((x, i) => li(x, i, "w")).join("")}</ol>
+  <h3>Regalos</h3><div class="foot"><button class="btn" data-s="coin">Regalar ricoins</button><button class="btn" data-s="redeem">Canjear regalo</button></div><ul class="fuse">${ITEMS.filter((i) => state.items[i.id]).map((i) => `<li><span class="fi">${svg(i.id, i.col)}</span><span><b>${i.name} x${state.items[i.id]}</b></span><button class="btn" data-s="gift:${i.id}">Regalar 1</button></li>`).join("")}</ul>
+  <h3>Servidor online (opcional)</h3><p class="sum small">Para ranking mundial y añadir amigos entre PCs distintos: crea una Firebase Realtime Database gratuita (reglas de lectura y escritura abiertas) y pega aquí su URL. Todos los amigos deben usar la misma URL.</p><label class="row"><input id="srvIn" class="wide" placeholder="https://tu-proyecto-default-rtdb.firebaseio.com" value="${(state.srv || "").replace(/"/g, "")}"></label>`;
+};
+$("b-social").addEventListener("change", (e) => {
+  if (e.target.id === "myName") { state.name = e.target.value.trim(); save(); pub().then(() => refreshSocial()); }
+  if (e.target.id === "srvIn") { state.srv = e.target.value.trim(); save(); refreshSocial(); }
+});
+$("b-social").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-s]"); if (!b) return; const a = b.dataset.s;
+  if (a === "copyid") return copyText(ensurePid(), "Código copiado: " + ensurePid());
+  if (a === "card") return copyText(myCard(), "Tarjeta copiada");
+  if (a === "refresh") { toast("Actualizando…"); return refreshSocial(); }
+  if (a === "add") { const c = prompt("Código del amigo (7 caracteres) o tarjeta larga:"); if (c) addFriend(c); return; }
+  if (a === "coin") { const v = Math.floor(+prompt("¿Cuántos ricoins regalas?") || 0); if (v <= 0 || v > state.coins) return toast("Cantidad no válida"); const x = Math.random().toString(36).slice(2, 9); state.coins -= v; state.gifts.push(x); save(); render(); return copyText("RG1." + enc(JSON.stringify({ t: "c", a: v, f: pname(), x })), "Regalo copiado: pásaselo a tu amigo"); }
+  if (a === "redeem") { const c = prompt("Pega el código de regalo:"); if (!c) return; try { const d = JSON.parse(dec(c.trim().replace(/^RG1\./, ""))); if (state.gifts.includes(d.x)) return toast("No puedes canjear tu propio regalo"); if (state.redeemed.includes(d.x)) return toast("Regalo ya canjeado"); state.redeemed.push(d.x); if (d.t === "c") gain(d.a); else state.items[d.id] = (state.items[d.id] || 0) + 1; confetti(stage.clientWidth / 2, stage.clientHeight / 2, 40); toast("¡Regalo de " + d.f + " recibido!"); save(); render(); renderColl(); } catch { toast("Código no válido"); } return; }
+  if (a.startsWith("gift:")) { const id = a.slice(5), it = ITEMS.find((i) => i.id === id), x = Math.random().toString(36).slice(2, 9); if (!state.items[id]) return; state.items[id]--; state.gifts.push(x); save(); renderColl(); RENDER["m-social"](); copyText("RG1." + enc(JSON.stringify({ t: "i", id, f: pname(), x })), "Regalo copiado: " + it.name); }
+});
+{ const _rs = RENDER["m-social"]; RENDER["m-social"] = () => { _rs(); }; }
+
+// ---- Bucle ronda 2
+let T4 = 0;
+{ const _tm = tickMore; tickMore = () => { _tm(); tick4(); }; }
+function tick4() {
+  T4++; renderPW(); if (!started) return;
+  if (T4 % 600 === 0) { passXp(2); if (srvUrl()) pub(); }
+  if (!$("m-games").hidden && !gameStop && T4 % 10 === 0) RENDER["m-games"]();
+}
+ensurePid(); updCC(true); renderPW(true); renderSkins();
+if (srvUrl()) refreshSocial();
 
 applyLook();
 $("introChick").appendChild($("chick").firstElementChild.cloneNode(true));
