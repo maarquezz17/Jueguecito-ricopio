@@ -106,6 +106,12 @@ const BOOSTS = [
 const SAVE_KEY = "ricopio-save";
 const $ = (id) => document.getElementById(id);
 const stage = document.querySelector(".stage");
+const setT = (el, t) => { if (el._t !== t) { el._t = t; el.textContent = t; } };
+const setW = (el, w) => { if (el._w !== w) { el._w = w; el.style.width = w; } };
+const setH = (el, h) => { if (el._h !== h) { el._h = h; el.innerHTML = h; } };
+let MG = 0, lastUpd = Date.now(), UD = .1;
+const ttl = (fn, ms) => { let t = 0, g = -1, v; return () => { const n = Date.now(); if (g !== MG || n - t >= ms) { v = fn(); t = n; g = MG; } return v; }; };
+const mShop = $("m-shop"), E = { coins: $("coins"), perClick: $("perClick"), perSec: $("perSec"), bonus: $("bonus"), rankName: $("rankName"), rankBar: $("rankBar") };
 
 let state = load();
 let rank = 0, combo = 0, lastClick = 0, started = false, ac, chestTimer;
@@ -116,7 +122,7 @@ function fix(s) {
   s.cosm = { own: [], ...s.cosm, eq: { skin: "clasico", hat: "ninguno", eyes: "ninguno", neck: "ninguno", scene: "dia", back: "ninguno", feet: "ninguno", tap: "ninguno", trail: "ninguno", ...s.cosm.eq } };
   s.total = Math.max(s.total, s.coins);
   s.run = s.run ?? s.total;
-  s.st = { clicks: 0, crits: 0, chests: 0, golds: 0, maxCombo: 0, time: 0, spins: 0, bosses: 0, games: 0, fusions: 0, ...s.st };
+  s.st = { clicks: 0, crits: 0, chests: 0, golds: 0, maxCombo: 0, time: 0, spins: 0, games: 0, fusions: 0, ...s.st };
   s.set = { vol: .7, snd: "auto", fx: true, shake: true, glass: true, music: true, lang: "es", big: 100, cb: false, rm: false, auto: false, notif: false, ...s.set };
   s.slots = [0, 1, 2, 3].map((i) => (s.slots && s.slots[i]) || null);
   return s;
@@ -126,7 +132,7 @@ function load() {
   try { s = JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch {}
   return fix(s);
 }
-function save() { state.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch {} }
+function save() { MG++; state.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch {} }
 
 const owned = (u) => state.owned[u.id] || 0;
 const tl = (id) => state.tree[id] || 0;
@@ -134,9 +140,10 @@ const cost = (u) => Math.ceil(u.base * Math.pow(1.15, owned(u)) * brC(u) * (1 - 
 const bonus = () => 1 + ITEMS.reduce((n, i) => n + (state.items[i.id] || 0) * RAR[i.r].b * mutI(i.r), 0) * (1 + .1 * tl("itemb"));
 const boostOn = (id) => state.boost[id].end > Date.now();
 const gmult = () => bonus() * (1 + .25 * state.reb) * achMult() * extraMult();
-const perClick = () => (1 + UPGRADES.reduce((n, u) => n + (u.click || 0) * owned(u) * brM(u), 0)) * gmult() * (1 + .1 * tl("clickpow")) * (1 + skinBn("clk")) * clkX() * (boostOn("clic") ? 2 : 1);
-const perSec = () => UPGRADES.reduce((n, u) => n + (u.sec || 0) * owned(u) * brM(u), 0) * gmult() * (1 + .08 * tl("prod")) * (1 + skinBn("sec")) * secX() * (boostOn("auto") ? 2 : 1);
+const perClick0 = () => (1 + UPGRADES.reduce((n, u) => n + (u.click || 0) * owned(u) * brM(u), 0)) * gmult() * (1 + .1 * tl("clickpow")) * (1 + skinBn("clk")) * clkX() * (boostOn("clic") ? 2 : 1);
+const perSec0 = () => UPGRADES.reduce((n, u) => n + (u.sec || 0) * owned(u) * brM(u), 0) * gmult() * (1 + .08 * tl("prod")) * (1 + skinBn("sec")) * secX() * (boostOn("auto") ? 2 : 1);
 const comboMult = () => 1 + Math.min(combo, 60 + 10 * tl("combo")) / 20;
+const perClick = ttl(perClick0, 100), perSec = ttl(perSec0, 100);
 const SUF = ["", "k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
 const fmt = (n) => {
   if (n < 10) return n % 1 ? n.toFixed(1) : String(Math.floor(n));
@@ -162,12 +169,13 @@ function sfx(f, d = .09, type = "triangle") {
 }
 
 // Tienda
-const shop = $("shop");
+const shop = $("shop"), shopRefs = [];
 UPGRADES.forEach((u) => {
   const li = document.createElement("li");
   li.innerHTML = `<button class="item" data-id="${u.id}"><span class="ico">${svg(u.ic, u.col)}</span><span><b>${u.name} (<span class="n">0</span>)</b><small>${u.click ? "+" + fmt(u.click) + " por toque" : "+" + fmt(u.sec) + " por segundo"}</small></span><span class="cost"></span></button>`;
   li.firstChild.addEventListener("click", () => buy(u));
   shop.appendChild(li);
+  shopRefs.push({ u, li, b: li.firstChild, n: li.querySelector(".n"), c: li.querySelector(".cost") });
 });
 function buy(u) {
   let n = 0;
@@ -186,21 +194,18 @@ function renderColl() {
 }
 
 function render() {
-  $("coins").textContent = fmt(state.coins);
-  $("perClick").textContent = fmt(perClick());
-  $("perSec").textContent = fmt(perSec());
-  $("bonus").textContent = Math.round((gmult() - 1) * 100);
-  const mo = UPGRADES.reduce((m, u, i) => (owned(u) ? i : m), -1);
-  UPGRADES.forEach((u, i) => {
-    const b = shop.querySelector(`[data-id="${u.id}"]`);
-    b.parentElement.hidden = i > mo + 2;
-    b.querySelector(".n").textContent = owned(u);
-    b.querySelector(".cost").textContent = fmt(bulkCost(u));
-    b.disabled = state.coins < cost(u);
-  });
+  setT(E.coins, fmt(state.coins)); setT(E.perClick, fmt(perClick())); setT(E.perSec, fmt(perSec())); setT(E.bonus, String(Math.round((gmult() - 1) * 100)));
+  if (!mShop.hidden) {
+    const mo = UPGRADES.reduce((m, u, i) => (owned(u) ? i : m), -1);
+    shopRefs.forEach((r, i) => {
+      const hid = i > mo + 2; if (r.h !== hid) { r.h = hid; r.li.hidden = hid; }
+      setT(r.n, String(owned(r.u))); setT(r.c, fmt(bulkCost(r.u)));
+      const dis = state.coins < cost(r.u); if (r.d !== dis) { r.d = dis; r.b.disabled = dis; }
+    });
+  }
   const r = rankIndex(), next = RANKS[r + 1];
-  $("rankName").textContent = RANKS[r].name;
-  $("rankBar").style.width = (next ? ((state.total - RANKS[r].at) / (next.at - RANKS[r].at)) * 100 : 100) + "%";
+  setT(E.rankName, RANKS[r].name);
+  setW(E.rankBar, (next ? ((state.total - RANKS[r].at) / (next.at - RANKS[r].at)) * 100 : 100) + "%");
   $("chick").dataset.rank = r;
   if (r > rank) {
     toast("¡Ahora eres " + RANKS[r].name + "! Mira el armario"); renderWard();
@@ -222,6 +227,7 @@ function toast(text) {
 }
 
 // Efectos
+const floatersEl = $("floaters");
 function floater(text, x, y, crit) {
   const el = document.createElement("span");
   el.className = "floater" + (crit ? " crit" : "");
@@ -232,7 +238,7 @@ function floater(text, x, y, crit) {
   setTimeout(() => el.remove(), 900);
 }
 function spray(cls, x, y, n, life, spread, style = () => "") {
-  if (!state.set.fx) return;
+  if (!state.set.fx || floatersEl.childElementCount > 140) return;
   for (let i = 0; i < n; i++) {
     const p = document.createElement("i"), a = Math.random() * Math.PI * 2, d = spread * (.4 + Math.random() * .6);
     p.className = cls;
@@ -265,16 +271,21 @@ $("chick").addEventListener("click", (e) => {
 });
 
 // Combo y producción automática
-setInterval(() => {
-  const idle = Date.now() - lastClick;
-  if (combo && idle > 900 && !(ev && Date.now() < ev.end && ev.hold)) combo = 0;
+function update() {
+  const now = Date.now(), dt = Math.min(5, (now - lastUpd) / 1000); lastUpd = now; UD = dt;
+  const idle = now - lastClick;
+  if (combo && idle > 900 && !(ev && now < ev.end && ev.hold)) combo = 0;
   $("combo").classList.toggle("on", combo >= 3);
-  $("comboN").textContent = "x" + comboMult().toFixed(1);
-  $("comboBar").style.width = Math.max(0, 100 - idle / 9) + "%";
-  renderBoosts(); tickExtra();
+  setT($("comboN"), "x" + comboMult().toFixed(1));
+  setW($("comboBar"), Math.max(0, 100 - idle / 9) + "%");
+  renderBoosts();
+  tickExtra();   // logros, ranuras, ruleta
+  tick3();       // ánimo del pollo, eventos, mensajes
+  tick4();       // pase, juegos, red
   const s = perSec();
-  if (s > 0) { gain(s / 10); render(); }
-}, 100);
+  if (s > 0) { gain(s * dt); render(); }
+}
+setInterval(update, 100);
 setInterval(save, 5000);
 
 // Cofres con rareza
@@ -319,7 +330,7 @@ chest.addEventListener("click", () => {
   [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => sfx(f, .18), i * 90));
   setTimeout(() => { chest.hidden = true; if (addChest(chestKind, true)) toast("Cofre guardado en tus ranuras"); else openChestNow(chestKind); }, 800);
 });
-function showCard(html, color) {
+function revealCard(html, color) {
   const rv = $("reveal");
   rv.style.setProperty("--rc", color);
   $("card").innerHTML = html + '<small class="hint">Toca para continuar</small>';
@@ -400,6 +411,7 @@ function renderWard() {
     const tag = on ? "Puesto" : own ? "Poner" : x.secret ? "???" : x.p ? fmt(x.p) + " ricoins" : reqText(x);
     return `<button class="chip${on ? " on" : ""}" data-k="${x.key}" style="border-color:${rarCol(x)}"${!own && (x.secret || !x.p) ? " disabled" : ""}><b>${sw}${x.secret && !own ? "Secreto" : x.n}</b><small>${tag}${x.bn ? " · " + bnLine(x.bn) : ""}</small></button>`;
   }).join("") + "</div>").join("");
+  renderSkins();
 }
 $("wardBody").addEventListener("click", (e) => {
   const b = e.target.closest(".chip");
@@ -440,7 +452,7 @@ BOOSTS.forEach((b) => {
   bl.appendChild(li);
 });
 function renderBoosts() {
-  BOOSTS.forEach((b) => {
+  if (!mShop.hidden) BOOSTS.forEach((b) => {
     const li = bl.querySelector(`[data-id="${b.id}"]`), s = state.boost[b.id];
     const left = Math.max(0, s.end - Date.now()), live = left > 0;
     li.querySelector("small").textContent = live ? Math.ceil(left / 1000) + " s restantes" : dur(b.id) + " s · nivel " + (s.lvl + 1);
@@ -526,6 +538,7 @@ let openM = (id) => {
   if (id === "m-skins") renderSkins();
   if (id === "m-wheel") updWheel();
   render(); sfx(700, .06);
+  if (RENDER[id]) RENDER[id](); applyLang();
 };
 const closeM = () => document.querySelectorAll(".modal").forEach((m) => (m.hidden = true));
 let sunN = 0, cloudN = 0, coinN = 0, coinT = 0, lastAct = Date.now(), typed = "", clickLog = [], mutedClicks = 0;
@@ -559,6 +572,7 @@ function syncSet() {
   $("vol").value = Math.round(state.set.vol * 100); $("snd").value = state.set.snd;
   $("fx").checked = state.set.fx; $("glass").checked = state.set.glass; $("shk").checked = state.set.shake;
   $("mute").textContent = "Sonido: " + (state.muted ? "no" : "sí");
+  $("music").checked = state.set.music; $("lang").value = state.set.lang; $("big").value = state.set.big; $("cb").checked = state.set.cb; $("rm").checked = state.set.rm; $("auto").checked = state.set.auto; $("notif").checked = state.set.notif;
 }
 $("vol").oninput = () => { state.set.vol = $("vol").value / 100; sfx(660, .1); save(); };
 $("snd").onchange = () => { state.set.snd = $("snd").value; sfx(660, .15); save(); };
@@ -677,7 +691,6 @@ $("skinGrid").addEventListener("click", (e) => {
   state.cosm.eq.skin = x.id; replay($("aura"), "on"); sfx(660);
   applyLook(); renderWard(); save(); render();
 });
-{ const _rw = renderWard; renderWard = () => { _rw(); renderSkins(); }; }
 
 // ===== Renacer y árbol de habilidades =====
 const TREE = [
@@ -717,13 +730,13 @@ $("treeBody").addEventListener("click", (e) => {
 });
 function updReb() {
   const goal = rebGoal(), pct = Math.min(100, (state.run / goal) * 100), can = state.run >= goal;
-  $("rebMini").style.width = pct + "%";
-  $("rebTxt").textContent = "Objetivo: " + fmt(state.run) + " / " + fmt(goal) + " ricoins";
+  setW($("rebMini"), pct + "%");
+  setT($("rebTxt"), "Objetivo: " + fmt(state.run) + " / " + fmt(goal) + " ricoins");
   $("rebBtn").classList.toggle("ready", can);
   if ($("m-reb").hidden) return;
-  $("rebInfo").innerHTML = `Renacimientos: <b>${state.reb}</b> · bonus de producción actual: <b>+${state.reb * 25}%</b><br>Al renacer: <b>+25%</b> de producción permanente y <b>+${rebXp()} XP</b>. XP disponible: <b>${state.xp}</b>`;
-  $("rebFill").style.width = pct + "%";
-  $("rebGoalTxt").textContent = fmt(state.run) + " / " + fmt(goal) + " ricoins";
+  setH($("rebInfo"), `Renacimientos: <b>${state.reb}</b> · bonus de producción actual: <b>+${state.reb * 25}%</b><br>Al renacer: <b>+25%</b> de producción permanente y <b>+${rebXp()} XP</b>. XP disponible: <b>${state.xp}</b>`);
+  setW($("rebFill"), pct + "%");
+  setT($("rebGoalTxt"), fmt(state.run) + " / " + fmt(goal) + " ricoins");
   $("rebGo").disabled = !can;
 }
 $("rebGo").onclick = () => {
@@ -738,10 +751,6 @@ $("rebGo").onclick = () => {
 function renderExtra() { updReb(); updMuts(); updBranches(); }
 
 // ===== Bonus de aspectos =====
-function skinBn(t) {
-  const s = COSM.skin.find((x) => x.id === state.cosm.eq.skin);
-  return s && s.bn && s.bn[0] === t ? s.bn[1] : 0;
-}
 const bnText = (b) => ({ sec: "+" + Math.round(b[1] * 100) + "% producción", clk: "+" + Math.round(b[1] * 100) + "% por toque", crit: "+" + Math.round(b[1] * 100) + " pts de crítico", chest: "+" + Math.round(b[1] * 100) + "% ricoins de cofres", wheel: "-" + Math.round(b[1] * 100) + "% espera de ruleta" }[b[0]]);
 function renderSkins() {
   $("skinGrid").innerHTML = COSM.skin.map((o) => {
@@ -772,6 +781,7 @@ $("muts").addEventListener("click", (e) => {
   replay(b, "bought"); sfx(660, .1); setTimeout(() => sfx(990, .14), 80); save(); render();
 });
 function updMuts() {
+  if (mShop.hidden) return;
   MUTS.forEach((m) => {
     const b = $("muts").querySelector(`[data-m="${m.id}"]`), l = mutLvl(m.id), c = mutCost(m);
     b.querySelector(".n").textContent = l;
@@ -809,8 +819,9 @@ function openChestNow(k) {
 }
 const slotsEl = $("slots");
 slotsEl.innerHTML = [0, 1, 2, 3].map((i) => `<button class="slot" data-i="${i}"><span class="si"></span><b></b></button>`).join("");
+const slotEls = [...slotsEl.querySelectorAll(".slot")];
 function updSlots() {
-  slotsEl.querySelectorAll(".slot").forEach((el, i) => {
+  slotEls.forEach((el, i) => {
     const s = state.slots[i], key = s ? s.k : "";
     if (el.dataset.k !== key) { el.dataset.k = key; el.querySelector(".si").innerHTML = s ? chestSvg(s.k) : ""; }
     let t = "Vacío", cls = "";
@@ -819,8 +830,8 @@ function updSlots() {
       else if (s.end <= Date.now()) { t = "¡Abrir!"; cls = " ready"; }
       else { t = fmtT(s.end - Date.now()); cls = " going"; }
     }
-    el.className = "slot" + cls + (s && s.k === "mitico" ? " mit" : "");
-    el.querySelector("b").textContent = t;
+    const cn = "slot" + cls + (s && s.k === "mitico" ? " mit" : ""); if (el._c !== cn) { el._c = cn; el.className = cn; }
+    setT(el._b || (el._b = el.querySelector("b")), t);
   });
 }
 slotsEl.addEventListener("click", (e) => {
@@ -846,7 +857,7 @@ const wheelCd = () => 300000 * Math.max(.2, 1 - skinBn("wheel") - petBn("wheel")
 function updWheel() {
   const left = state.wheelAt - Date.now(), ok = left <= 0 && !spinning;
   $("spinBtn").disabled = !ok;
-  $("wheelInfo").textContent = spinning ? "Girando…" : left <= 0 ? "¡Tirada gratis lista!" : "Próxima tirada en " + fmtT(left);
+  setT($("wheelInfo"), spinning ? "Girando…" : left <= 0 ? "¡Tirada gratis lista!" : "Próxima tirada en " + fmtT(left));
 }
 function spin() {
   if (spinning || state.wheelAt > Date.now()) return;
@@ -896,7 +907,7 @@ function tickMore() {
   updSlots();
   const left = state.wheelAt - Date.now(), b = $("wheelBtn");
   b.classList.toggle("ready", left <= 0);
-  $("wheelTxt").textContent = left <= 0 ? "¡Girar!" : fmtT(left);
+  setT($("wheelTxt"), left <= 0 ? "¡Girar!" : fmtT(left));
   if (!$("m-wheel").hidden) updWheel();
 }
 $("glass").onchange = () => { state.set.glass = $("glass").checked; applyLook(); save(); };
@@ -912,7 +923,6 @@ const weekKey = (d = new Date()) => { const t = new Date(Date.UTC(d.getFullYear(
 const seedRand = (s) => { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => (((h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909)) >>> 0) / 4294967296); };
 const fmtH = (s) => Math.floor(s / 3600) + " h " + Math.floor((s % 3600) / 60) + " min";
 function mkModal(id, title, body) { const d = document.createElement("div"); d.id = "m-" + id; d.className = "modal"; d.hidden = true; d.innerHTML = `<div class="mbox"><header><h2>${title}</h2><button class="btn" data-close>Cerrar</button></header><div class="mbody" id="b-${id}">${body || ""}</div></div>`; document.body.appendChild(d); }
-{ const _o = openM; openM = (id) => { _o(id); if (RENDER[id]) RENDER[id](); applyLang(); }; }
 function gl(id) { return (state.gp && state.gp[id]) || 0; }
 // ---- Menú Más
 mkModal("hub", "Más", '<div class="hubg">' + [["m-quests", "Misiones"], ["m-codes", "Códigos"], ["m-pets", "Mascotas"], ["m-fuse", "Fusión"], ["m-album", "Álbum"], ["m-gal", "Huevos de oro"], ["m-games", "Minijuegos"], ["m-stats", "Estadísticas"], ["m-asc", "Ascender"], ["m-social", "Social"]].map(([i, n]) => `<button class="btn" data-open="${i}">${n}</button>`).join("") + "</div>");
@@ -932,6 +942,7 @@ $("qty").addEventListener("click", (e) => {
 });
 let _bs = "";
 function updBranches() {
+  if (mShop.hidden) return;
   const e = UPGRADES.filter((u) => owned(u) >= 25), sig = e.map((u) => u.id + ":" + state.br[u.id]).join();
   if (sig === _bs) return; _bs = sig;
   $("branches").innerHTML = e.length ? e.map((u) => `<li class="br"><b>${u.name}</b>` + (state.br[u.id] === undefined ? `<button class="btn" data-b="${u.id}:0">Vapor: producción x2, coste +20%</button><button class="btn" data-b="${u.id}:1">Taller: producción x1,5, coste -30%</button>` : `<small>Elegido: ${state.br[u.id] === 0 ? "Vapor" : "Taller"}</small>`) + `</li>`).join("") : '<li class="sum small">Aún no tienes mejoras al nivel 25.</li>';
@@ -956,52 +967,6 @@ function startEvent() {
 }
 (function s() { setTimeout(() => { startEvent(); s(); }, 180000 + Math.random() * 180000); })();
 
-// ---- 11 Jefes del corral (3 tipos, arena con HUD, rabia, explosión)
-const BART = {
-  zorro: `<svg viewBox="0 0 200 170"><path d="M14 8L58 52 142 52 186 8 196 100Q100 172 4 100Z" fill="#ff7a2e" stroke="#2b2118" stroke-width="6" stroke-linejoin="round"/><path d="M40 104Q100 160 160 104Q100 122 40 104Z" fill="#fff" stroke="#2b2118" stroke-width="4"/><path d="M52 76l30 12M148 76l-30 12" stroke="#2b2118" stroke-width="8" stroke-linecap="round"/><circle cx="74" cy="92" r="9" fill="#ffe27a" stroke="#2b2118" stroke-width="3"/><circle cx="126" cy="92" r="9" fill="#ffe27a" stroke="#2b2118" stroke-width="3"/><circle cx="76" cy="93" r="4" fill="#2b2118"/><circle cx="124" cy="93" r="4" fill="#2b2118"/><path d="M88 118h24l-12 16z" fill="#2b2118"/></svg>`,
-  lobo: `<svg viewBox="0 0 200 170"><path d="M16 6L58 52 142 52 184 6 196 104Q100 176 4 104Z" fill="#8a94a8" stroke="#2b2118" stroke-width="6" stroke-linejoin="round"/><path d="M46 106Q100 158 154 106Q100 124 46 106Z" fill="#dfe6ee" stroke="#2b2118" stroke-width="4"/><path d="M50 72l32 14M150 72l-32 14" stroke="#2b2118" stroke-width="9" stroke-linecap="round"/><circle cx="74" cy="92" r="10" fill="#ffd84a" stroke="#2b2118" stroke-width="3"/><circle cx="126" cy="92" r="10" fill="#ffd84a" stroke="#2b2118" stroke-width="3"/><ellipse cx="74" cy="93" rx="2.500" ry="7" fill="#2b2118"/><ellipse cx="126" cy="93" rx="2.500" ry="7" fill="#2b2118"/><path d="M86 118h28l-14 16z" fill="#2b2118"/><path d="M80 138l8 14 8-14M104 138l8 14 8-14" fill="#fff" stroke="#2b2118" stroke-width="3"/></svg>`,
-  dragon: `<svg viewBox="0 0 200 170"><path d="M36 22L58 66 82 44zM164 22L142 66 118 44z" fill="#ffd84a" stroke="#2b2118" stroke-width="5" stroke-linejoin="round"/><path d="M26 98L0 62 44 80zM174 98L200 62 156 80z" fill="#b05cff" stroke="#2b2118" stroke-width="5" stroke-linejoin="round"/><ellipse cx="100" cy="100" rx="78" ry="62" fill="#7a3cff" stroke="#2b2118" stroke-width="6"/><ellipse cx="100" cy="128" rx="38" ry="26" fill="#9a6bff" stroke="#2b2118" stroke-width="4"/><path d="M50 74l32 14M150 74l-32 14" stroke="#2b2118" stroke-width="9" stroke-linecap="round"/><ellipse cx="68" cy="92" rx="15" ry="10" fill="#ffe27a" stroke="#2b2118" stroke-width="3"/><ellipse cx="132" cy="92" rx="15" ry="10" fill="#ffe27a" stroke="#2b2118" stroke-width="3"/><ellipse cx="68" cy="92" rx="3" ry="9" fill="#2b2118"/><ellipse cx="132" cy="92" rx="3" ry="9" fill="#2b2118"/><circle cx="88" cy="124" r="5" fill="#2b2118"/><circle cx="112" cy="124" r="5" fill="#2b2118"/><path d="M84 148q16 32 32 0z" fill="#ff8a1f" stroke="#2b2118" stroke-width="3"/></svg>`,
-};
-const BOSSES = [
-  { id: "zorro", n: "ZORRO DEL CORRAL", m: 1, min: 0, c: "#ff7a2e", chest: "plata" },
-  { id: "lobo", n: "LOBO FEROZ", m: 2.4, min: 1, c: "#8a94a8", chest: "oro" },
-  { id: "dragon", n: "DRAGÓN DE LA YEMA", m: 5, min: 3, c: "#7a3cff", chest: "legendario" },
-];
-let boss = null;
-const bossEl = $("boss");
-function banner(t, col) {
-  const b = document.createElement("div"); b.className = "bnr"; b.textContent = t; b.style.color = col || "#ffd84a"; stage.appendChild(b); setTimeout(() => b.remove(), 1900);
-}
-function spawnBoss() {
-  if (!started || boss) return;
-  const b = pick(BOSSES.filter((x) => state.reb >= x.min || state.asc)), hp = Math.round((60 + 15 * state.reb + 25 * state.asc) * b.m);
-  boss = { b, hp, max: hp, end: Date.now() + 30000 };
-  bossEl.hidden = false; bossEl.className = "boss in"; bossEl.style.setProperty("--bc", b.c);
-  bossEl.innerHTML = `<div class="bn">${b.n}</div><div class="hpb"><div id="bossBar"></div><span id="bossHp"></span></div><div class="bart">${BART[b.id]}</div><div class="tb"><div id="bossT"></div></div>`;
-  stage.classList.add("bossfight"); banner("¡" + b.n + "!", b.c); say("¡Jefe a la vista!"); sfx(180, .4, "sawtooth"); setTimeout(() => sfx(140, .5, "sawtooth"), 250);
-  if (state.set.shake) replay(stage, "shake");
-}
-function endBossUI() { bossEl.hidden = true; stage.classList.remove("bossfight"); }
-function updBoss() {
-  if (!boss) return; const left = boss.end - Date.now();
-  if (left <= 0) { boss = null; endBossUI(); toast("El jefe escapó…"); return; }
-  $("bossBar").style.width = (Math.max(0, boss.hp) / boss.max) * 100 + "%"; $("bossHp").textContent = fmt(Math.max(0, boss.hp)) + " / " + fmt(boss.max);
-  $("bossT").style.width = (left / 30000) * 100 + "%"; bossEl.classList.toggle("rage", boss.hp / boss.max < .3);
-}
-function hitBoss(n) {
-  if (!boss) return; boss.hp -= n; replay(bossEl, "hit");
-  floater("-" + n, 40 + Math.random() * 120, 70 + Math.random() * 90, true); sfx(200 + Math.random() * 80, .05, "square");
-  if (boss.hp <= 0) {
-    const b = boss.b; boss = null; bossEl.classList.add("dead"); setTimeout(endBossUI, 900);
-    state.st.bosses = (state.st.bosses || 0) + 1; passXp(Math.round(15 * b.m));
-    const g = Math.max(2000, perSec() * 600) * b.m; gain(g); addChest(b.chest); if (Math.random() < .35) givePet();
-    confetti(stage.clientWidth / 2, stage.clientHeight / 2, 80); banner("¡DERROTADO!", "#4fcf6a"); toast("+" + fmt(g) + " y un cofre " + b.chest);
-    [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => sfx(f, .2), i * 80)); render();
-  }
-}
-bossEl.addEventListener("click", () => hitBoss(2 + Math.floor(combo / 20)));
-(function s() { setTimeout(() => { spawnBoss(); s(); }, 240000 + Math.random() * 180000); })();
-
 // ---- 15 Mensajes del pollo / 18 Emociones
 function say(t, ms = 3200) { const b = $("bubble"); b.textContent = t; b.hidden = false; clearTimeout(b._t); b._t = setTimeout(() => (b.hidden = true), ms); }
 let nextSay = Date.now() + 15000;
@@ -1017,7 +982,6 @@ $("chick").addEventListener("click", (e) => {
     [660, 880, 1100].forEach((f, i) => setTimeout(() => sfx(f, .12), i * 70));
     if (m === 50) addChest("madera"); if (m === 100) { addChest("plata"); if (state.set.shake) replay(stage, "shake"); }
   }
-  hitBoss(1 + Math.floor(combo / 20));
   const r = $("floaters").getBoundingClientRect(), x = e.clientX ? e.clientX - r.left : r.width / 2, y = e.clientY ? e.clientY - r.top : r.height / 2;
   const t = TAPFX[state.cosm.eq.tap]; if (t && state.set.fx) charBurst(x, y, t, 7);
 });
@@ -1044,8 +1008,9 @@ addEventListener("pointermove", (e) => {
 // ---- 17 Animaciones por aspecto
 const FXC = { lava: ["#ff7a2e", "#ffd36b"], hielo: ["#d6f4ff", "#8fe0ff"], cosmos: ["#8a7bdc", "#fff"], fenix: ["#ff6a1a", "#ffcf4a"], galaxia: ["#ff3ca8", "#6ae0ff"], esmeralda: ["#b4ffd8", "#2fe08a"], radio: ["#b6ff1a"], supremo: ["#ffd84a", "#fff"], oro: ["#ffe27a"], arcoiris: ["#ff5d73", "#ffb400", "#6ae0ff"], plata: ["#fff", "#dfe6ee"], fantasma: ["#fff"] };
 function ambient() {
-  if (!state.set.fx) return; const c = FXC[state.cosm.eq.skin]; if (!c) return;
-  spray("conf", stage.clientWidth / 2 + (Math.random() - .5) * 160, stage.clientHeight / 2 + 40 + (Math.random() - .5) * 100, 1, 1100, 60, () => `--c:${pick(c)}`);
+  if (!state.set.fx) return; const sk = COSM.skin.find((x) => x.id === state.cosm.eq.skin); if (!sk) return;
+  const c = FXC[sk.id], col = !c && FXA.includes(sk.rar) ? sk.au || sk.v[1] : null; if (!c && !col) return;
+  spray("conf", stage.clientWidth / 2 + (Math.random() - .5) * 160, stage.clientHeight / 2 + 40 + (Math.random() - .5) * 100, 1, 1100, 60, () => `--c:${c ? pick(c) : col}`);
 }
 
 // ---- 16 Accesorios nuevos, 19 Mundos, 22 cosméticos de toque
@@ -1065,11 +1030,12 @@ COSM.scene.push(
   { id: "volcan", n: "Volcán", p: 200000, bn: ["sec", .12], v: ["#2a0d0a", "#7a1f0f", "#d6451a", "#4a2a22", "#33201b", "#201512", "#ffb347", "#fff8e6"] },
   { id: "ciudad", n: "Ciudad", p: 800000, bn: ["chest", .1], v: ["#2b3a67", "#5d7ac4", "#f3b5c9", "#6b7280", "#4b5563", "#374151", "#fff3b0", "#fff8e6"] },
   { id: "nieve", n: "Invierno", p: 3000000, bn: ["crit", .02], v: ["#9ec9e8", "#e4f3ff", "#ffffff", "#f4faff", "#d5e6f3", "#b9d2e5", "#fff8d6", "#2b2118"] });
-function effScene() {
+function effScene0() {
   const s = state.cosm.eq.scene; if (!state.set.auto) return s;
   const h = new Date().getHours(), id = h >= 7 && h < 18 ? "dia" : h >= 18 && h < 21 ? "tarde" : "noche", o = COSM.scene.find((x) => x.id === id);
   return o && has({ ...o, cat: "scene", key: "scene:" + id }) ? id : s;
 }
+const effScene = ttl(effScene0, 1000);
 function worldBn(t) { const s = COSM.scene.find((x) => x.id === effScene()); return s && s.bn && s.bn[0] === t ? s.bn[1] : 0; }
 const MUS = { dia: [0, 2, 4, 7, 9], tarde: [0, 3, 5, 7, 10], noche: [0, 3, 5, 7, 10], playa: [0, 2, 4, 7, 9], espacio: [0, 2, 3, 7, 8], volcan: [0, 1, 5, 7, 8], ciudad: [0, 2, 5, 7, 9], nieve: [0, 4, 7, 11, 12] };
 
@@ -1121,13 +1087,18 @@ const PETS = [
   { id: "dragon", n: "Dragón Chispa", sp: "dragon", r: "mitico", c: "#7a3cff", f: ["all", .05] }, { id: "unicornio", n: "Unicornio Iris", sp: "unicornio", r: "mitico", c: "#ffe9fb", f: ["clk", .2] },
 ].map((p) => ({ ...p, at: genAttrs("pet" + p.id, p.r, p.f) }));
 const petLv = (id) => 1 + .25 * ((state.pets[id] || 1) - 1);
-function petBn(t) { return state.petEq.reduce((n, id) => { const p = PETS.find((x) => x.id === id); return n + (p ? p.at.reduce((m, a) => m + (a[0] === t ? a[1] * petLv(id) : 0), 0) : 0); }, 0); }
+let _pbS = "", _pbV = {};
+function petBn(t) {
+  const sig = state.petEq.map((id) => id + (state.pets[id] || 1)).join();
+  if (sig !== _pbS) { _pbS = sig; _pbV = {}; state.petEq.forEach((id) => { const p = PETS.find((x) => x.id === id); if (p) p.at.forEach((a) => { _pbV[a[0]] = (_pbV[a[0]] || 0) + a[1] * petLv(id); }); }); }
+  return _pbV[t] || 0;
+}
 const RW = { comun: 60, raro: 28, epico: 9, legendario: 2.5, mitico: .5 };
 function rollRar() { let r = Math.random() * 100; for (const k in RW) if ((r -= RW[k]) < 0) return k; return "comun"; }
 function givePet() { state.peggs = (state.peggs || 0) + 1; toast("¡Huevo de mascota! Ábrelo en Más → Mascotas"); save(); }
 function hatchPet() {
   if (!state.peggs) return toast("No tienes huevos de mascota");
-  state.peggs--; const p = pick(PETS.filter((x) => x.r === rollRar())), had = state.pets[p.id] || 0;
+  state.peggs--; const rr = rollRar(), p = pick(PETS.filter((x) => x.r === rr)), had = state.pets[p.id] || 0;
   state.pets[p.id] = Math.min(10, had + 1); if (!had && state.petEq.length < 3) state.petEq.push(p.id);
   showCard(`${animalSvg(p.sp, p.c)}<b>${p.n}</b><span class="rar">${RAR[p.r].n}</span><small>${had ? "¡Sube a nivel " + state.pets[p.id] + "!" : "¡Mascota nueva!"}</small>`, RAR[p.r].c);
   save(); setTimeout(() => RENDER["m-pets"] && RENDER["m-pets"](), 1400);
@@ -1158,7 +1129,8 @@ function giveCard() {
   state.cards[c.id] = { n: (had ? had.n : 0) + 1, foil: (had && had.foil) || foil };
   toast((had ? "Carta repetida: " : "¡Carta nueva: ") + c.n + (foil ? " ✨ brillante" : "") + (had ? "" : "!")); save();
 }
-function cardBonus() { return CARDS.reduce((n, c) => { const k = state.cards[c.id]; return n + (k ? .004 * (k.foil ? 2 : 1) : 0); }, 0); }
+function cardBonus0() { return CARDS.reduce((n, c) => { const k = state.cards[c.id]; return n + (k ? .004 * (k.foil ? 2 : 1) : 0); }, 0); }
+const cardBonus = ttl(cardBonus0, 500);
 RENDER["m-album"] = () => {
   const got = CARDS.filter((c) => state.cards[c.id]).length;
   $("b-album").innerHTML = `<p class="sum">${got} de ${CARDS.length} cartas · bonus +${(cardBonus() * 100).toFixed(1)}% a todo (brillantes valen doble). Caen de los cofres (25%).</p><ul class="cards">` + CARDS.map((c, i) => {
@@ -1198,10 +1170,10 @@ document.addEventListener("click", (e) => {
 });
 
 // ---- 1 Misiones diarias/semanales, 3 Pase de temporada
-const STAT = { clicks: () => state.st.clicks, crits: () => state.st.crits, chests: () => state.st.chests, golds: () => state.st.golds, spins: () => state.st.spins || 0, bosses: () => state.st.bosses || 0, games: () => state.st.games || 0, fusions: () => state.st.fusions || 0 };
+const STAT = { clicks: () => state.st.clicks, crits: () => state.st.crits, chests: () => state.st.chests, golds: () => state.st.golds, spins: () => state.st.spins || 0, games: () => state.st.games || 0, fusions: () => state.st.fusions || 0 };
 const QP = [
   { s: "clicks", n: "Toca a Ricopio %n veces", d: 150, w: 2500 }, { s: "crits", n: "Consigue %n golpes críticos", d: 10, w: 120 }, { s: "chests", n: "Abre %n cofres", d: 2, w: 14 },
-  { s: "golds", n: "Atrapa %n huevos de oro", d: 1, w: 6 }, { s: "spins", n: "Gira la ruleta %n veces", d: 1, w: 7 }, { s: "bosses", n: "Derrota %n zorros", d: 1, w: 5 },
+  { s: "golds", n: "Atrapa %n huevos de oro", d: 1, w: 6 }, { s: "spins", n: "Gira la ruleta %n veces", d: 1, w: 7 }, { s: "clicks", n: "Maratón: toca %n veces", d: 400, w: 6000 },
   { s: "games", n: "Juega %n minijuegos", d: 2, w: 12 }, { s: "fusions", n: "Fusiona objetos %n veces", d: 1, w: 6 },
 ];
 const snap = () => { const o = {}; for (const k in STAT) o[k] = STAT[k](); return o; };
@@ -1259,7 +1231,7 @@ const TITLES = [
 RENDER["m-stats"] = () => {
   const s = state.st, h = state.hist, mx = Math.max(1, ...h.map((v) => Math.log10(1 + v))), pts = h.map((v, i) => `${(i / Math.max(1, h.length - 1)) * 300},${60 - (Math.log10(1 + v) / mx) * 55}`).join(" ");
   const row = (a, b) => `<div class="row"><span>${a}</span><b>${b}</b></div>`;
-  $("b-stats").innerHTML = `<p class="sum">Evolución: <b>${EVO[evoIdx()]}</b></p>` + row("Tiempo jugado", fmtH(s.time || 0)) + row("Toques", L(s.clicks)) + row("Críticos", L(s.crits)) + row("Mejor combo", s.maxCombo) + row("Cofres abiertos", s.chests) + row("Huevos de oro", s.golds) + row("Giros de ruleta", s.spins || 0) + row("Zorros derrotados", s.bosses || 0) + row("Minijuegos", s.games || 0) + row("Ricoins totales", fmt(state.total)) + row("Renacimientos / Ascensiones", state.reb + " / " + state.asc) + row("Cartas / Mascotas", Object.keys(state.cards).length + " / " + Object.keys(state.pets).length) +
+  $("b-stats").innerHTML = `<p class="sum">Evolución: <b>${EVO[evoIdx()]}</b></p>` + row("Tiempo jugado", fmtH(s.time || 0)) + row("Toques", L(s.clicks)) + row("Críticos", L(s.crits)) + row("Mejor combo", s.maxCombo) + row("Cofres abiertos", s.chests) + row("Huevos de oro", s.golds) + row("Giros de ruleta", s.spins || 0) + row("Minijuegos", s.games || 0) + row("Ricoins totales", fmt(state.total)) + row("Renacimientos / Ascensiones", state.reb + " / " + state.asc) + row("Cartas / Mascotas", Object.keys(state.cards).length + " / " + Object.keys(state.pets).length) +
     `<h3>Producción por segundo (últimos minutos)</h3><svg class="graph" viewBox="0 0 300 64" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#ff5d73" stroke-width="2.5" stroke-linejoin="round"/></svg><h3>Título</h3><div class="chips">` + TITLES.map((t) => { const ok = t.f(); return `<button class="chip${state.title === t.id || (!state.title && t.id === "nov") ? " on" : ""}" data-ti="${t.id}"${ok ? "" : " disabled"}><b>${ok ? t.n : "???"}</b></button>`; }).join("") + "</div>";
 };
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-ti]"); if (!b) return; state.title = b.dataset.ti; save(); RENDER["m-stats"](); });
@@ -1271,19 +1243,20 @@ const WK = [
   { n: "Semana relámpago: todo x1,3", clk: 1.3, sec: 1.3 }, { n: "Semana rica: ricoins de cofres x2", chest: 2 },
   { n: "Semana tranquila: producción x2, toques x0,5", sec: 2, clk: .5 }, { n: "Semana del suertudo: +10 pts de crítico", crit: .1 },
 ];
-const wkMod = () => WK[Math.floor(seedRand("wk" + weekKey())() * WK.length)];
+const wkMod0 = () => WK[Math.floor(seedRand("wk" + weekKey())() * WK.length)];
+const wkMod = ttl(wkMod0, 5000);
 function wkM(t) { const m = wkMod(); return t === "crit" ? 1 : m[t] || 1; }
 function wkScore() { if (!state.wk || state.wk.key !== weekKey()) state.wk = { key: weekKey(), start: state.total }; return state.total - state.wk.start; }
 // ---- 9 Huevo sorpresa al abrir
 const crack = document.createElement("div"); crack.id = "crack"; crack.className = "crack"; crack.hidden = true;
 crack.innerHTML = '<svg viewBox="0 0 100 130" aria-hidden="true"><path class="eg" d="M50 6C78 6 94 56 94 82a44 44 0 0 1-88 0C6 56 22 6 50 6z" fill="#fff8e6" stroke="#2b2118" stroke-width="5"/><path class="ck" d="M18 70l14 12 12-14 12 14 14-12 14 12" fill="none" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/></svg>';
 document.body.appendChild(crack);
-{ const _sc = showCard; showCard = (html, color) => {
-  if (state.set.rm) return _sc(html, color);
+function showCard(html, color) {
+  if (state.set.rm) return revealCard(html, color);
   crack.hidden = false; crack.style.setProperty("--rc", color); crack.classList.remove("go"); void crack.offsetWidth; crack.classList.add("go");
   [300, 380, 460].forEach((f, i) => setTimeout(() => sfx(f, .09), i * 380));
-  setTimeout(() => { crack.hidden = true; _sc(html, color); }, 1300);
-}; }
+  setTimeout(() => { crack.hidden = true; revealCard(html, color); }, 1300);
+}
 
 // ---- 13 Música dinámica
 let mStep = 0;
@@ -1322,7 +1295,6 @@ function applySet() {
   renderColl(); applyLang();
 }
 $("m-set").querySelector(".mbody").insertAdjacentHTML("afterbegin", `<label class="row">Música <input id="music" type="checkbox"></label><label class="row">Idioma <select id="lang"><option value="es">Español</option><option value="en">English</option></select></label><label class="row">Tamaño de texto <select id="big"><option value="100">Normal</option><option value="115">Grande</option><option value="130">Muy grande</option></select></label><label class="row">Modo daltonismo <input id="cb" type="checkbox"></label><label class="row">Reducir animaciones <input id="rm" type="checkbox"></label><label class="row">Mundo según la hora <input id="auto" type="checkbox"></label><label class="row">Notificaciones <input id="notif" type="checkbox"></label><div class="foot"><button id="codeCopy" class="btn">Copiar código</button><button id="codePaste" class="btn">Pegar código</button><button id="tutBtn" class="btn">Ver tutorial</button></div><p class="sum small">Atajos: 1 Tienda · 2 Aspectos · 3 Armario · 4 Renacer · 5 Ruleta · 6 Logros · 7 Secretos · 8 Ajustes · 9 Más</p>`);
-{ const _ss = syncSet; syncSet = () => { _ss(); $("music").checked = state.set.music; $("lang").value = state.set.lang; $("big").value = state.set.big; $("cb").checked = state.set.cb; $("rm").checked = state.set.rm; $("auto").checked = state.set.auto; $("notif").checked = state.set.notif; }; }
 ["music", "cb", "rm", "auto", "notif"].forEach((k) => ($(k).onchange = () => { state.set[k] = $(k).checked; if (k === "notif" && $(k).checked && typeof Notification !== "undefined") Notification.requestPermission(); if (k === "auto") applyLook(); save(); applySet(); }));
 $("lang").onchange = () => { state.set.lang = $("lang").value; save(); applySet(); };
 $("big").onchange = () => { state.set.big = +$("big").value; save(); applySet(); };
@@ -1360,7 +1332,6 @@ ACH.push(
   { id: "s4", n: "Oro negro", d: "Atrapa un huevo de oro negro", r: "legendario", sec: 1, f: () => (state.gold.negro || 0) >= 1 },
   { id: "s5", n: "Ascendido", d: "Asciende por primera vez", r: "legendario", sec: 1, f: () => state.asc >= 1 },
   { id: "s6", n: "Álbum completo", d: "Consigue las 24 cartas", r: "mitico", sec: 1, f: () => CARDS.every((c) => state.cards[c.id]) },
-  { id: "s7", n: "Cazazorros", d: "Derrota 10 zorros", r: "raro", f: () => (state.st.bosses || 0) >= 10 },
   { id: "s8", n: "Pase completo", d: "Completa los 60 niveles del pase de temporada", r: "epico", f: () => passLvl() >= PASS_N });
 
 // ---- Bucle extra
@@ -1376,10 +1347,9 @@ document.addEventListener("click", (e) => {
 });
 addEventListener("keydown", (e) => { typed2 = (typed2 + (e.key.length === 1 ? e.key.toLowerCase() : "")).slice(-10); if (started && typed2.endsWith("gallina")) egg("gallina"); });
 let typed2 = "";
-{ const _tm = tickMore; tickMore = () => { _tm(); tick3(); }; }
 function tick3() {
   T3++; if (!started) return;
-  state.st.time = (state.st.time || 0) + .1;
+  state.st.time = (state.st.time || 0) + UD;
   const idle = Date.now() - lastAct, h = new Date().getHours(), mood = idle > 90000 || (h < 6 && idle > 30000) ? "sleep" : idle > 30000 ? "bored" : combo >= 8 ? "happy" : "";
   if ($("chick").dataset.mood !== mood) $("chick").dataset.mood = mood;
   if (T3 % 100 === 0) { state.hist.push(perSec()); if (state.hist.length > 60) state.hist.shift(); ensureQuests(); passState(); const d = new Date(); if ((d.getMonth() === 11 && d.getDate() === 25) || (d.getMonth() === 0 && d.getDate() === 1) || (d.getMonth() === 9 && d.getDate() === 31)) egg("fecha"); }
@@ -1387,7 +1357,6 @@ function tick3() {
   if (T3 % 20 === 0) { applyEvo(); petsStage(); const t = TITLES.find((x) => x.id === (state.title || "nov")); titleLbl.textContent = t && t.f() ? t.n : "Pollito novato"; if (state.set.auto) applyLook(); }
   if (Date.now() > nextSay) { nextSay = Date.now() + 25000 + Math.random() * 20000; say(pick(idle > 45000 ? ["¿Hola? ¿Sigues ahí?", "Me aburro…"] : h < 6 ? ["Zzz…", "¿No es hora de dormir?"] : ["¡Pío!", "Hoy me siento rico.", "Dame toquecitos.", "¿Ya giraste la ruleta?", "Hay cofres esperando."])); }
   if (ev) { if (Date.now() >= ev.end) { ev = null; evBan.hidden = true; } else { evBan.hidden = false; evBan.textContent = ev.n.split("!")[0] + "! " + Math.ceil((ev.end - Date.now()) / 1000) + " s"; if (ev.id === "tormenta" && T3 % 3 === 0) spray("coin", Math.random() * stage.clientWidth, 0, 1, 800, 40); } }
-  updBoss();
   const wl = state.wheelAt - Date.now(); if (wl <= 0) notify("w", "¡La ruleta está lista!"); else delete notified.w;
   state.slots.forEach((s, i) => { if (s && s.end && s.end <= Date.now()) notify("s" + i, "¡Un cofre está listo!"); else delete notified["s" + i]; });
 }
@@ -1450,10 +1419,11 @@ COSM.skin.forEach((s) => {
 });
 ["hat", "eyes", "neck", "back", "feet", "tap", "trail"].forEach((c) => COSM[c].forEach((x) => { if (x.id === "ninguno") return; x.rar = rarOf(x); x.bn = genAttrs(c + x.id, x.rar, null); }));
 const EQC = ["skin", "hat", "eyes", "neck", "back", "feet", "tap", "trail"];
+let _sbS = "", _sbV = {};
 function skinBn(t) {
-  let n = 0;
-  for (const c of EQC) { const x = COSM[c].find((y) => y.id === state.cosm.eq[c]); if (x && x.bn) for (const a of bnArr(x.bn)) if (a[0] === t) n += a[1]; }
-  return n;
+  const sig = EQC.map((c) => state.cosm.eq[c]).join();
+  if (sig !== _sbS) { _sbS = sig; _sbV = {}; for (const c of EQC) { const x = COSM[c].find((y) => y.id === state.cosm.eq[c]); if (x && x.bn) for (const a of bnArr(x.bn)) _sbV[a[0]] = (_sbV[a[0]] || 0) + a[1]; } }
+  return _sbV[t] || 0;
 }
 const TXCSS = { galaxia: "radial-gradient(circle at 35% 30%,#ff6ad5,#5b3cff 50%,#12103a)", fuego: "linear-gradient(0deg,#c1190a,#ff6a1a,#ffe27a)", radio: "repeating-linear-gradient(90deg,#b6ff1a 0 6px,#1c2a05 6px 12px)", iris: "conic-gradient(#ff5d73,#ffb400,#6fd06f,#3d9bff,#b05cff,#ff5d73)", pase: "conic-gradient(#4b2a8c,#ffd84a,#4b2a8c,#ffd84a,#4b2a8c)", escamas: "radial-gradient(circle,#7cf08a 18%,#1f7a3a 22% 60%,#124d25)", olas: "repeating-linear-gradient(0deg,#1d6fd6 0 5px,#9fe8ff 5px 7px)", glitch: "linear-gradient(90deg,#ff2d9a,#16161e,#00e5ff,#16161e)", facetas: "conic-gradient(#e8fcff,#5fd0f0,#c8f6ff,#9ff0ff,#e8fcff)" };
 function renderSkins() {
@@ -1476,7 +1446,6 @@ function applyFx() {
   });
 }
 const FXA = ["legendario", "mitico"];
-{ const _amb = ambient; ambient = () => { _amb(); const sk = COSM.skin.find((x) => x.id === state.cosm.eq.skin); if (sk && FXA.includes(sk.rar) && state.set.fx && !FXC[sk.id]) spray("conf", stage.clientWidth / 2 + (Math.random() - .5) * 160, stage.clientHeight / 2 + 40 + (Math.random() - .5) * 100, 1, 1100, 60, () => `--c:${sk.au || sk.v[1]}`); }; }
 
 // ---- Contador de clicks visual (hasta renacer)
 const ccEl = document.createElement("div"); ccEl.id = "cc"; ccEl.className = "cc"; ccEl.innerHTML = '<span>CLICK</span><b id="ccN">x0</b>'; stage.appendChild(ccEl);
@@ -1515,15 +1484,16 @@ function claimPass(lane, i) {
   arr.push(i); grantPass(lane === "p" ? passPrem(i) : passFree(i)); return true;
 }
 const pw = document.createElement("div"); pw.id = "pw"; pw.className = "pw"; document.body.appendChild(pw);
-let pwOpen = innerWidth > 900, _pwSig = "", _pwL = -1;
+let pwOpen = false, _pwSig = "", _pwL = -1;
 function renderPW(force) {
   const ps = passState(), L = passLvl(), sig = [L, ps.xp, ps.prem, ps.cf.length, ps.cp.length, pwOpen].join("|"); if (!force && sig === _pwSig) return; _pwSig = sig;
+  pw.classList.toggle("min", !pwOpen);
   const old = $("pwS") ? $("pwS").scrollLeft : 0, rdy = [...Array(PASS_N)].filter((_, j) => { const i = j + 1; return L >= i && (!ps.cf.includes(i) || (ps.prem && !ps.cp.includes(i))); }).length;
   const tile = (lane, i) => {
     const r = lane === "p" ? passPrem(i) : passFree(i), done = (lane === "p" ? ps.cp : ps.cf).includes(i), ok = L >= i && (lane === "f" || ps.prem);
     return `<button class="pt ${lane}${done ? " done" : ok ? " ready" : ""}${i === 30 || i === 60 ? " star" : ""}" data-pt="${lane}:${i}" title="${r.x}">${ptIcon(r)}<small>${done ? "✓" : r.s}</small>${lane === "p" && !ps.prem ? '<u class="lk">🔒</u>' : ""}</button>`;
   };
-  pw.innerHTML = `<div class="pwh"><b>Pase Ricopio · Nv ${L}/${PASS_N}</b><div class="bar"><div style="width:${L >= PASS_N ? 100 : ps.xp % PASS_XP}%"></div></div>${ps.prem ? '<em class="pm">PREMIUM</em>' : `<button class="btn" data-pw="prem">Premium ${fmt(PASS_PREM)}</button>`}${rdy ? `<button class="btn rd" data-pw="all">Reclamar (${rdy})</button>` : ""}<button class="btn tg" data-pw="tog">${pwOpen ? "▾" : "▴"}</button></div>` +
+  pw.innerHTML = !pwOpen ? `<button class="btn pwmini${rdy ? " rd" : ""}" data-pw="tog">Pase · Nv ${L}${rdy ? " · " + rdy + " ★" : ""} ▴</button>` : `<div class="pwh"><b>Pase Ricopio · Nv ${L}/${PASS_N}</b><div class="bar"><div style="width:${L >= PASS_N ? 100 : ps.xp % PASS_XP}%"></div></div>${ps.prem ? '<em class="pm">PREMIUM</em>' : `<button class="btn" data-pw="prem">Premium ${fmt(PASS_PREM)}</button>`}${rdy ? `<button class="btn rd" data-pw="all">Reclamar (${rdy})</button>` : ""}<button class="btn tg" data-pw="tog">${pwOpen ? "▾" : "▴"}</button></div>` +
     (pwOpen ? `<div class="pws" id="pwS"><div class="pwl">${[...Array(PASS_N)].map((_, j) => `<div class="pwc"><span class="pwn">${j + 1}</span>${tile("p", j + 1)}${tile("f", j + 1)}</div>`).join("")}</div></div>` : "");
   const s = $("pwS"); if (s) s.scrollLeft = L !== _pwL ? Math.max(0, (L - 2) * 62) : old; _pwL = L;
 }
@@ -1591,7 +1561,7 @@ const GLY = {
 function buildWheel() {
   const R = 96, P = (a, r) => [(r * Math.sin(a * Math.PI / 180)).toFixed(1), (-r * Math.cos(a * Math.PI / 180)).toFixed(1)];
   let s = '<svg viewBox="-112 -112 224 224" class="wsvg"><defs>' + Object.entries(WG).map(([k, [a, b]]) => `<radialGradient id="wg_${k}" cx="0" cy="0" r="100" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient>`).join("") + '</defs><circle r="109" fill="#2b2118"/><circle r="104" fill="#ffd84a" stroke="#2b2118" stroke-width="2"/>';
-  SEG.forEach((c, k) => { const [x0, y0] = P(k * 30, R), [x1, y1] = P(k * 30 + 30, R); s += `<path d="M0 0L${x0} ${y0}A${R} ${R} 0 0 1 ${x1} ${y1}Z" fill="url(#wg_${c})" stroke="#2b2118" stroke-width="2.500"${c === "mitico" ? ' class="wmit"' : ""}/><g transform="rotate(${k * 30 + 15})">${GLY[c]}<text y="-46" font-size="9" font-weight="800" text-anchor="middle" fill="${c === "mitico" ? "#ffd84a" : "#2b2118"}">${SEGC[c][1]}</text></g>`; });
+  SEG.forEach((c, k) => { const [x0, y0] = P(k * 30, R), [x1, y1] = P(k * 30 + 30, R); s += `<path d="M0 0L${x0} ${y0}A${R} ${R} 0 0 1 ${x1} ${y1}Z" fill="url(#wg_${c})" stroke="#2b2118" stroke-width="2.500"${c === "mitico" ? ' class="wmit"' : ""}/><g transform="rotate(${k * 30 + 15})"><g transform="translate(0 8) scale(1.18)">${GLY[c]}</g></g>`; });
   for (let i = 0; i < 24; i++) { const [x, y] = P(i * 15, 101); s += `<circle cx="${x}" cy="${y}" r="3" fill="#fff" stroke="#2b2118" stroke-width="1" class="wb" style="animation-delay:${i % 2 ? .35 : 0}s"/>`; }
   s += '<circle r="17" fill="#ffc928" stroke="#2b2118" stroke-width="4"/><circle cx="-6" cy="-3" r="2.500" fill="#2b2118"/><circle cx="6" cy="-3" r="2.500" fill="#2b2118"/><path d="M-4 3h8l-4 6z" fill="#ff8a1f"/></svg>';
   $("wheel").innerHTML = s;
@@ -1736,18 +1706,84 @@ $("b-social").addEventListener("click", (e) => {
   if (a === "redeem") { const c = prompt("Pega el código de regalo:"); if (!c) return; try { const d = JSON.parse(dec(c.trim().replace(/^RG1\./, ""))); if (state.gifts.includes(d.x)) return toast("No puedes canjear tu propio regalo"); if (state.redeemed.includes(d.x)) return toast("Regalo ya canjeado"); state.redeemed.push(d.x); if (d.t === "c") gain(d.a); else state.items[d.id] = (state.items[d.id] || 0) + 1; confetti(stage.clientWidth / 2, stage.clientHeight / 2, 40); toast("¡Regalo de " + d.f + " recibido!"); save(); render(); renderColl(); } catch { toast("Código no válido"); } return; }
   if (a.startsWith("gift:")) { const id = a.slice(5), it = ITEMS.find((i) => i.id === id), x = Math.random().toString(36).slice(2, 9); if (!state.items[id]) return; state.items[id]--; state.gifts.push(x); save(); renderColl(); RENDER["m-social"](); copyText("RG1." + enc(JSON.stringify({ t: "i", id, f: pname(), x })), "Regalo copiado: " + it.name); }
 });
-{ const _rs = RENDER["m-social"]; RENDER["m-social"] = () => { _rs(); }; }
 
 // ---- Bucle ronda 2
 let T4 = 0;
-{ const _tm = tickMore; tickMore = () => { _tm(); tick4(); }; }
+function updGameCd() { $("b-games").querySelectorAll("[data-g]").forEach((b) => { const c = gcd(b.dataset.g); setT(b, c ? fmtT(c) : "¡Jugar!"); b.disabled = !!c; }); }
 function tick4() {
-  T4++; renderPW(); if (!started) return;
+  T4++; if (T4 % 5 === 0) renderPW(); if (!started) return;
   if (T4 % 600 === 0) { passXp(2); if (srvUrl()) pub(); }
-  if (!$("m-games").hidden && !gameStop && T4 % 10 === 0) RENDER["m-games"]();
+  if (!$("m-games").hidden && !gameStop && T4 % 10 === 0) updGameCd();
 }
 ensurePid(); updCC(true); renderPW(true); renderSkins();
 if (srvUrl()) refreshSocial();
+
+// ===================== MASCOTAS v2 =====================
+const lob = { list: [], sig: "" };
+function pickTarget(o) {
+  const W = stage.clientWidth || 600, H = stage.clientHeight || 420, r = Math.random();
+  if (r < .4) { o.tx = 8 + Math.random() * Math.max(10, W * .26); o.ty = H - 200 + Math.random() * 90; }
+  else if (r < .8) { o.tx = W * .7 + Math.random() * Math.max(10, W * .26 - 70); o.ty = H - 200 + Math.random() * 90; }
+  else { o.tx = W / 2 - 170 + Math.random() * 230; o.ty = H - 135 + Math.random() * 25; }
+  o.tx = Math.max(4, Math.min(W - 80, o.tx));
+  // Restringimos la Y máxima (H - 160) para que no pisen la barra de cofres
+  o.ty = Math.max(30, Math.min(H - 160, o.ty));
+}
+function petEmote(o, ch) { const e = o.el.querySelector(".pem"); e.textContent = ch || pick(["♥", "♪", "★", "!", "✦"]); replay(e, "show"); }
+function petCuddle(o) {
+  replay(o.el, "jump"); petEmote(o, "♥"); if (state.set.fx) charBurst(o.x + 38, o.y + 10, { ch: "♥", c: ["#ff5d73", "#ff9aa8"] }, 6);
+  const g = perClick() * 2; gain(g); floater("+" + fmt(g), o.x + 30, o.y - 10, false); sfx(850 + Math.random() * 350, .08); render();
+}
+function petsStage() {
+  const s = state.petEq.join(); if (s === lob.sig) return; lob.sig = s;
+  const box = $("pets"), H = stage.clientHeight || 420; box.innerHTML = ""; lob.list = [];
+  state.petEq.forEach((id, i) => {
+    const p = PETS.find((x) => x.id === id); if (!p) return;
+    const el = document.createElement("div"); el.className = "pet r-" + p.r; el.style.translate = "0px 0px"; el.style.setProperty("--pc", RAR[p.r].c); el.title = p.n + " (toca para mimarla)";
+    el.innerHTML = `<span class="pem"></span><span class="pb">${animalSvg(p.sp, p.c)}</span><span class="psh"></span>`; box.appendChild(el);
+    const o = { p, el, x: 30 + i * 100, y: H - 150, tx: 0, ty: 0, wait: i * 600, emo: Date.now() + 3000 + i * 2500, n: 0 }; el.addEventListener("click", () => petCuddle(o)); pickTarget(o); lob.list.push(o);
+  });
+}
+function petLoop(dt) {
+  const W = stage.clientWidth || 600, H = stage.clientHeight || 420, k = dt / 50;
+  lob.list.forEach((o) => {
+    let moving = false;
+    if (o.wait > 0) o.wait -= dt;
+    else {
+      const dx = o.tx - o.x, dy = o.ty - o.y, d = Math.hypot(dx, dy), sp = (3 + (o.p.r === "mitico" ? 1.5 : o.p.r === "legendario" ? 1 : 0)) * k;
+      if (d < Math.max(sp, 2) + 1) { o.wait = 1500 + Math.random() * 3500; pickTarget(o); if (Math.random() < .5) petEmote(o); }
+      else { o.x += (dx / d) * sp; o.y += (dy / d) * sp; moving = true; const dr = dx > 0 ? "1" : "-1"; if (o.dr !== dr) { o.dr = dr; o.el.dataset.d = dr; } }
+    }
+    o.x = Math.max(0, Math.min(W - 76, o.x)); o.y = Math.max(0, Math.min(H - 160, o.y));
+    o.el.style.translate = o.x.toFixed(1) + "px " + o.y.toFixed(1) + "px";
+    if (o.mv !== moving) { o.mv = moving; o.el.classList.toggle("walk", moving); }
+    if (Date.now() > o.emo) { o.emo = Date.now() + 6000 + Math.random() * 6000; petEmote(o); }
+    o.tr = (o.tr || 0) + dt;
+    if (moving && o.tr > 250 && state.set.fx && (o.p.r === "legendario" || o.p.r === "mitico")) { o.tr = 0; spray("conf", o.x + 38, o.y + 62, 1, 800, 28, () => `--c:${RAR[o.p.r].c}`); }
+  });
+}
+let _rt = 0;
+function frame(t) { const dt = Math.min(64, t - _rt || 16); _rt = t; petLoop(dt); requestAnimationFrame(frame); }
+if (typeof requestAnimationFrame === "function") requestAnimationFrame(frame);
+let _pcl = 0;
+$("chick").addEventListener("click", () => {
+  _pcl++; lob.list.forEach((o, i) => setTimeout(() => replay(o.el, "jump"), i * 70));
+  if (_pcl % 6 === 0 && state.set.fx) lob.list.forEach((o) => charBurst(o.x + 38, o.y, { ch: "♥", c: ["#ff9aa8"] }, 2));
+});
+const POR = ["mitico", "legendario", "epico", "raro", "comun"];
+RENDER["m-pets"] = () => {
+  const eq = state.petEq.map((id) => PETS.find((x) => x.id === id)).filter(Boolean), tot = ATY.map((t) => [t, petBn(t)]).filter((a) => a[1] > 0), have = PETS.filter((p) => state.pets[p.id]).length;
+  const sorted = [...PETS].sort((a, b) => POR.indexOf(a.r) - POR.indexOf(b.r));
+  $("b-pets").innerHTML = `<div class="pteam"><div class="pteam-h"><b>Tu equipo</b><small>${eq.length}/3 · toca una para quitarla</small></div><div class="pslots">` +
+    [0, 1, 2].map((i) => { const p = eq[i]; return p ? `<button class="pslot on r-${p.r}" data-pet="${p.id}" style="--pc:${RAR[p.r].c}"><span class="pb">${animalSvg(p.sp, p.c)}</span><b>${p.n}</b><small>Nivel ${state.pets[p.id]}</small></button>` : `<div class="pslot empty"><span>+</span><small>Hueco libre</small></div>`; }).join("") +
+    `</div><div class="ptot">${tot.length ? tot.map((a) => `<span class="chip2">${atText(a)}</span>`).join("") : "<small>Equipa mascotas para ganar bonus</small>"}</div></div>` +
+    `<div class="peggs2${state.peggs ? " has" : ""}"><div class="bigegg">${EGGSV}</div><div class="pe-t"><b>Huevos de mascota</b><span>${state.peggs || 0} disponibles</span></div><button class="btn big" data-hatch="1"${state.peggs ? "" : " disabled"}>¡Abrir!</button></div>` +
+    `<div class="pcol-h"><b>Colección</b><small>${have}/${PETS.length} descubiertas</small></div><ul class="pgrid">` + sorted.map((p) => {
+      const l = state.pets[p.id] || 0, on = state.petEq.includes(p.id);
+      return `<li><button class="pcard r-${p.r}${l ? "" : " lk"}${on ? " on" : ""}" data-pet="${p.id}" style="--pc:${RAR[p.r].c}"><em class="pr">${RAR[p.r].n}</em><span class="pb">${animalSvg(p.sp, l ? p.c : "#8a8a8a")}</span><b>${l ? p.n : "???"}</b><span class="pips">${Array.from({ length: 10 }, (_, i) => `<i class="${i < l ? "on" : ""}"></i>`).join("")}</span><span class="pat">${l ? p.at.map((a) => `<small>${atText([a[0], a[1] * petLv(p.id)])}</small>`).join("") : "<small>Sin descubrir</small>"}</span><span class="pst">${on ? "✓ Equipada" : l ? "Equipar" : "Bloqueada"}</span></button></li>`;
+    }).join("") + "</ul>";
+  petsStage();
+};
 
 applyLook();
 $("introChick").appendChild($("chick").firstElementChild.cloneNode(true));
