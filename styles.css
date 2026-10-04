@@ -582,3 +582,19 @@ h1 { font-size: clamp(2.4rem, 7vh, 4.4rem); } .score { margin-top: 6px; }
 
 /* Los botones con display propio deben respetar [hidden] (interfaz progresiva) */
 [hidden] { display: none !important; }
+
+/* ===== Arreglos Ruleta (Añadido) ===== */
+/* Resplandor localizado para la ruleta sin romper el transform */
+.wheel-pop {
+  animation: wpop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+@keyframes wpop {
+  0% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
+  50% { filter: brightness(1.6) drop-shadow(0 0 60px var(--rarity-color)); }
+  100% { filter: brightness(1) drop-shadow(0 0 25px var(--rarity-color)); }
+}
+
+/* Transparencia para la ruleta con Liquid Glass activado */
+.glass #m-wheel .mbox {
+  background: radial-gradient(circle at 50% 35%, rgba(91, 60, 255, 0.45), rgba(27, 16, 64, 0.65));
+}
