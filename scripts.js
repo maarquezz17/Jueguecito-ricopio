@@ -279,9 +279,7 @@ function update() {
   setT($("comboN"), "x" + comboMult().toFixed(1));
   setW($("comboBar"), Math.max(0, 100 - idle / 9) + "%");
   renderBoosts();
-  tickExtra();   // logros, ranuras, ruleta
-  tick3();       // ánimo del pollo, eventos, mensajes
-  tick4();       // pase, juegos, red
+  tickExtra();   // logros + tickMore() -> ranuras, ruleta, tick3 (pollo/eventos) y tick4 (pase/juegos)
   const s = perSec();
   if (s > 0) { gain(s * dt); render(); }
 }
@@ -541,14 +539,12 @@ let openM = (id) => {
   if (RENDER[id]) RENDER[id](); applyLang();
 };
 const closeM = () => document.querySelectorAll(".modal").forEach((m) => (m.hidden = true));
-let sunN = 0, cloudN = 0, coinN = 0, coinT = 0, lastAct = Date.now(), typed = "", clickLog = [], mutedClicks = 0;
+let coinN = 0, coinT = 0, lastAct = Date.now(), typed = "", clickLog = [], mutedClicks = 0;
 document.addEventListener("click", (e) => {
   const o = e.target.closest("[data-open]");
   if (o) return openM(o.dataset.open);
   if (e.target.closest("[data-close]") || e.target.classList.contains("modal")) return closeM();
   if (!started) return;
-  if (e.target.closest(".sun") && ++sunN >= 5) egg("sol");
-  if (e.target.closest(".cloud") && ++cloudN >= 3) egg("nube");
   if (e.target.closest("#scoreBox")) { coinN = Date.now() - coinT < 600 ? coinN + 1 : 1; coinT = Date.now(); if (coinN >= 12) egg("monedero"); }
 });
 addEventListener("keydown", (e) => {
@@ -556,6 +552,7 @@ addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeM();
   typed = (typed + (e.key.length === 1 ? e.key.toLowerCase() : "")).slice(-12);
   if (started && typed.endsWith("piopio")) egg("pio");
+  if (started && typed.endsWith("marcos")) egg("marcos");
 });
 addEventListener("pointerdown", () => (lastAct = Date.now()));
 $("chick").addEventListener("click", () => {
@@ -640,8 +637,6 @@ const EGGS = [
   { id: "konami", n: "Código clásico", h: "Los videojuegos de antes tenían un truco con flechas… y dos letras al final." },
   { id: "ricopio", n: "Di mi nombre", h: "Escribe su nombre con el teclado." },
   { id: "titulo", n: "El título es un botón", h: "El rótulo de arriba aguanta que lo toques muchas veces seguidas." },
-  { id: "sol", n: "Sol coqueto", h: "Hay algo en el cielo que parece querer que lo toques." },
-  { id: "nube", n: "Nube cosquillosa", h: "Las nubes pasan, pero si pillas una y la tocas varias veces…" },
   { id: "noche", n: "Gallo trasnochador", h: "Solo pasa si juegas de madrugada (de 00:00 a 05:59)." },
   { id: "rafaga", n: "Dedo veloz", h: "Toca a Ricopio muchísimo en muy poco tiempo (30 toques en 5 segundos)." },
   { id: "silencio", n: "Silencio, por favor", h: "Quita el sonido y sigue tocando al pollito: 50 toques." },
@@ -707,7 +702,7 @@ const TREE = [
   { id: "gold", g: "Fortuna", n: "Brillo dorado", d: "Huevos de oro +20% y más seguidos", max: 8 },
   { id: "xpg", g: "Fortuna", n: "Aprendizaje", d: "+10% de experiencia al renacer", max: 5, req: ["gold", 2] },
 ];
-const rebGoal = (n = state.reb) => 1e6 * Math.pow(9, n);
+const rebGoal = (n = state.reb) => 1e6 * Math.pow(2.8, n);
 const rebXp = () => Math.floor((3 + 2 * state.reb) * (1 + .1 * tl("xpg")) * (1 + .25 * gl("gxp")) * (1 + petBn("xp") + skinBn("xp")));
 const nodeCost = (n) => tl(n.id) + 1;
 function renderTree() {
@@ -906,9 +901,13 @@ function givePrize(cat) {
 function tickMore() {
   updSlots();
   const left = state.wheelAt - Date.now(), b = $("wheelBtn");
-  b.classList.toggle("ready", left <= 0);
-  setT($("wheelTxt"), left <= 0 ? "¡Girar!" : fmtT(left));
-  if (!$("m-wheel").hidden) updWheel();
+  if (b) b.classList.toggle("ready", left <= 0);
+  if ($("wheelTxt")) setT($("wheelTxt"), left <= 0 ? "¡Girar!" : fmtT(left));
+  if ($("m-wheel") && !$("m-wheel").hidden) updWheel();
+
+  // Llamadas centralizadas sin monkey-patching:
+  if (typeof tick3 === "function") tick3();
+  if (typeof tick4 === "function") tick4();
 }
 $("glass").onchange = () => { state.set.glass = $("glass").checked; applyLook(); save(); };
 
@@ -1321,8 +1320,8 @@ addEventListener("keydown", (e) => {
 // ---- Logros y easter eggs nuevos
 EGGS.push(
   { id: "vuelta", n: "Te echaba de menos", h: "Ricopio se alegra cuando vuelves después de dejarlo solo un buen rato (cambia de pestaña unos segundos)." },
-  { id: "orden", n: "Ritmo secreto", h: "Un saludo en cuatro tiempos: pollo, pollo, título y sol, uno tras otro." },
   { id: "fecha", n: "Día señalado", h: "Juega en Navidad, Año Nuevo o Halloween." },
+  { id: "marcos", n: "Marcos", h: "Hay un nombre propio que, al escribirlo con el teclado, hace que Ricopio se alegre." },
   { id: "gallina", n: "La pareja", h: "Escribe el nombre de la compañera de Ricopio." },
   { id: "corto", n: "Rápido y furioso", h: "Toca a Ricopio 15 veces en menos de 2 segundos." });
 ACH.push(
@@ -1339,11 +1338,10 @@ let T3 = 0, notified = {}, _tl = "";
 function notify(k, msg) { if (!state.set.notif || !document.hidden || typeof Notification === "undefined" || Notification.permission !== "granted" || notified[k]) return; notified[k] = 1; try { new Notification("Ricopio", { body: msg }); } catch {} }
 let hideAt = 0;
 document.addEventListener("visibilitychange", () => { if (document.hidden) hideAt = Date.now(); else if (started && hideAt && Date.now() - hideAt > 10000) egg("vuelta"); });
-let seq = [], cl2 = [];
-document.addEventListener("click", (e) => {
-  if (!started) return; const t = e.target, k = t.closest("#chick") ? "chick" : t.closest("#title") ? "title" : t.closest(".sun") ? "sun" : t.closest(".cloud") ? "cloud" : ""; if (!k) return;
-  seq = [...seq, k].slice(-4); if (seq.join() === "chick,chick,title,sun") egg("orden");
-  if (k === "chick") { const n = Date.now(); cl2 = cl2.filter((x) => n - x < 2000); cl2.push(n); if (cl2.length >= 15) egg("corto"); }
+let cl2 = [];
+document.addEventListener("click", (e) => {   // "Rápido y furioso": 15 toques al pollo en menos de 2 s
+  if (!started || !e.target.closest("#chick")) return;
+  const n = Date.now(); cl2 = cl2.filter((x) => n - x < 2000); cl2.push(n); if (cl2.length >= 15) egg("corto");
 });
 addEventListener("keydown", (e) => { typed2 = (typed2 + (e.key.length === 1 ? e.key.toLowerCase() : "")).slice(-10); if (started && typed2.endsWith("gallina")) egg("gallina"); });
 let typed2 = "";
@@ -1543,8 +1541,10 @@ document.addEventListener("click", (e) => {
   const al = document.querySelector("#b-fuse .altar"); if (al) al.classList.add("fusing"); e.target.disabled = true;
   [300, 400, 520, 680, 880].forEach((f, i) => setTimeout(() => sfx(f, .15), i * 160));
   setTimeout(() => {
-    state.items[it.id] -= 3; const r = pick(ITEMS.filter((i) => i.r === nx)); state.items[r.id] = (state.items[r.id] || 0) + 1; state.st.fusions = (state.st.fusions || 0) + 1; flash(RAR[nx].c); renderColl();
+    state.items[it.id] -= 3; const r = pick(ITEMS.filter((i) => i.r === nx)); state.items[r.id] = (state.items[r.id] || 0) + 1; state.st.fusions = (state.st.fusions || 0) + 1; renderColl();
     showCard(`${svg(r.id, r.col)}<b>${r.name}</b><span class="rar">${RAR[r.r].n}</span><small>¡Fusión conseguida!</small>`, RAR[r.r].c); save(); RENDER["m-fuse"]();
+    // Resplandor localizado en la tarjeta resultante (cuando termina el huevo que se abre)
+    setTimeout(() => { const c = $("card"); c.classList.remove("in"); c.style.setProperty("--rarity-color", RAR[r.r].c); replay(c, "fusion-pop"); }, 1350);
   }, 1000);
 });
 function flash(c) { const f = document.createElement("div"); f.className = "flash"; f.style.background = c; document.body.appendChild(f); setTimeout(() => f.remove(), 700); }
@@ -1739,7 +1739,7 @@ function petsStage() {
   const box = $("pets"), H = stage.clientHeight || 420; box.innerHTML = ""; lob.list = [];
   state.petEq.forEach((id, i) => {
     const p = PETS.find((x) => x.id === id); if (!p) return;
-    const el = document.createElement("div"); el.className = "pet r-" + p.r; el.style.translate = "0px 0px"; el.style.setProperty("--pc", RAR[p.r].c); el.title = p.n + " (toca para mimarla)";
+    const el = document.createElement("div"); el.className = "pet r-" + p.r; el.style.transform = "translate3d(0, 0, 0)"; el.style.setProperty("--pc", RAR[p.r].c); el.title = p.n + " (toca para mimarla)";
     el.innerHTML = `<span class="pem"></span><span class="pb">${animalSvg(p.sp, p.c)}</span><span class="psh"></span>`; box.appendChild(el);
     const o = { p, el, x: 30 + i * 100, y: H - 150, tx: 0, ty: 0, wait: i * 600, emo: Date.now() + 3000 + i * 2500, n: 0 }; el.addEventListener("click", () => petCuddle(o)); pickTarget(o); lob.list.push(o);
   });
@@ -1754,8 +1754,9 @@ function petLoop(dt) {
       if (d < Math.max(sp, 2) + 1) { o.wait = 1500 + Math.random() * 3500; pickTarget(o); if (Math.random() < .5) petEmote(o); }
       else { o.x += (dx / d) * sp; o.y += (dy / d) * sp; moving = true; const dr = dx > 0 ? "1" : "-1"; if (o.dr !== dr) { o.dr = dr; o.el.dataset.d = dr; } }
     }
-    o.x = Math.max(0, Math.min(W - 76, o.x)); o.y = Math.max(0, Math.min(H - 160, o.y));
-    o.el.style.translate = o.x.toFixed(1) + "px " + o.y.toFixed(1) + "px";
+    o.x = Math.max(0, Math.min(W - 76, o.x)); o.y = Math.max(30, Math.min(H - 160, o.y)); // Límite inferior respetado
+    // USAR TRANSFORM EN LUGAR DE LEFT/TOP PARA EVITAR LAG
+    o.el.style.transform = `translate3d(${o.x.toFixed(1)}px, ${o.y.toFixed(1)}px, 0)`;
     if (o.mv !== moving) { o.mv = moving; o.el.classList.toggle("walk", moving); }
     if (Date.now() > o.emo) { o.emo = Date.now() + 6000 + Math.random() * 6000; petEmote(o); }
     o.tr = (o.tr || 0) + dt;

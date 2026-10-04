@@ -11,7 +11,7 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 /* Paisaje */
 .scene { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: linear-gradient(var(--s1) 0%, var(--s2) 48%, var(--s3) 62%); }
 .hills { position: absolute; bottom: 0; width: 100%; height: 50%; }
-.sun { position: absolute; top: 7%; right: 11%; width: 110px; height: 110px; border-radius: 50%; background: var(--sun); box-shadow: 0 0 0 14px color-mix(in srgb, var(--sun) 35%, transparent), 0 0 90px 30px color-mix(in srgb, var(--sun) 50%, transparent); }
+.sun { position: absolute; top: 7%; left: 18%; width: 110px; height: 110px; border-radius: 50%; background: var(--sun); box-shadow: 0 0 0 14px color-mix(in srgb, var(--sun) 35%, transparent), 0 0 90px 30px color-mix(in srgb, var(--sun) 50%, transparent); }
 .sun::before { content: ""; position: absolute; inset: -90px; border-radius: 50%; background: repeating-conic-gradient(rgba(255, 244, 190, .45) 0 8deg, transparent 8deg 24deg); -webkit-mask: radial-gradient(circle, transparent 45px, #000 46px, transparent 90px); mask: radial-gradient(circle, transparent 45px, #000 46px, transparent 90px); animation: spin 90s linear infinite; }
 .cloud { position: absolute; width: 150px; height: 46px; background: #fff; border-radius: 46px; opacity: .92; animation: drift 80s linear infinite; }
 .cloud::before, .cloud::after { content: ""; position: absolute; background: #fff; border-radius: 50%; }
@@ -557,3 +557,25 @@ h1 { font-size: clamp(2.4rem, 7vh, 4.4rem); } .score { margin-top: 6px; }
 /* Menos filtros pesados sobre el SVG animado */
 .chick.al svg { filter: drop-shadow(0 0 10px var(--au)); } .chick.am svg { filter: drop-shadow(0 0 14px var(--au)); }
 .pet.r-legendario .pb svg, .pet.r-mitico .pb svg { filter: drop-shadow(0 0 6px var(--pc)); animation: none; }
+
+
+/* ===== Ronda de arreglos: GPU, easter eggs, fusión, combo ===== */
+.pets .pet { will-change: transform; left: 0; top: 0; transition: none; }
+.floater, .cbp, .conf, .coin, .gpop { will-change: transform, opacity; pointer-events: none; }
+
+
+/* Fusión: resplandor localizado en vez de pantallazo */
+.fusion-pop {
+  animation: fusionImpact 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  filter: drop-shadow(0 0 40px var(--rarity-color, rgba(255,255,255,0.8))) drop-shadow(0 0 80px var(--rarity-color, rgba(255,255,255,0.4)));
+  z-index: 100;
+}
+@keyframes fusionImpact {
+  0% { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+  50% { transform: scale(1.3) rotate(5deg); opacity: 1; filter: drop-shadow(0 0 60px var(--rarity-color)) brightness(1.5); }
+  100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 20px var(--rarity-color)) brightness(1); }
+}
+
+/* Combo centrado bajo las monedas (anclado al escenario, nunca queda bajo el panel derecho) */
+.combo { position: absolute; top: 4px; left: 50%; right: auto; width: 140px; transform: translateX(-50%); z-index: 60; pointer-events: none; }
+.bubble { top: 78px; }
