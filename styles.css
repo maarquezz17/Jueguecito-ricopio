@@ -579,3 +579,6 @@ h1 { font-size: clamp(2.4rem, 7vh, 4.4rem); } .score { margin-top: 6px; }
 /* Combo centrado bajo las monedas (anclado al escenario, nunca queda bajo el panel derecho) */
 .combo { position: absolute; top: 4px; left: 50%; right: auto; width: 140px; transform: translateX(-50%); z-index: 60; pointer-events: none; }
 .bubble { top: 78px; }
+
+/* Los botones con display propio deben respetar [hidden] (interfaz progresiva) */
+[hidden] { display: none !important; }

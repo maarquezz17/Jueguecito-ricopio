@@ -109,11 +109,12 @@ const stage = document.querySelector(".stage");
 const setT = (el, t) => { if (el._t !== t) { el._t = t; el.textContent = t; } };
 const setW = (el, w) => { if (el._w !== w) { el._w = w; el.style.width = w; } };
 const setH = (el, h) => { if (el._h !== h) { el._h = h; el.innerHTML = h; } };
-let MG = 0, lastUpd = Date.now(), UD = .1;
+let MG = 0, lastUpd = Date.now(), UD = .1, perfWas = false, perfUntil = 0, visAt = Date.now(), _uiR = -1, loadFlag = false;
+document.addEventListener("visibilitychange", () => { visAt = Date.now(); });
 const ttl = (fn, ms) => { let t = 0, g = -1, v; return () => { const n = Date.now(); if (g !== MG || n - t >= ms) { v = fn(); t = n; g = MG; } return v; }; };
 const mShop = $("m-shop"), E = { coins: $("coins"), perClick: $("perClick"), perSec: $("perSec"), bonus: $("bonus"), rankName: $("rankName"), rankBar: $("rankBar") };
 
-let state = load();
+let state = load();   // (loadFlag se declara arriba, junto a MG)
 let rank = 0, combo = 0, lastClick = 0, started = false, ac, chestTimer;
 
 function fix(s) {
@@ -127,12 +128,26 @@ function fix(s) {
   s.slots = [0, 1, 2, 3].map((i) => (s.slots && s.slots[i]) || null);
   return s;
 }
+// Firma básica anti-trampas (disuade de editar el localStorage; no es seguridad real)
+function sig(s) {
+  const str = [s.total, s.reb, s.asc, Math.floor(s.coins || 0), "piopio"].join("|");
+  let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return btoa((h >>> 0) + ":" + str.length);
+}
+// Las partidas antiguas (sin firma) se aceptan y se firman en el siguiente guardado
+function verify(s) { return s.hash === undefined || s.hash === sig(s); }
 function load() {
   let s = {};
   try { s = JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch {}
+  if (!verify(s)) { loadFlag = true; return fix({}); }
   return fix(s);
 }
-function save() { MG++; state.last = Date.now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch {} }
+function save() {
+  MG++; state.last = Date.now(); state.hash = sig(state);
+  const fx = state.set.fx; if (perfWas) state.set.fx = true;   // el modo patata no debe quedar guardado
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch {}
+  state.set.fx = fx;
+}
 
 const owned = (u) => state.owned[u.id] || 0;
 const tl = (id) => state.tree[id] || 0;
@@ -205,6 +220,9 @@ function render() {
   }
   const r = rankIndex(), next = RANKS[r + 1];
   setT(E.rankName, RANKS[r].name);
+  if (r !== _uiR) {   // Interfaz progresiva según el rango
+    _uiR = r; $("wheelBtn").hidden = r < 1; $("skinBtn").hidden = r < 1; $("wardBtn").hidden = r < 2; $("rebBtn").parentElement.hidden = r < 3;
+  }
   setW(E.rankBar, (next ? ((state.total - RANKS[r].at) / (next.at - RANKS[r].at)) * 100 : 100) + "%");
   $("chick").dataset.rank = r;
   if (r > rank) {
@@ -238,7 +256,7 @@ function floater(text, x, y, crit) {
   setTimeout(() => el.remove(), 900);
 }
 function spray(cls, x, y, n, life, spread, style = () => "") {
-  if (!state.set.fx || floatersEl.childElementCount > 140) return;
+  if (!state.set.fx || floatersEl.childElementCount > 50) return;
   for (let i = 0; i < n; i++) {
     const p = document.createElement("i"), a = Math.random() * Math.PI * 2, d = spread * (.4 + Math.random() * .6);
     p.className = cls;
@@ -273,6 +291,9 @@ $("chick").addEventListener("click", (e) => {
 // Combo y producción automática
 function update() {
   const now = Date.now(), dt = Math.min(5, (now - lastUpd) / 1000); lastUpd = now; UD = dt;
+  // Modo patata: si el bucle se retrasa >0,5 s (y no venimos de una pestaña oculta), se apagan las partículas 30 s
+  if (!document.hidden && now - visAt > 3000 && UD > .5 && state.set.fx && !perfWas) { perfWas = true; perfUntil = now + 30000; state.set.fx = false; toast("Modo rendimiento activado"); }
+  if (perfWas && now > perfUntil) { perfWas = false; state.set.fx = true; toast("Efectos visuales restaurados"); }
   const idle = now - lastClick;
   if (combo && idle > 900 && !(ev && now < ev.end && ev.hold)) combo = 0;
   $("combo").classList.toggle("on", combo >= 3);
@@ -517,6 +538,7 @@ $("file").addEventListener("change", async (e) => {
   try {
     const d = JSON.parse(await f.text());
     if (typeof d.coins !== "number") throw 0;
+    if (!verify(d)) { toast("Partida corrupta o modificada"); e.target.value = ""; return; }
     state = fix(d); save(); rank = rankIndex();
     applyLook(); renderColl(); renderWard(); render(); syncIntro();
     $("mute").textContent = "Sonido: " + (state.muted ? "no" : "sí");
@@ -988,6 +1010,7 @@ $("chick").addEventListener("click", (e) => {
 // ---- 22 Efectos de toque y estelas
 const TAPFX = { estrellas: { ch: "★", c: ["#ffd84a", "#fff3a6"] }, corazones: { ch: "♥", c: ["#ff5d73", "#ff9aa8"] }, burbujas: { ch: "●", c: ["#8fe0ff", "#d6f4ff"] }, llamas: { ch: "▲", c: ["#ff7a2e", "#ffd84a"] }, arcoiris: { ch: "✦", c: null }, chispas: { ch: "✦", c: ["#ffe27a", "#fff"] } };
 function charBurst(x, y, d, n) {
+  if (!state.set.fx || floatersEl.childElementCount > 50) return;
   for (let i = 0; i < n; i++) {
     const p = document.createElement("i"), a = Math.random() * Math.PI * 2, r = 50 + Math.random() * 70;
     p.className = "cbp"; p.textContent = d.ch;
@@ -1298,8 +1321,8 @@ $("m-set").querySelector(".mbody").insertAdjacentHTML("afterbegin", `<label clas
 $("lang").onchange = () => { state.set.lang = $("lang").value; save(); applySet(); };
 $("big").onchange = () => { state.set.big = +$("big").value; save(); applySet(); };
 // ---- 31 Guardado por código
-function loadState(d) { if (typeof d.coins !== "number") throw 0; state = fix(d); save(); rank = rankIndex(); _ap = ""; applyLook(); renderColl(); renderWard(); render(); syncIntro(); toast("Partida cargada"); }
-$("codeCopy").onclick = () => copyText("RC-" + enc(JSON.stringify(state)), "Código de partida copiado");
+function loadState(d) { if (typeof d.coins !== "number") throw 0; if (!verify(d)) return toast("Partida corrupta o modificada"); state = fix(d); save(); rank = rankIndex(); _ap = ""; applyLook(); renderColl(); renderWard(); render(); syncIntro(); toast("Partida cargada"); }
+$("codeCopy").onclick = () => { save(); copyText("RC-" + enc(JSON.stringify(state)), "Código de partida copiado"); };
 $("codePaste").onclick = () => { const c = prompt("Pega tu código de partida:"); if (!c) return; try { loadState(JSON.parse(dec(c.trim().replace(/^RC-/, "")))); } catch { toast("Código no válido"); } };
 
 // ---- 34 Tutorial
@@ -1313,6 +1336,7 @@ $("tutBtn").onclick = () => { closeM(); showTut(0); };
 // Atajos de teclado
 addEventListener("keydown", (e) => {
   if (!started || /INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || "")) return;
+  const ri = rankIndex(); if (("25".includes(e.key) && ri < 1) || (e.key === "3" && ri < 2) || (e.key === "4" && ri < 3)) return;   // atajos bloqueados hasta desbloquear el menú
   const m = { 1: "m-shop", 2: "m-skins", 4: "m-reb", 5: "m-wheel", 6: "m-ach", 7: "m-egg", 8: "m-set", 9: "m-hub" }[e.key];
   if (m) openM(m); else if (e.key === "3") { $("wardrobe").hidden = false; renderWard(); }
 });
@@ -1663,10 +1687,12 @@ const myCard = () => "RC1." + enc(JSON.stringify(meData()));
 function copyText(c, msg) { (typeof navigator !== "undefined" && navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast(msg), () => prompt("Copia el código:", c)); }
 async function pub() { const u = srvUrl(); if (!u || typeof fetch === "undefined") return false; try { const r = await fetch(u + "/players/" + ensurePid() + ".json", { method: "PUT", body: JSON.stringify(meData()) }); return r.ok; } catch { return false; } }
 async function getJ(p) { const u = srvUrl(); if (!u || typeof fetch === "undefined") return null; try { const r = await fetch(u + p); return await r.json(); } catch { return null; } }
+// Orden del ranking: Ascensiones (a) > Renacimientos (r) > Ricoins totales (t)
+const rankCmp = (a, b) => ((b.a || 0) - (a.a || 0)) || ((b.r || 0) - (a.r || 0)) || ((b.t || 0) - (a.t || 0));
 let world = [], online = null;
 async function refreshSocial() {
   const ok = await pub(); online = srvUrl() ? ok : null;
-  if (ok) { const all = await getJ("/players.json"); world = all ? Object.values(all).filter((x) => x && typeof x.t === "number").sort((a, b) => b.t - a.t).slice(0, 50) : []; for (const f of state.friends) if (f.id) { const d = await getJ("/players/" + f.id + ".json"); if (d && typeof d.t === "number") Object.assign(f, d); } save(); }
+  if (ok) { const all = await getJ("/players.json"); world = all ? Object.values(all).filter((x) => x && typeof x.t === "number").sort(rankCmp).slice(0, 50) : []; for (const f of state.friends) if (f.id) { const d = await getJ("/players/" + f.id + ".json"); if (d && typeof d.t === "number") Object.assign(f, d); } save(); }
   if ($("m-social") && !$("m-social").hidden) RENDER["m-social"]();
 }
 async function addFriend(raw) {
@@ -1680,14 +1706,14 @@ async function addFriend(raw) {
   try { const d = JSON.parse(dec(raw.trim().replace(/^RC1\./, ""))); if (typeof d.t !== "number") throw 0; d.id = d.id || d.n; state.friends = state.friends.filter((x) => x.id !== d.id).concat(d).slice(-20); save(); toast("¡" + d.n + " añadido!"); RENDER["m-social"](); } catch { toast("Código no válido"); }
 }
 RENDER["m-social"] = () => {
-  const me = { ...meData(), me: 1 }, fr = [me, ...state.friends].sort((a, b) => b.t - a.t), wk = [me, ...state.friends].filter((x) => x.w === weekKey()).sort((a, b) => b.ws - a.ws);
-  const li = (x, i, f) => `<li class="${x.me || x.id === state.pid ? "me" : ""}"><span class="rk">${i + 1}</span><b>${x.n}</b> <small>#${x.id || "—"}</small><span class="rv">${fmt(f === "w" ? x.ws : x.t)}</span></li>`;
+  const me = { ...meData(), me: 1 }, fr = [me, ...state.friends].sort(rankCmp), wk = [me, ...state.friends].filter((x) => x.w === weekKey()).sort((a, b) => b.ws - a.ws);
+  const li = (x, i, f) => `<li class="${x.me || x.id === state.pid ? "me" : ""}"><span class="rk">${i + 1}</span><b>${x.n}</b> <small>#${x.id || "—"}</small>${f === "w" ? "" : `<small>Asc ${x.a || 0} · Ren ${x.r || 0}</small>`}<span class="rv">${fmt(f === "w" ? x.ws : x.t)}</span></li>`;
   $("b-social").innerHTML = `<div class="myid"><small>Tu código de jugador</small><b id="myId">${ensurePid()}</b><button class="btn" data-s="copyid">Copiar</button></div>
   <label class="row">Tu nombre <input id="myName" maxlength="14" placeholder="Jugador ${state.pid}" value="${(state.name || "").replace(/"/g, "")}"></label>
   <div class="foot"><button class="btn" data-s="add">Añadir amigo (código o tarjeta)</button><button class="btn" data-s="card">Copiar mi tarjeta</button><button class="btn" data-s="refresh">Actualizar</button></div>
   <p class="sum small">${online === true ? "● Conectado al servidor online" : online === false ? "● Servidor no responde" : "● Sin servidor: ranking local con tarjetas"}</p>
-  ${online ? `<h3>Ranking del mundo (ricoins totales)</h3><ol class="rank-l">${world.map((x, i) => li(x, i)).join("") || "<li>Aún no hay jugadores</li>"}</ol>` : ""}
-  <h3>Ranking de amigos</h3><ol class="rank-l">${fr.map((x, i) => li(x, i)).join("")}</ol>
+  ${online ? `<h3>Ranking del mundo (ascensiones › renacimientos › ricoins)</h3><ol class="rank-l">${world.map((x, i) => li(x, i)).join("") || "<li>Aún no hay jugadores</li>"}</ol>` : ""}
+  <h3>Ranking de amigos (ascensiones › renacimientos › ricoins)</h3><ol class="rank-l">${fr.map((x, i) => li(x, i)).join("")}</ol>
   <h3>Reto semanal ${weekKey()}</h3><p class="sum">${wkMod().n}. Tu puntuación: <b>${fmt(wkScore())}</b></p><ol class="rank-l">${wk.map((x, i) => li(x, i, "w")).join("")}</ol>
   <h3>Regalos</h3><div class="foot"><button class="btn" data-s="coin">Regalar ricoins</button><button class="btn" data-s="redeem">Canjear regalo</button></div><ul class="fuse">${ITEMS.filter((i) => state.items[i.id]).map((i) => `<li><span class="fi">${svg(i.id, i.col)}</span><span><b>${i.name} x${state.items[i.id]}</b></span><button class="btn" data-s="gift:${i.id}">Regalar 1</button></li>`).join("")}</ul>
   <h3>Servidor online (opcional)</h3><p class="sum small">Para ranking mundial y añadir amigos entre PCs distintos: crea una Firebase Realtime Database gratuita (reglas de lectura y escritura abiertas) y pega aquí su URL. Todos los amigos deben usar la misma URL.</p><label class="row"><input id="srvIn" class="wide" placeholder="https://tu-proyecto-default-rtdb.firebaseio.com" value="${(state.srv || "").replace(/"/g, "")}"></label>`;
@@ -1792,3 +1818,4 @@ $("mute").textContent = "Sonido: " + (state.muted ? "no" : "sí");
 syncIntro(); renderColl(); renderWard();
 rank = rankIndex();
 render();
+if (loadFlag) toast("Partida corrupta o modificada");
