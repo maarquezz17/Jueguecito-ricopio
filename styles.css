@@ -398,9 +398,8 @@ h1 { margin: 0; font-size: clamp(3.2rem, 9vw, 5.4rem); font-weight: 800; line-he
 .pets .pet { width: 64px; } .peggs { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 8px 12px; background: #fff; border: 3px solid var(--ink); border-radius: 14px; } .peggs b { flex: 1; } .pets-list .pi { width: 58px; } .pets-list .sk { border-width: 3px; }
 
 /* pase visual */
-.pw { position: fixed; z-index: 7; left: 10px; bottom: 10px; width: min(390px, calc(100vw - 20px)); padding: 6px 8px; background: var(--shell); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 4px 4px 0 var(--ink); }
-.pwh { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; } .pwh b { font-size: .9rem; } .pwh .bar { flex: 1; min-width: 70px; height: 12px; } .pwh .bar div { height: 100%; background: var(--comb); } .pwh .btn { font-size: .72rem; padding: 2px 8px; } .pwh .rd { background: #4fcf6a; animation: wiggle 1.2s ease-in-out infinite; } .pm { font-style: normal; font-weight: 800; font-size: .7rem; padding: 2px 8px; background: #ffd84a; border: 2px solid var(--ink); border-radius: 99px; }
-.pws { overflow-x: auto; margin-top: 4px; padding-bottom: 2px; } .pwl { display: flex; gap: 6px; width: max-content; } .pwc { display: grid; gap: 4px; justify-items: center; } .pwn { font-size: .7rem; font-weight: 800; }
+.pwn { font-size: .7rem; font-weight: 800; } .pwc { display: grid; gap: 4px; justify-items: center; } .pwl { display: flex; gap: 6px; width: max-content; }
+.pm { font-style: normal; font-weight: 800; font-size: .7rem; padding: 2px 8px; background: #ffd84a; border: 2px solid var(--ink); border-radius: 99px; }
 .pt { position: relative; width: 56px; height: 58px; padding: 2px; display: grid; place-items: center; background: #fff; border: 3px solid var(--ink); border-radius: 12px; cursor: pointer; } .pt.p { background: #fff3b0; border-color: #d99a00; } .pt svg { width: 30px; height: 30px; } .pt small { font-size: .62rem; font-weight: 800; line-height: 1; } .psw { width: 28px; height: 28px; border: 3px solid var(--ink); border-radius: 50%; }
 .pt.ready { animation: wiggle 1.1s ease-in-out infinite; box-shadow: 0 0 10px 2px #4fcf6a; } .pt.done { opacity: .45; } .pt:not(.ready):not(.done) { filter: grayscale(.6); } .pt.star { border-color: #ff2d6f; box-shadow: 0 0 10px 2px #ff2d6f; } .pt .lk { position: absolute; right: 0; top: 0; text-decoration: none; font-size: .8rem; }
 
@@ -522,8 +521,6 @@ h1 { font-size: clamp(2.4rem, 7vh, 4.4rem); } .score { margin-top: 6px; }
 .rail { position: fixed; top: 20px; left: 20px; right: auto; bottom: auto; translate: none; z-index: 50; display: flex; flex-direction: column; gap: 12px; padding: 0; width: auto; }
 /* Menú Derecho (Tienda, Aspectos, Renacer) */
 .side { position: fixed; top: 20px; right: 20px; left: auto; bottom: auto; z-index: 50; width: min(320px, 90vw); display: flex; flex-direction: column; gap: 12px; padding: 0; overflow: visible; }
-/* Pase de Batalla (Abajo a la Izquierda) */
-.pw { position: fixed; bottom: 20px; left: 20px; z-index: 50; max-width: 380px; max-height: 40vh; overflow-y: auto; }
 /* Cofres (Abajo en el Centro) */
 .slots { position: fixed; bottom: 20px; left: 50%; translate: none; transform: translateX(-50%); z-index: 40; display: flex; gap: 10px; }
 /* Contador de Clicks (a la derecha del pollo) */
@@ -534,14 +531,11 @@ h1 { font-size: clamp(2.4rem, 7vh, 4.4rem); } .score { margin-top: 6px; }
   .game { height: auto; min-height: 100vh; padding: 6px 8px 100px; }
   .rail { top: auto; bottom: 8px; left: 8px; right: 8px; flex-direction: row; justify-content: center; }
   .rbtn, .wheelbtn { width: 62px; height: 62px; font-size: .7rem; } .rbtn svg, .wheelbtn svg { width: 26px; height: 26px; }
-  .side { position: static; width: auto; margin: 0 8px; } .slots { bottom: 84px; } .pw { bottom: 84px; } .cc { right: 12px; top: 30%; }
+  .side { position: static; width: auto; margin: 0 8px; } .slots { bottom: 84px; } .cc { right: 12px; top: 30%; }
 }
-/* Pase minimizado: solo un botón que se despliega hacia arriba */
-.pw.min { width: auto; padding: 0; background: none; border: 0; box-shadow: none; }
-.pwmini { font-size: .85rem; padding: 2px 14px; min-height: 36px; background: var(--shell); } .pwmini.rd { background: #4fcf6a; color: #fff; animation: wiggle 1.2s ease-in-out infinite; }
 
 /* ==================== Liquid glass: SOLO en elementos individuales ==================== */
-.glass :is(.panel, .mbox, .rbtn, .score, .item, .boost, .chip, .node, .ach, .sk, .slot, .hintbox, .wardrobe, .card, .coll li, .egg, .rank .bar, .combo .bar, .pw, .wheelbtn, .btn) {
+.glass :is(.panel, .mbox, .rbtn, .score, .item, .boost, .chip, .node, .ach, .sk, .slot, .hintbox, .wardrobe, .card, .coll li, .egg, .rank .bar, .combo .bar, .wheelbtn, .btn) {
   background: linear-gradient(135deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, .16));
   -webkit-backdrop-filter: blur(20px) saturate(1.9);
   backdrop-filter: blur(20px) saturate(1.9);
@@ -583,6 +577,46 @@ h1 { font-size: clamp(2.4rem, 7vh, 4.4rem); } .score { margin-top: 6px; }
 /* Los botones con display propio deben respetar [hidden] (interfaz progresiva) */
 [hidden] { display: none !important; }
 
-/* Ruleta: resplandor localizado al terminar el giro (se aplica al contenedor, no al disco que rota) */
-.wheel-pop { animation: wheelPop .8s cubic-bezier(.175, .885, .32, 1.275); filter: drop-shadow(0 0 28px var(--rarity-color, #fff3a6)) drop-shadow(0 0 56px var(--rarity-color, #fff3a6)); }
-@keyframes wheelPop { 0% { scale: 1; } 35% { scale: 1.1; filter: drop-shadow(0 0 40px var(--rarity-color)) brightness(1.4); } 100% { scale: 1; } }
+/* ===== Arreglos Ruleta (Añadido) ===== */
+/* Resplandor localizado para la ruleta sin romper el transform */
+.wheel-pop {
+  animation: wpop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+@keyframes wpop {
+  0% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
+  50% { filter: brightness(1.6) drop-shadow(0 0 60px var(--rarity-color)); }
+  100% { filter: brightness(1) drop-shadow(0 0 25px var(--rarity-color)); }
+}
+
+/* Transparencia para la ruleta con Liquid Glass activado */
+.glass #m-wheel .mbox {
+  background: radial-gradient(circle at 50% 35%, rgba(91, 60, 255, 0.45), rgba(27, 16, 64, 0.65));
+}
+
+/* Pase modal */
+#m-pass .mbox { width: min(1200px, 100%); height: calc(100vh - 24px); }
+#b-pass { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+.pwh2 { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pwlv b { font-size: 2.4rem; line-height: 1; color: var(--comb); } .pwlv small { font-weight: 800; }
+.pwh2 .bar.big { flex: 1; min-width: 160px; height: 28px; } .pwh2 .bar.big div { height: 100%; background: linear-gradient(90deg, #ff5d73, #ffb400, #ffe27a); box-shadow: 0 0 14px #ffb400; transition: width .3s; }
+.pwh2 .rd { background: #4fcf6a; animation: wiggle 1.2s ease-in-out infinite; }
+.pws2 { flex: 1; overflow-x: auto; overflow-y: hidden; padding-bottom: 8px; align-self: stretch; }
+#b-pass .pwl { display: flex; gap: 10px; width: max-content; }
+#b-pass .pwc { display: grid; gap: 8px; justify-items: center; align-content: start; width: 94px; }
+#b-pass .pwlab { position: sticky; left: 0; z-index: 2; width: 84px; background: var(--shell); } #b-pass .pwlab b { height: 112px; display: grid; place-items: center; font-size: .85rem; }
+#b-pass .pt { width: 94px; height: 112px; border-color: var(--rc); box-shadow: 0 0 10px -2px var(--rc); }
+#b-pass .pt svg, #b-pass .pt .psw { width: 56px; height: 56px; } #b-pass .pt small { font-size: .78rem; }
+#b-pass .pt.done { opacity: .5; } #b-pass .pt.done::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 3rem; font-weight: 800; color: #1f9d3a; -webkit-text-stroke: 3px #fff; paint-order: stroke fill; }
+.passb { background: linear-gradient(135deg, #b05cff, #ff5d73, #ffb400) !important; color: #fff; font-size: 1.3rem !important; }
+.passb.ready { animation: wiggle 1.4s ease-in-out infinite; }
+.halob { background: #ff8a00 !important; color: #fff; animation: wiggle 1.8s ease-in-out infinite; }
+
+/* Cofre destruido */
+.chest.broke { animation: cbreak .45s ease-in forwards; filter: grayscale(1) brightness(.6); }
+@keyframes cbreak { 30% { rotate: -12deg; scale: 1.1; } 100% { rotate: 25deg; scale: .2; opacity: 0; translate: 0 40px; } }
+
+/* Rareza exclusiva */
+.skcards .sk.r-exclusivo, .pcard.r-exclusivo { box-shadow: 0 0 18px 2px var(--rc, var(--pc)); animation: hpulse 2.2s ease-in-out infinite; }
+.chick .a.r-exclusivo { filter: drop-shadow(0 0 6px var(--ac)) drop-shadow(0 0 14px var(--ac)); animation: shine 2s ease-in-out infinite; }
+.pet.r-exclusivo .pb svg { filter: drop-shadow(0 0 8px var(--pc)); }
+.chick.ghost svg { opacity: .72; animation: hop 1.1s ease-in-out infinite alternate; }
