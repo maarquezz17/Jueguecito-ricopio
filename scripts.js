@@ -884,10 +884,16 @@ function spin() {
   const idx = (() => { const l = SEG.map((s, i) => (s === cat ? i : -1)).filter((i) => i >= 0); return l[Math.floor(Math.random() * l.length)]; })();
   const c = idx * 30 + 15 + (Math.random() * 18 - 9);
   wheelRot += 1800 + ((((-c - wheelRot) % 360) + 360) % 360);
-  $("wheel").style.transform = `rotate(${wheelRot}deg)`;
+  const w = $("wheel"), wp = w.parentElement;
+  wp.classList.remove("wheel-pop");
+  w.style.transition = "transform 4.5s cubic-bezier(.12, .7, .1, 1)";   // animación forzada desde JS
+  void w.offsetWidth;                                                   // reflow: asegura que arranque la transición
+  w.style.transform = `rotate(${wheelRot}deg)`;
   state.wheelAt = Date.now() + wheelCd(); save(); updWheel();
   for (let i = 0; i < 24; i++) setTimeout(() => sfx(300 + (i % 4) * 40, .04), 250 * Math.pow(i, 1.3));
-  setTimeout(() => { spinning = false; $("m-wheel").classList.remove("spinning"); flash(cat === "mitico" ? "#ff2d6f" : "#fff3a6"); givePrize(cat); updWheel(); }, 4700);
+  setTimeout(() => { spinning = false; $("m-wheel").classList.remove("spinning"); const col = cat === "mitico" ? "#ff2d6f" : (WG[cat] ? WG[cat][1] : "#fff3a6");
+    wp.style.setProperty("--rarity-color", col); replay(wp, "wheel-pop");   // resplandor localizado, sin pantallazo
+    givePrize(cat); updWheel(); }, 4700);
 }
 $("spinBtn").onclick = spin;
 function rollItem(loot) {
@@ -1230,14 +1236,23 @@ for (let i = 0; i < 12; i++) {
 // ---- 4 Ascender
 const PERKS = [{ id: "gprod", n: "Plumas de poder", d: "+20% producción global", c: 1 }, { id: "gxp", n: "Sabiduría", d: "+25% XP al renacer", c: 2 }, { id: "gchest", n: "Cofres veloces", d: "-5% espera de cofres", c: 2 }, { id: "gwheel", n: "Ruleta veloz", d: "-3% espera de ruleta", c: 3 }];
 RENDER["m-asc"] = () => {
-  const can = state.reb >= 5, g = Math.max(1, Math.floor(state.reb / 5));
-  $("b-asc").innerHTML = `<p class="sum">Ascensiones: <b>${state.asc}</b> (cada una da +50% de producción global) · Plumas doradas: <b>${state.gf}</b></p><p class="sum small">Necesitas 5 renacimientos. Ascender reinicia renacimientos, ricoins y mejoras. Conservas el árbol, la XP, aspectos, logros, objetos, cartas, mascotas y mutaciones. Ganarías <b>${g}</b> pluma${g > 1 ? "s" : ""}.</p><button id="ascGo" class="btn wide reb"${can ? "" : " disabled"}>Ascender</button><h3>Plumas doradas</h3>` + PERKS.map((p) => { const l = gl(p.id), c = p.c * (l + 1); return `<button class="node${l ? " has" : ""}" data-perk="${p.id}"${l >= 10 || state.gf < c ? " disabled" : ""}><b>${p.n} ${l}/10</b><small>${p.d}</small><span>${l >= 10 ? "Máx." : c + " 🪶"}</span></button>`; }).join("");
+  const pending = Math.floor(state.reb / 5) - state.asc;
+  const can = pending > 0;
+  const nextReq = (state.asc + 1) * 5;
+  
+  $("b-asc").innerHTML = `<p class="sum">Ascensiones: <b>${state.asc}</b> (cada una da +50% de producción global) · Plumas doradas: <b>${state.gf}</b></p><p class="sum small">Necesitas <b>${nextReq}</b> renacimientos para tu próxima ascensión (tienes ${state.reb}). Ascender reinicia ricoins y mejoras, pero <b>NO reinicia tus renacimientos</b>. Ganarías <b>${pending > 0 ? pending : 1}</b> pluma${pending !== 1 && pending > 0 ? "s" : ""}.</p><button id="ascGo" class="btn wide reb"${can ? "" : " disabled"}>Ascender</button><h3>Plumas doradas</h3>` + PERKS.map((p) => { const l = gl(p.id), c = p.c * (l + 1); return `<button class="node${l ? " has" : ""}" data-perk="${p.id}"${l >= 10 || state.gf < c ? " disabled" : ""}><b>${p.n} ${l}/10</b><small>${p.d}</small><span>${l >= 10 ? "Máx." : c + " 🪶"}</span></button>`; }).join("");
 };
 document.addEventListener("click", (e) => {
   if (e.target.id === "ascGo") {
-    if (state.reb < 5 || !confirm("Vas a ascender y reiniciar renacimientos, ricoins y mejoras (conservas el árbol y la XP). ¿Seguro?")) return;
-    state.gf += Math.max(1, Math.floor(state.reb / 5)); state.asc++; state.reb = 0; state.coins = 0; state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
-    confetti(innerWidth / 2, innerHeight / 3, 80); toast("¡Has ascendido! Ascensión " + state.asc); passXp(100); save(); render(); renderTree(); RENDER["m-asc"]();
+    const pending = Math.floor(state.reb / 5) - state.asc;
+    if (pending <= 0 || !confirm("Vas a ascender y reiniciar ricoins y mejoras (conservas renacimientos, árbol, XP...). ¿Seguro?")) return;
+    
+    state.gf += pending;
+    state.asc += pending;
+    // state.reb = 0; <-- ELIMINADO para conservar los renacimientos
+    
+    state.coins = 0; state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
+    confetti(innerWidth / 2, innerHeight / 3, 80); toast("¡Has ascendido!"); passXp(100); save(); render(); renderTree(); RENDER["m-asc"]();
   }
   const p = e.target.closest("[data-perk]"); if (!p) return; const pk = PERKS.find((x) => x.id === p.dataset.perk), c = pk.c * (gl(pk.id) + 1);
   if (state.gf < c || gl(pk.id) >= 10) return; state.gf -= c; state.gp[pk.id] = gl(pk.id) + 1; sfx(880, .12); save(); render(); RENDER["m-asc"]();

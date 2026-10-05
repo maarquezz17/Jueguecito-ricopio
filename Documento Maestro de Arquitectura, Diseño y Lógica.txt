@@ -1,0 +1,101 @@
+Documento Maestro de Arquitectura, Diseño y Lógica (Vanilla JS)
+1. Visión General del Proyecto
+Ricopio es un juego incremental/clicker de navegador protagonizado por un pollito, construido 100% en Vanilla JavaScript, HTML5 y CSS3 sin frameworks (cero React/Vue/NPM).
+El objetivo técnico es demostrar que se puede crear un juego altamente dinámico, con un "game feel" exquisito (mucho juice, partículas, pantallas temblorosas), utilizando únicamente el DOM del navegador y las APIs web nativas.
+
+Core Loop (Bucle de Jugabilidad)
+Activo: Clics en el pollito (críticos, rachas de combo, objetos voladores como huevos de oro).
+
+Pasivo: Adquisición de mejoras (Tienda) que escalan el ingreso por segundo.
+
+Coleccionismo & RNG: Apertura de cofres con temporizador, Ruleta, Mutaciones, Cartas y Fusión de objetos.
+
+Prestigio:
+
+Renacer (state.reb): Reinicia el dinero y mejoras base. Otorga XP para el Árbol de Habilidades y bonus de producción.
+
+Ascender (state.asc): Reinicia los renacimientos. Otorga "Plumas Doradas" (state.gf) para mejoras globales permanentes.
+
+2. Arquitectura de Datos (Gestión del Estado)
+El juego completo reside en un único objeto global reactivo de facto: state.
+No hay bases de datos locales complejas; todo se serializa en localStorage bajo la clave ricopio-save.
+
+Estructura Crítica del state (Diccionario de variables clave):
+
+coins / total / run: Monedas actuales / Histórico absoluto / Monedas en la "vida" actual (se usa para calcular cuándo Renacer).
+
+owned: Diccionario de mejoras compradas { "t0": 5, "t1": 2 }.
+
+st: Estadísticas puras (clics, críticos, cofres, maxCombo, fusions).
+
+items / cards / pets: Coleccionables (RNG).
+
+cosm.eq: Cosméticos equipados (skin, hat, eyes, neck, scene, back, feet, tap, trail).
+
+tree / gp: Niveles de habilidades del árbol normal y del árbol de ascensión.
+
+slots: Array de 4 posiciones para los cofres con temporizador.
+
+Seguridad Básica (Anti-Cheat):
+La función sig(state) genera un hash Base64 combinando total, reb, asc, coins y una sal secreta. Si en la carga (load()) el hash no coincide con el estado, el juego se reinicia para evitar la manipulación directa del localStorage por usuarios novatos.
+
+3. El Bucle Principal (Game Loop) y Rendimiento
+El rendimiento es el mayor desafío al manipular el DOM constantemente.
+
+A. Lógica de Tiempo y Producción (update())
+Se ejecuta vía setInterval cada 100ms.
+
+Delta Time (UD): La producción pasiva se calcula multiplicando perSec() por el tiempo transcurrido desde el último frame (UD). Esto hace que el juego sea "Framerate Independent".
+
+Producción Offline: Al arrancar, se calcula Date.now() - state.last. Si el jugador estuvo fuera más de 1 minuto, se otorga producción pasiva reducida al 50%.
+
+B. Rendimiento Visual y "Modo Patata"
+Partículas Temporales: Funciones como floater(), spray(), y charBurst() inyectan elementos <span> o <i> en el contenedor #floaters. Usan CSS animations y se auto-destruyen (setTimeout(el.remove)).
+
+Límite Anti-Lag: Si document.getElementById("floaters").childElementCount > 50, las nuevas partículas se bloquean. Si el Delta Time supera los 0.5s, se apagan los efectos (state.set.fx = false) temporalmente para evitar el colapso de la CPU/Memoria.
+
+Animaciones Complejas (Mascotas): El movimiento autónomo de las mascotas en el lobby no usa setInterval ni DOM top/left. Usa requestAnimationFrame y actualiza transform: translate3d(x, y, 0) para forzar la aceleración por hardware (GPU).
+
+4. Economía y Fórmulas Matemáticas (Multiplicadores)
+La economía de Ricopio es multiplicativa, no aditiva. Cualquier nueva mecánica debe integrarse en la cadena de multiplicadores.
+
+Producción Base: Las mejoras de la tienda tienen un atributo .base, escalado por un exponente Math.pow(1.15, nivel).
+
+Bonus Global (gmult()): Multiplica todo. Es la suma de: Bonus por objetos coleccionados (state.items), renacimientos (state.reb * 0.25), multiplicador de logros (achMult()) y extraMult() (Ascensión, cartas, etc.).
+
+Cálculo Final:
+
+perClick() = (Bonus Tienda Clic) * gmult() * Bonus Habilidades * Bonus Skin * Potenciadores temporales.
+
+perSec() = (Bonus Tienda Idle) * gmult() * Bonus Habilidades * Bonus Skin * Potenciadores temporales.
+
+Nota: Ambas funciones usan un estrangulador ttl (Time-To-Live) para no recalcular la matemática pesada en cada milisegundo, cacheando el valor durante 100ms.
+
+5. Subsistemas Críticos
+A. Interfaz Progresiva y DOM Reactivo
+Renderizado Imperativo: No hay Virtual DOM. Cuando el jugador compra algo, se llama a render() o renderTree(), que usa innerHTML o actualiza textContent.
+
+Curva de Aprendizaje: Los botones de funcionalidades complejas (Ruleta, Armario, Renacer) existen en el HTML pero tienen el atributo [hidden]. La función render() evalúa rankIndex() y elimina la propiedad .hidden según avanza el jugador. Regla de oro de CSS: [hidden] { display: none !important; }.
+
+B. Motor de Audio Procedural (Web Audio API)
+Cero Assets Externos: No hay archivos .mp3. Todo se sintetiza en la función sfx(f, d, type) usando osciladores (OscillatorNode).
+
+Los efectos de subir de nivel, abrir cofres o UI se logran encadenando notas (frecuencias) mediante setTimeout. La música de fondo (musicTick()) funciona igual, leyendo arrays de notas musicales escaladas a frecuencias.
+
+C. Backend Opcional (Leaderboards)
+Integración súper ligera (fetch API) con Firebase Realtime Database.
+
+El juego sube un payload mínimo (meData()) con un ID autogenerado, nombre, y las 3 variables de ranking (Ascensiones, Renacimientos, Ricoins). Se ordenan en el cliente (rankCmp) para no sobrecargar el servidor.
+
+6. Reglas Estrictas para Claude (Directivas de Modificación)
+Al interactuar con este proyecto y sugerir código, Claude debe cumplir obligatoriamente estas reglas:
+
+Cirugía, no carnicería: Nunca reescribas un archivo o una función entera a menos que sea imprescindible o se te pida explícitamente. Proporciona el código exacto a insertar/reemplazar y rodea el cambio de comentarios indicando dónde va (// Busca esto... // Reemplaza con esto...).
+
+Respeta el DOM: Evita provocar "Reflows" continuos. Usa transform y opacity para animaciones, nunca top, left, width o margin.
+
+Adición de Contenido (Escalabilidad): Si el humano pide un nuevo objeto, skin o logro, no programes lógica nueva; limítate a añadir el objeto JSON correspondiente en las constantes (ej. array COSM, ITEMS, ACH), ya que el motor del juego iterará y renderizará automáticamente el nuevo contenido.
+
+Cero Librerías: Todo debe resolverse con Vanilla JS ES6+. Nada de jQuery, Lodash, ni preprocesadores.
+
+Concisión Absoluta: Omitir el texto introductorio y las disculpas. Entregar el fragmento de código, una viñeta explicando la lógica matemática o de rendimiento si la hubiera, y terminar.
