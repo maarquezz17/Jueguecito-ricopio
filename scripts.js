@@ -342,13 +342,24 @@ function pickItem() {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 chest.addEventListener("click", () => {
-  if (chest.classList.contains("open")) return;
+  if (chest.classList.contains("open") || chest.classList.contains("broke")) return;
   clearTimeout(chestTimer);
+  if (state.slots.every(Boolean)) return chestBreak();
   chest.classList.add("open");
   confetti(chest.offsetLeft + 50, chest.offsetTop + 30, 26);
   [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => sfx(f, .18), i * 90));
   setTimeout(() => { chest.hidden = true; if (addChest(chestKind, true)) toast("Cofre guardado en tus ranuras"); else openChestNow(chestKind); }, 800);
 });
+function chestBreak() {
+  const k = chestKind, c = Math.max(1, Math.floor(chestCoins(k) * .05)), x = chest.offsetLeft + 50, y = chest.offsetTop + 30;
+  chest.classList.add("broke");
+  spray("conf", x, y, 14, 900, 90, () => "--c:#8a8a8a");
+  sfx(110, .25, "sawtooth"); setTimeout(() => sfx(80, .3, "square"), 90);
+  const f = document.createElement("span"); f.className = "floater crit";
+  f.style.cssText = `left:${Math.max(4, x - 110)}px;top:${y - 30}px;font-size:1.3rem;white-space:nowrap`;
+  f.textContent = "¡Ranuras llenas! Cofre destruido (+" + fmt(c) + ")"; $("floaters").appendChild(f); setTimeout(() => f.remove(), 900);
+  gain(c); render(); setTimeout(() => { chest.hidden = true; }, 450);
+}
 function revealCard(html, color) {
   const rv = $("reveal");
   rv.style.setProperty("--rc", color);
@@ -410,8 +421,8 @@ document.addEventListener("visibilitychange", save);
 
 // Cosméticos y armario
 const allCosm = () => Object.entries(COSM).flatMap(([cat, l]) => l.map((x) => ({ ...x, cat, key: cat + ":" + x.id })));
-const has = (x) => (!x.p && !x.secret && x.rank === undefined && x.reb === undefined && !x.egg && !x.achN) || state.cosm.own.includes(x.key) || (x.rank !== undefined && rankIndex() >= x.rank) || (x.reb !== undefined && state.reb >= x.reb) || (x.achN && Object.keys(state.ach).length >= x.achN) || (x.egg && EGGS.every((e) => state.eggs[e.id]));
-const reqText = (x) => x.secret ? "Secreto" : x.rank !== undefined ? "Rango: " + RANKS[x.rank].name : x.reb !== undefined ? "Renacer " + x.reb + (x.reb > 1 ? " veces" : " vez") : x.achN ? x.achN + " logros" : "Todos los easter eggs";
+const has = (x) => (!x.p && !x.secret && !x.ev && x.rank === undefined && x.reb === undefined && !x.egg && !x.achN) || state.cosm.own.includes(x.key) || (x.rank !== undefined && rankIndex() >= x.rank) || (x.reb !== undefined && state.reb >= x.reb) || (x.achN && Object.keys(state.ach).length >= x.achN) || (x.egg && EGGS.every((e) => state.eggs[e.id]));
+const reqText = (x) => x.ev ? "Evento Halloween" : x.secret ? "Secreto" : x.rank !== undefined ? "Rango: " + RANKS[x.rank].name : x.reb !== undefined ? "Renacer " + x.reb + (x.reb > 1 ? " veces" : " vez") : x.achN ? x.achN + " logros" : "Todos los easter eggs";
 function applyLook() {
   applySet(); applyEvo(); applyFx();
   document.body.classList.toggle("glass", state.set.glass);
@@ -600,7 +611,7 @@ $("shk").onchange = () => { state.set.shake = $("shk").checked; save(); };
 
 // ===== Efectos de balance =====
 function critChance() { return Math.min(.9, .08 + .01 * tl("crit") + skinBn("crit") + petBn("crit") + worldBn("crit") + (wkMod().crit || 0)); }
-function critMul() { return 5 + .5 * tl("critmul"); }
+function critMul() { return (5 + .5 * tl("critmul")) * (1 + skinBn("cmul")); }
 function chestWait() { return 1 - .05 * tl("chest"); }
 function goldWait() { return 1 - .05 * tl("gold"); }
 
@@ -858,7 +869,7 @@ slotsEl.addEventListener("click", (e) => {
   if (!s) return toast("Ranura vacía: consigue cofres en la ruleta y en el mapa");
   if (!s.end) {
     if (state.slots.some((x) => x && x.end > Date.now())) return toast("Ya hay un cofre abriéndose");
-    s.end = Date.now() + CHESTS[s.k].mins * 60000 * (1 - .05 * gl("gchest")); sfx(740, .1); save(); return updSlots();
+    s.end = Date.now() + CHESTS[s.k].mins * 60000 * (1 - .05 * gl("gchest")) * (1 - skinBn("cspd")); sfx(740, .1); save(); return updSlots();
   }
   if (s.end <= Date.now()) { state.slots[i] = null; save(); updSlots(); return openChestNow(s.k); }
   const left = (s.end - Date.now()) / 1000, c = Math.ceil(left * Math.max(5, perSec()) * .6);
@@ -884,16 +895,10 @@ function spin() {
   const idx = (() => { const l = SEG.map((s, i) => (s === cat ? i : -1)).filter((i) => i >= 0); return l[Math.floor(Math.random() * l.length)]; })();
   const c = idx * 30 + 15 + (Math.random() * 18 - 9);
   wheelRot += 1800 + ((((-c - wheelRot) % 360) + 360) % 360);
-  const w = $("wheel"), wp = w.parentElement;
-  wp.classList.remove("wheel-pop");
-  w.style.transition = "transform 4.5s cubic-bezier(.12, .7, .1, 1)";   // animación forzada desde JS
-  void w.offsetWidth;                                                   // reflow: asegura que arranque la transición
-  w.style.transform = `rotate(${wheelRot}deg)`;
+  $("wheel").style.transform = `rotate(${wheelRot}deg)`;
   state.wheelAt = Date.now() + wheelCd(); save(); updWheel();
   for (let i = 0; i < 24; i++) setTimeout(() => sfx(300 + (i % 4) * 40, .04), 250 * Math.pow(i, 1.3));
-  setTimeout(() => { spinning = false; $("m-wheel").classList.remove("spinning"); const col = cat === "mitico" ? "#ff2d6f" : (WG[cat] ? WG[cat][1] : "#fff3a6");
-    wp.style.setProperty("--rarity-color", col); replay(wp, "wheel-pop");   // resplandor localizado, sin pantallazo
-    givePrize(cat); updWheel(); }, 4700);
+  setTimeout(() => { spinning = false; $("m-wheel").classList.remove("spinning"); flash(cat === "mitico" ? "#ff2d6f" : "#fff3a6"); givePrize(cat); updWheel(); }, 4700);
 }
 $("spinBtn").onclick = spin;
 function rollItem(loot) {
@@ -1220,6 +1225,7 @@ RENDER["m-quests"] = () => {
 document.addEventListener("click", (e) => {
   const b = e.target.closest("[data-q]"); if (!b || b.dataset.q.indexOf(":") < 0) return;
   const [k, i] = b.dataset.q.split(":"), q = state.q; if (q[k].done.includes(+i)) return; q[k].done.push(+i);
+  if (liveOn("2026-10")) hwS().reg++;
   const m = 1 + .1 * Math.min(10, q.streak), g = Math.max(2000, perSec() * 900) * m * (k === "w" ? 8 : 1); gain(g);
   if (k === "w") addChest("oro"); passXp(k === "w" ? 100 : 25);
   confetti(stage.clientWidth / 2, stage.clientHeight / 2, 30); toast("Misión completada +" + fmt(g)); sfx(990, .15); save(); render(); RENDER["m-quests"]();
@@ -1236,23 +1242,14 @@ for (let i = 0; i < 12; i++) {
 // ---- 4 Ascender
 const PERKS = [{ id: "gprod", n: "Plumas de poder", d: "+20% producción global", c: 1 }, { id: "gxp", n: "Sabiduría", d: "+25% XP al renacer", c: 2 }, { id: "gchest", n: "Cofres veloces", d: "-5% espera de cofres", c: 2 }, { id: "gwheel", n: "Ruleta veloz", d: "-3% espera de ruleta", c: 3 }];
 RENDER["m-asc"] = () => {
-  const pending = Math.floor(state.reb / 5) - state.asc;
-  const can = pending > 0;
-  const nextReq = (state.asc + 1) * 5;
-  
-  $("b-asc").innerHTML = `<p class="sum">Ascensiones: <b>${state.asc}</b> (cada una da +50% de producción global) · Plumas doradas: <b>${state.gf}</b></p><p class="sum small">Necesitas <b>${nextReq}</b> renacimientos para tu próxima ascensión (tienes ${state.reb}). Ascender reinicia ricoins y mejoras, pero <b>NO reinicia tus renacimientos</b>. Ganarías <b>${pending > 0 ? pending : 1}</b> pluma${pending !== 1 && pending > 0 ? "s" : ""}.</p><button id="ascGo" class="btn wide reb"${can ? "" : " disabled"}>Ascender</button><h3>Plumas doradas</h3>` + PERKS.map((p) => { const l = gl(p.id), c = p.c * (l + 1); return `<button class="node${l ? " has" : ""}" data-perk="${p.id}"${l >= 10 || state.gf < c ? " disabled" : ""}><b>${p.n} ${l}/10</b><small>${p.d}</small><span>${l >= 10 ? "Máx." : c + " 🪶"}</span></button>`; }).join("");
+  const can = state.reb >= 5, g = Math.max(1, Math.floor(state.reb / 5));
+  $("b-asc").innerHTML = `<p class="sum">Ascensiones: <b>${state.asc}</b> (cada una da +50% de producción global) · Plumas doradas: <b>${state.gf}</b></p><p class="sum small">Necesitas 5 renacimientos. Ascender reinicia renacimientos, ricoins y mejoras. Conservas el árbol, la XP, aspectos, logros, objetos, cartas, mascotas y mutaciones. Ganarías <b>${g}</b> pluma${g > 1 ? "s" : ""}.</p><button id="ascGo" class="btn wide reb"${can ? "" : " disabled"}>Ascender</button><h3>Plumas doradas</h3>` + PERKS.map((p) => { const l = gl(p.id), c = p.c * (l + 1); return `<button class="node${l ? " has" : ""}" data-perk="${p.id}"${l >= 10 || state.gf < c ? " disabled" : ""}><b>${p.n} ${l}/10</b><small>${p.d}</small><span>${l >= 10 ? "Máx." : c + " 🪶"}</span></button>`; }).join("");
 };
 document.addEventListener("click", (e) => {
   if (e.target.id === "ascGo") {
-    const pending = Math.floor(state.reb / 5) - state.asc;
-    if (pending <= 0 || !confirm("Vas a ascender y reiniciar ricoins y mejoras (conservas renacimientos, árbol, XP...). ¿Seguro?")) return;
-    
-    state.gf += pending;
-    state.asc += pending;
-    // state.reb = 0; <-- ELIMINADO para conservar los renacimientos
-    
-    state.coins = 0; state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
-    confetti(innerWidth / 2, innerHeight / 3, 80); toast("¡Has ascendido!"); passXp(100); save(); render(); renderTree(); RENDER["m-asc"]();
+    if (state.reb < 5 || !confirm("Vas a ascender y reiniciar renacimientos, ricoins y mejoras (conservas el árbol y la XP). ¿Seguro?")) return;
+    state.gf += Math.max(1, Math.floor(state.reb / 5)); state.asc++; state.reb = 0; state.coins = 0; state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
+    confetti(innerWidth / 2, innerHeight / 3, 80); toast("¡Has ascendido! Ascensión " + state.asc); passXp(100); save(); render(); renderTree(); RENDER["m-asc"]();
   }
   const p = e.target.closest("[data-perk]"); if (!p) return; const pk = PERKS.find((x) => x.id === p.dataset.perk), c = pk.c * (gl(pk.id) + 1);
   if (state.gf < c || gl(pk.id) >= 10) return; state.gf -= c; state.gp[pk.id] = gl(pk.id) + 1; sfx(880, .12); save(); render(); RENDER["m-asc"]();
@@ -1473,13 +1470,13 @@ function renderSkins() {
 function applyFx() {
   const e = state.cosm.eq, sk = COSM.skin.find((x) => x.id === e.skin) || COSM.skin[0], ch = $("chick"), halo = $("halo"), r = sk.rar || "comun", au = sk.au || sk.v[1];
   document.querySelectorAll("#chick .tx").forEach((g) => (g.style.display = sk.tx && g.dataset.t === sk.tx ? "inline" : "none"));
-  ch.classList.toggle("al", r === "legendario"); ch.classList.toggle("am", r === "mitico"); ch.style.setProperty("--au", au);
-  halo.className = "halo" + (r === "legendario" ? " l" : r === "mitico" ? " m" : ""); halo.style.setProperty("--au", au);
+  ch.classList.toggle("al", r === "legendario"); ch.classList.toggle("am", r === "mitico" || r === "exclusivo"); ch.style.setProperty("--au", au);
+  halo.className = "halo" + (r === "legendario" ? " l" : (r === "mitico" || r === "exclusivo") ? " m" : ""); halo.style.setProperty("--au", au);
   const m = { hat: e.hat, eyes: e.eyes, neck: e.neck, back: e.back, feet: e.feet };
   document.querySelectorAll("#chick .a").forEach((g) => {
     let cat = null; for (const c in m) if (m[c] === g.dataset.a) cat = c;
     const x = cat && COSM[cat].find((y) => y.id === g.dataset.a), rr = (x && x.rar) || "comun";
-    g.setAttribute("class", "a" + (rr === "legendario" || rr === "mitico" ? " r-" + rr : "")); g.style.setProperty("--ac", RAR[rr] ? RAR[rr].c : "#fff");
+    g.setAttribute("class", "a" + (rr === "legendario" || rr === "mitico" || rr === "exclusivo" ? " r-" + rr : "")); g.style.setProperty("--ac", RAR[rr] ? RAR[rr].c : "#fff");
   });
 }
 const FXA = ["legendario", "mitico"];
@@ -1492,7 +1489,7 @@ function updCC(quiet) {
   if ([100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000].includes(n)) { replay(ccEl, "big"); toast("¡CLICK x" + n.toLocaleString("es") + "!"); confetti(stage.clientWidth * .85, 120, 20); sfx(1000, .15); }
 }
 
-// ---- Pase de batalla visual (abajo a la izquierda, 60 marcas, gratis + premium 50M)
+// ---- Pase de batalla (modal a pantalla completa, 60 marcas, gratis + premium 50M)
 const PASS_PREM = 50e6;
 function passState() { const k = monthKey(); if (!state.pass || state.pass.key !== k) state.pass = { key: k, xp: 0, cf: [], cp: [], prem: false }; if (!state.pass.cf) { state.pass.cf = []; state.pass.cp = []; } return state.pass; }
 const CK = { 10: "plata", 20: "oro", 40: "arcano", 50: "legendario" }, CKP = { 10: "oro", 20: "arcano", 40: "legendario", 50: "mitico" };
@@ -1514,33 +1511,62 @@ function ptIcon(r) {
 function grantPass(r) {
   if (r.t === "coin") gain(Math.max(500, perSec() * 60) * (1 + r.m / 5)); else if (r.t === "chest") addChest(r.k); else if (r.t === "egg") state.peggs = (state.peggs || 0) + r.n;
   else if (r.t === "item") { const it = pick(ITEMS.filter((i) => i.r === r.r)); state.items[it.id] = (state.items[it.id] || 0) + 1; renderColl(); showCard(`${svg(it.id, it.col)}<b>${it.name}</b><span class="rar">${RAR[it.r].n}</span><small>Recompensa del pase</small>`, RAR[it.r].c); }
-  else if (r.t === "skin") { const key = "skin:" + seasonId(passState().key); if (!state.cosm.own.includes(key)) state.cosm.own.push(key); renderWard(); showCard(`${ptIcon(r)}<b>Skin del pase</b><span class="rar">Mítico · exclusiva</span><small>Ya está en tus aspectos</small>`, "#ff2d6f"); }
+  else if (r.t === "skin") { const key = "skin:" + (passState().key === "2026-10" ? "fantasmareal" : seasonId(passState().key)); if (!state.cosm.own.includes(key)) state.cosm.own.push(key); renderWard(); showCard(`${ptIcon(r)}<b>Skin del pase</b><span class="rar">Mítico · exclusiva</span><small>Ya está en tus aspectos</small>`, "#ff2d6f"); }
 }
 function claimPass(lane, i) {
   const ps = passState(), arr = lane === "p" ? ps.cp : ps.cf; if (passLvl() < i || arr.includes(i) || (lane === "p" && !ps.prem)) return false;
   arr.push(i); grantPass(lane === "p" ? passPrem(i) : passFree(i)); return true;
 }
-const pw = document.createElement("div"); pw.id = "pw"; pw.className = "pw"; document.body.appendChild(pw);
-let pwOpen = false, _pwSig = "", _pwL = -1;
+let _pwSig = "", _pwL = -1;
+mkModal("pass", "Pase de Temporada"); // Asegura que el modal b-pass existe
 function renderPW(force) {
-  const ps = passState(), L = passLvl(), sig = [L, ps.xp, ps.prem, ps.cf.length, ps.cp.length, pwOpen].join("|"); if (!force && sig === _pwSig) return; _pwSig = sig;
-  pw.classList.toggle("min", !pwOpen);
-  const old = $("pwS") ? $("pwS").scrollLeft : 0, rdy = [...Array(PASS_N)].filter((_, j) => { const i = j + 1; return L >= i && (!ps.cf.includes(i) || (ps.prem && !ps.cp.includes(i))); }).length;
+  const ps = passState(), L = passLvl(), sig = [L, ps.xp, ps.prem, ps.cf.length, ps.cp.length].join("|"); 
+  if (!force && sig === _pwSig) return; 
+  _pwSig = sig;
+  
+  const old = $("pwS") ? $("pwS").scrollLeft : 0; 
+  const rdy = [...Array(PASS_N)].filter((_, j) => { const i = j + 1; return L >= i && (!ps.cf.includes(i) || (ps.prem && !ps.cp.includes(i))); }).length;
+  
   const tile = (lane, i) => {
     const r = lane === "p" ? passPrem(i) : passFree(i), done = (lane === "p" ? ps.cp : ps.cf).includes(i), ok = L >= i && (lane === "f" || ps.prem);
     return `<button class="pt ${lane}${done ? " done" : ok ? " ready" : ""}${i === 30 || i === 60 ? " star" : ""}" data-pt="${lane}:${i}" title="${r.x}">${ptIcon(r)}<small>${done ? "✓" : r.s}</small>${lane === "p" && !ps.prem ? '<u class="lk">🔒</u>' : ""}</button>`;
   };
-  pw.innerHTML = !pwOpen ? `<button class="btn pwmini${rdy ? " rd" : ""}" data-pw="tog">Pase · Nv ${L}${rdy ? " · " + rdy + " ★" : ""} ▴</button>` : `<div class="pwh"><b>Pase Ricopio · Nv ${L}/${PASS_N}</b><div class="bar"><div style="width:${L >= PASS_N ? 100 : ps.xp % PASS_XP}%"></div></div>${ps.prem ? '<em class="pm">PREMIUM</em>' : `<button class="btn" data-pw="prem">Premium ${fmt(PASS_PREM)}</button>`}${rdy ? `<button class="btn rd" data-pw="all">Reclamar (${rdy})</button>` : ""}<button class="btn tg" data-pw="tog">${pwOpen ? "▾" : "▴"}</button></div>` +
-    (pwOpen ? `<div class="pws" id="pwS"><div class="pwl">${[...Array(PASS_N)].map((_, j) => `<div class="pwc"><span class="pwn">${j + 1}</span>${tile("p", j + 1)}${tile("f", j + 1)}</div>`).join("")}</div></div>` : "");
-  const s = $("pwS"); if (s) s.scrollLeft = L !== _pwL ? Math.max(0, (L - 2) * 62) : old; _pwL = L;
+  
+  $("b-pass").innerHTML = `<div class="pwh"><b>Pase Ricopio · Nv ${L}/${PASS_N}</b><div class="bar"><div style="width:${L >= PASS_N ? 100 : ps.xp % PASS_XP}%"></div></div>${ps.prem ? '<em class="pm">PREMIUM</em>' : `<button class="btn" data-pw="prem">Premium ${fmt(PASS_PREM)}</button>`}${rdy ? `<button class="btn rd" data-pw="all">Reclamar (${rdy})</button>` : ""}</div><div class="pws" id="pwS"><div class="pwl">${[...Array(PASS_N)].map((_, j) => `<div class="pwc"><span class="pwn">${j + 1}</span>${tile("p", j + 1)}${tile("f", j + 1)}</div>`).join("")}</div></div>`;
+  
+  const s = $("pwS"); 
+  if (s) s.scrollLeft = L !== _pwL ? Math.max(0, (L - 2) * 62) : old; 
+  _pwL = L;
 }
-pw.addEventListener("click", (e) => {
-  const b = e.target.closest("[data-pt],[data-pw]"); if (!b) return;
-  if (b.dataset.pt) { const [l, i] = b.dataset.pt.split(":"); if (l === "p" && !passState().prem) return toast("Necesitas el pase premium (" + fmt(PASS_PREM) + " ricoins)"); if (claimPass(l, +i)) { confetti(innerWidth * .2, innerHeight * .8, 20); sfx(990, .12); save(); render(); renderPW(true); } return; }
+RENDER["m-pass"] = () => { _pwL = -1; renderPW(true); };
+function passBadge() {
+  const ps = passState(), L = passLvl(); let n = 0;
+  for (let i = 1; i <= Math.min(L, PASS_N); i++) { if (!ps.cf.includes(i)) n++; if (ps.prem && !ps.cp.includes(i)) n++; }
+  setT($("passBtn"), "Pase de Temporada 🎫" + (n ? " (" + n + ")" : "")); $("passBtn").classList.toggle("ready", n > 0);
+}
+$("b-pass").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-pt],[data-pw]"); 
+  if (!b) return;
+  
+  if (b.dataset.pt) { 
+    const [l, i] = b.dataset.pt.split(":"); 
+    if (l === "p" && !passState().prem) return toast("Necesitas el pase premium (" + fmt(PASS_PREM) + " ricoins)"); 
+    if (claimPass(l, +i)) { confetti(innerWidth * .2, innerHeight * .8, 20); sfx(990, .12); save(); render(); renderPW(true); } 
+    return; 
+  }
+  
   const a = b.dataset.pw;
-  if (a === "tog") { pwOpen = !pwOpen; return renderPW(true); }
-  if (a === "prem") { if (state.coins < PASS_PREM) return toast("Te faltan ricoins (" + fmt(PASS_PREM) + ")"); if (!confirm("¿Comprar el pase premium por " + fmt(PASS_PREM) + " ricoins?")) return; state.coins -= PASS_PREM; passState().prem = true; confetti(innerWidth * .2, innerHeight * .8, 50); sfx(1200, .3); save(); render(); return renderPW(true); }
-  if (a === "all") { let n = 0; for (let i = 1; i <= PASS_N; i++) { if (claimPass("f", i)) n++; if (claimPass("p", i)) n++; } if (n) { toast(n + " recompensas reclamadas"); confetti(innerWidth * .2, innerHeight * .8, 40); save(); render(); renderPW(true); } }
+  if (a === "prem") { 
+    if (state.coins < PASS_PREM) return toast("Te faltan ricoins (" + fmt(PASS_PREM) + ")"); 
+    if (!confirm("¿Comprar el pase premium por " + fmt(PASS_PREM) + " ricoins?")) return; 
+    state.coins -= PASS_PREM; passState().prem = true; confetti(innerWidth * .2, innerHeight * .8, 50); sfx(1200, .3); save(); render(); return renderPW(true); 
+  }
+  
+  if (a === "all") { 
+    let n = 0; 
+    for (let i = 1; i <= PASS_N; i++) { if (claimPass("f", i)) n++; if (claimPass("p", i)) n++; } 
+    if (n) { toast(n + " recompensas reclamadas"); confetti(innerWidth * .2, innerHeight * .8, 40); save(); render(); renderPW(true); } 
+  }
 });
 
 // ---- Códigos de canje
@@ -1753,6 +1779,7 @@ let T4 = 0;
 function updGameCd() { $("b-games").querySelectorAll("[data-g]").forEach((b) => { const c = gcd(b.dataset.g); setT(b, c ? fmtT(c) : "¡Jugar!"); b.disabled = !!c; }); }
 function tick4() {
   T4++; if (T4 % 5 === 0) renderPW(); if (!started) return;
+  if (T4 % 20 === 0) { hwTick(); passBadge(); }
   if (T4 % 600 === 0) { passXp(2); if (srvUrl()) pub(); }
   if (!$("m-games").hidden && !gameStop && T4 % 10 === 0) updGameCd();
 }
@@ -1797,7 +1824,7 @@ function petLoop(dt) {
     }
     o.x = Math.max(0, Math.min(W - 76, o.x)); o.y = Math.max(30, Math.min(H - 160, o.y)); // Límite inferior respetado
     // USAR TRANSFORM EN LUGAR DE LEFT/TOP PARA EVITAR LAG
-    o.el.style.transform = `translate3d(${o.x.toFixed(1)}px, ${o.y.toFixed(1)}px, 0)`;
+    o.el.style.transform = `translate3d(${o.x.toFixed(1)}px, ${(o.y + (o.p.fly ? Math.sin(Date.now() / 350 + o.x / 40) * 10 - 20 : 0)).toFixed(1)}px, 0)`;
     if (o.mv !== moving) { o.mv = moving; o.el.classList.toggle("walk", moving); }
     if (Date.now() > o.emo) { o.emo = Date.now() + 6000 + Math.random() * 6000; petEmote(o); }
     o.tr = (o.tr || 0) + dt;
@@ -1826,6 +1853,101 @@ RENDER["m-pets"] = () => {
     }).join("") + "</ul>";
   petsStage();
 };
+
+// ===================== HALLOWEEN 2026 =====================
+// Rareza nueva (aquí y no en el literal RAR: RK, de Fusión, ya se calculó y así no fusiona hacia "exclusivo")
+RAR.exclusivo = { n: "Exclusivo", c: "#ff8a00", w: 0, b: 2.5 };
+CBC.exclusivo = "#f0e442"; FXA.push("exclusivo"); POR.unshift("exclusivo");
+ATX.cspd = ["+", "% velocidad de cofres"]; ATX.cmul = ["+", "% valor de críticos"];
+
+// Gestor de eventos
+const LIVEOPS = { "2026-10": { from: +new Date(2026, 9, 1), to: +new Date(2026, 10, 1), n: "Truco o Trato" } };
+const liveOn = (id) => { const e = LIVEOPS[id], t = Date.now(); return !!e && t >= e.from && t < e.to; };
+
+// Cosméticos exclusivos (sin `p`: se compran en el modal del evento o se ganan por misión)
+const X = (o) => ({ rar: "exclusivo", ev: 1, ...o });
+COSM.hat.push(X({ id: "calabaza", n: "Calabaza Encantada", bn: [["clk", .02]] }));
+COSM.eyes.push(X({ id: "ojosespiritu", n: "Ojos de Espíritu", bn: [["crit", .02]] }));
+COSM.neck.push(X({ id: "capaconde", n: "Capa del Conde", bn: [["sec", .03]] }));
+COSM.back.push(X({ id: "alasmurcielago", n: "Alas de Murciélago", bn: [["sec", .04]] }));
+COSM.feet.push(X({ id: "humovioleta", n: "Pisadas de Humo Violeta", bn: [["cspd", .02]] }));
+COSM.tap.push(X({ id: "truco", n: "Impacto Truco o Trato", bn: [["cmul", .05]] }));
+COSM.trail.push(X({ id: "nocturna", n: "Estela Nocturna", bn: [["crit", .03]] }));
+COSM.skin.push({ id: "fantasmareal", n: "Ricopio Fantasma Real", secret: 1, rar: "exclusivo", cls: "ghost", au: "#9b5de5", bn: [["all", .10]], v: ["#cdbfff", "#9b7be0", "#f1ebff"] });
+Object.assign(TAPFX, { truco: { ch: "☠", c: ["#ff8a00", "#b05cff"] }, nocturna: { ch: "✦", c: ["#b05cff", "#6a5acd"] } });
+
+// Batito (mascota exclusiva, vuela). No sale de huevos: rollRar() nunca devuelve "exclusivo".
+ART.murcielago = (c) => `<path d="M2 12Q-4 24 6 34Q10 26 15 30L18 16zM38 12Q44 24 34 34Q30 26 25 30L22 16z" fill="#2a1840" stroke="${K}" stroke-width="2" stroke-linejoin="round"/><path d="M12 14L11 3l7 6zM28 14L29 3l-7 6z" fill="${c}" stroke="${K}" stroke-width="2" stroke-linejoin="round"/><circle cx="20" cy="22" r="11" fill="${c}" stroke="${K}" stroke-width="2.5"/><circle cx="16" cy="20" r="2.2" fill="#ffd84a"/><circle cx="24" cy="20" r="2.2" fill="#ffd84a"/><path d="M17 27l1.5 3 1.5-3 1.5 3 1.5-3" fill="#fff" stroke="${K}" stroke-width=".8"/>`;
+PETS.push({ id: "batito", n: "Batito", sp: "murcielago", r: "exclusivo", c: "#5b3a9c", f: ["all", .06], at: [["all", .06]], fly: 1 });
+
+// Título
+TITLES.push({ id: "terror", n: "Terror del Corral", f: () => !!(state.hw && state.hw.done.includes("m5")) });
+
+// Estado del evento (se guarda en state.hw; base = snapshot al empezar)
+function hwS() {
+  if (!state.hw || state.hw.key !== "2026-10") state.hw = { key: "2026-10", b: { clicks: state.st.clicks, chests: state.st.chests, spins: state.st.spins || 0 }, c60: 0, reg: 0, done: [] };
+  return state.hw;
+}
+const HW_M = [
+  { id: "m1", n: "Toca 50.000 veces", t: 5e4, p: (h) => state.st.clicks - h.b.clicks, k: "hat:calabaza", rw: "Calabaza Encantada" },
+  { id: "m2", n: "Abre 80 cofres", t: 80, p: (h) => state.st.chests - h.b.chests, k: "neck:capaconde", rw: "Capa del Conde" },
+  { id: "m3", n: "Gira la ruleta 40 veces", t: 40, p: (h) => (state.st.spins || 0) - h.b.spins, k: "feet:humovioleta", rw: "Pisadas de Humo Violeta" },
+  { id: "m4", n: "Alcanza combo x60 30 veces", t: 30, p: (h) => h.c60, k: "trail:nocturna", rw: "Estela Nocturna" },
+  { id: "m5", n: "Completa 45 misiones regulares", t: 45, p: (h) => h.reg, k: null, rw: "Título «Terror del Corral»" },
+];
+const HW_SHOP = [
+  { k: "eyes:ojosespiritu", n: "Ojos de Espíritu", m: 1, f: 5e6, b: "+2% crítico" },
+  { k: "back:alasmurcielago", n: "Alas de Murciélago", m: 2, f: 1e7, b: "+4% producción" },
+  { k: "tap:truco", n: "Impacto Truco o Trato", m: 3, f: 1.5e7, b: "+5% valor crítico" },
+  { k: "pet:batito", n: "Batito (mascota voladora)", m: 4, f: 2e7, b: "+6% producción global" },
+];
+const hwPrice = (s) => Math.max(s.f, perSec() * 86400 * s.m);
+const hwOwned = (k) => k === "pet:batito" ? !!state.pets.batito : state.cosm.own.includes(k);
+function hwGive(k) {
+  if (k === "pet:batito") { state.pets.batito = 1; if (state.petEq.length < 3) state.petEq.push("batito"); petsStage(); return; }
+  unlock(k, "¡Objeto exclusivo desbloqueado!", true);
+}
+function hwTick() { const on = liveOn("2026-10"); $("haloBtn").hidden = !on; if (on) hwS(); }
+
+Object.assign(ICONS, {
+  ojosespiritu: '<path d="M2 12c3-5 7-7 10-7s7 2 10 7c-3 5-7 7-10 7s-7-2-10-7z"/><circle cx="12" cy="12" r="4.500" fill="#b05cff"/><circle cx="12" cy="12" r="1.800" fill="#fff" stroke="none"/>',
+  alasmurcielago: '<path d="M12 6c-1.500 0-2.500 1-3 3C7 7 3 7 1 9c2 1 2 3 2 6 2-2 3-1 4 1 1-2 2-3 3-3l2 2 2-2c1 0 2 1 3 3 1-2 2-3 4-1 0-3 0-5 2-6-2-2-6-2-8 0-.5-2-1.500-3-3-3z"/>',
+  calabaza: '<ellipse cx="12" cy="14" rx="9" ry="7"/><path fill="none" d="M12 7v14M7 8c-3 4-2 9 0 12M17 8c3 4 2 9 0 12"/><path fill="none" d="M12 7c0-3 1-4 3-4"/>',
+  capa: '<path d="M6 3h12l3 18c-5 2-13 2-18 0z"/><path fill="none" d="M9 3c1 3 5 3 6 0"/>',
+  humo: '<circle cx="8" cy="16" r="5"/><circle cx="16" cy="14" r="4"/><circle cx="12" cy="8" r="4"/>',
+  calavera: '<path d="M12 3a8 8 0 0 0-8 8c0 3 1 4 3 5v4h10v-4c2-1 3-2 3-5a8 8 0 0 0-8-8z"/><circle cx="9" cy="11" r="2" fill="#2b2118"/><circle cx="15" cy="11" r="2" fill="#2b2118"/><path fill="none" d="M10 20v-3M14 20v-3"/>',
+});
+const HW_IC = {
+  m1: svg("calabaza", "#ff8a00"), m2: svg("capa", "#a8142f"), m3: svg("humo", "#b05cff"), m4: svg("estrella", "#b05cff"), m5: svg("gema", "#ff8a00"),
+  "eyes:ojosespiritu": svg("ojosespiritu", "#e9d6ff"), "back:alasmurcielago": svg("alasmurcielago", "#6a3fa0"), "tap:truco": svg("calavera", "#fff8e6"), "pet:batito": animalSvg("murcielago", "#5b3a9c"),
+};
+function hwFx() {
+  const cx = stage.clientWidth / 2, cy = stage.clientHeight / 2;
+  spray("conf", cx, cy, 40, 1800, 250, () => `--c: #ff7a2e`);
+  spray("conf", cx, cy, 40, 1800, 250, () => `--c: #b05cff`);
+  confetti(cx, cy, 50);
+  sfx(880, .2); setTimeout(() => sfx(1200, .3), 120);
+  if (state.set.shake) replay(stage, "shake");
+}
+
+mkModal("halo", "🎃 Truco o Trato");
+RENDER["m-halo"] = () => {
+  const on = liveOn("2026-10"), h = hwS(), left = (LIVEOPS["2026-10"].to - Date.now()) / 1000;
+  $("b-halo").innerHTML = `<p class="sum ev-sum">${on ? "Termina en " + fmtH(Math.max(0, left)) : "Evento finalizado"} · Todo es <b style="color:#ff8a00">Exclusivo</b>: bonus permanentes.</p>` +
+    `<h3 class="ev-h">🎃 Misiones</h3><ul class="quests">` + HW_M.map((m) => { const pr = Math.min(m.t, m.p(h)), d = h.done.includes(m.id);
+      return `<li class="ev-item"><div class="ev-item-header"><span class="ev-ico">${HW_IC[m.id]}</span><span class="ev-tx"><b>${m.n}</b><small>Premio: ${m.rw}</small></span><button class="ev-btn" data-hw="m:${m.id}"${d || pr < m.t || !on ? " disabled" : ""}>${d ? "Hecho ✓" : "Reclamar"}</button></div><div class="bar"><div style="width:${pr / m.t * 100}%"></div></div><small class="ev-pr">${fmt(pr)} / ${fmt(m.t)}</small></li>`; }).join("") + `</ul>` +
+    `<h3 class="ev-h">🦇 Tienda del evento</h3><ul class="quests">` + HW_SHOP.map((s) => { const own = hwOwned(s.k), c = hwPrice(s);
+      return `<li class="ev-item"><div class="ev-item-header"><span class="ev-ico">${HW_IC[s.k]}</span><span class="ev-tx"><b>${s.n}</b><small>${s.b}</small></span><button class="ev-btn" data-hw="s:${s.k}"${own || !on || state.coins < c ? " disabled" : ""}>${own ? "Tuyo ✓" : "Comprar · " + fmt(c)}</button></div></li>`; }).join("") + `</ul>`;
+};
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-hw]"); if (!b || !liveOn("2026-10")) return;
+  const v = b.dataset.hw, i = v.indexOf(":"), t = v.slice(0, i), id = v.slice(i + 1), h = hwS();
+  if (t === "m") { const m = HW_M.find((x) => x.id === id); if (h.done.includes(id) || m.p(h) < m.t) return; h.done.push(id); if (m.k) hwGive(m.k); toast("Misión completada: " + m.rw); }
+  else { const s = HW_SHOP.find((x) => x.k === id), c = hwPrice(s); if (hwOwned(id)) return; if (state.coins < c) return toast("Te faltan ricoins (" + fmt(c) + ")"); state.coins -= c; hwGive(id); }
+  hwFx(); save(); render(); renderWard(); RENDER["m-halo"]();
+});
+$("chick").addEventListener("click", () => { if (combo === 60 && liveOn("2026-10")) hwS().c60++; });   // se ejecuta tras el listener principal: combo ya actualizado
+hwTick(); passBadge();
 
 applyLook();
 $("introChick").appendChild($("chick").firstElementChild.cloneNode(true));
