@@ -1228,7 +1228,7 @@ document.addEventListener("click", (e) => {
   if (liveOn("2026-10")) hwS().reg++;
   const m = 1 + .1 * Math.min(10, q.streak), g = Math.max(2000, perSec() * 900) * m * (k === "w" ? 8 : 1); gain(g);
   if (k === "w") addChest("oro"); passXp(k === "w" ? 100 : 25);
-  confetti(stage.clientWidth / 2, stage.clientHeight / 2, 30); toast("Misión completada +" + fmt(g)); sfx(990, .15); save(); render(); RENDER["m-quests"]();
+  confetti(stage.clientWidth / 2, stage.clientHeight / 2, 30); toast("Misión completada +" + fmt(g)); sfx(990, .15); save(); render(); RENDER["m-quests"](); renderPW(true);
 });
 const PASS_N = 60, PASS_XP = 100, MESES = "Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre".split(",");
 function passState() { const k = monthKey(); if (!state.pass || state.pass.key !== k) state.pass = { key: k, xp: 0, claimed: [] }; return state.pass; }
@@ -1531,8 +1531,41 @@ function renderPW(force) {
     const r = lane === "p" ? passPrem(i) : passFree(i), done = (lane === "p" ? ps.cp : ps.cf).includes(i), ok = L >= i && (lane === "f" || ps.prem);
     return `<button class="pt ${lane}${done ? " done" : ok ? " ready" : ""}${i === 30 || i === 60 ? " star" : ""}" data-pt="${lane}:${i}" title="${r.x}">${ptIcon(r)}<small>${done ? "✓" : r.s}</small>${lane === "p" && !ps.prem ? '<u class="lk">🔒</u>' : ""}</button>`;
   };
+
+  // --- LÓGICA DE MISIONES INTEGRADA ---
+  ensureQuests();
+  const q = state.q;
+  const list = (k) => q[k].ids.map((i) => {
+    const p = QP[i], tg = k === "d" ? p.d : p.w, pr = Math.min(tg, STAT[p.s]() - q[k].base[p.s]), done = q[k].done.includes(i);
+    return `<li class="qrow"><span><b>${p.n.replace("%n", tg)}</b><div class="bar"><div style="width:${pr / tg * 100}%"></div></div><small>${fmt(pr)} / ${tg}</small></span><button class="btn" data-q="${k}:${i}"${done || pr < tg ? " disabled" : ""}>${done ? "Hecho" : "Reclamar"}</button></li>`;
+  }).join("");
+
+  const questsHTML = `
+    <div class="pass-quests">
+      <div class="quests-col">
+        <h3>Misiones Diarias <small>(Racha: ${q.streak} días)</small></h3>
+        <ul class="quests">${list("d")}</ul>
+      </div>
+      <div class="quests-col">
+        <h3>Misiones Semanales</h3>
+        <ul class="quests">${list("w")}</ul>
+      </div>
+    </div>
+  `;
+  // -------------------------------------
   
-  $("b-pass").innerHTML = `<div class="pwh"><b>Pase Ricopio · Nv ${L}/${PASS_N}</b><div class="bar"><div style="width:${L >= PASS_N ? 100 : ps.xp % PASS_XP}%"></div></div>${ps.prem ? '<em class="pm">PREMIUM</em>' : `<button class="btn" data-pw="prem">Premium ${fmt(PASS_PREM)}</button>`}${rdy ? `<button class="btn rd" data-pw="all">Reclamar (${rdy})</button>` : ""}</div><div class="pws" id="pwS"><div class="pwl">${[...Array(PASS_N)].map((_, j) => `<div class="pwc"><span class="pwn">${j + 1}</span>${tile("p", j + 1)}${tile("f", j + 1)}</div>`).join("")}</div></div>`;
+  $("b-pass").innerHTML = `
+    <div class="pwh">
+      <b>Pase Ricopio · Nv ${L}/${PASS_N}</b>
+      <div class="bar"><div style="width:${L >= PASS_N ? 100 : ps.xp % PASS_XP}%"></div></div>
+      ${ps.prem ? '<em class="pm">PREMIUM</em>' : `<button class="btn" data-pw="prem">Premium ${fmt(PASS_PREM)}</button>`}
+      ${rdy ? `<button class="btn rd" data-pw="all">Reclamar (${rdy})</button>` : ""}
+    </div>
+    <div class="pws" id="pwS">
+      <div class="pwl">${[...Array(PASS_N)].map((_, j) => `<div class="pwc"><span class="pwn">${j + 1}</span>${tile("p", j + 1)}${tile("f", j + 1)}</div>`).join("")}</div>
+    </div>
+    ${questsHTML}
+  `;
   
   const s = $("pwS"); 
   if (s) s.scrollLeft = L !== _pwL ? Math.max(0, (L - 2) * 62) : old; 
