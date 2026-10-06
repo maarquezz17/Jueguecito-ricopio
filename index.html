@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -24,7 +24,8 @@
     </svg>
   </div>
 
-    <main class="game">
+  <button id="wheelBtn" class="wheelbtn" data-open="m-wheel" aria-label="Ruleta"><svg viewBox="0 0 24 24" fill="none" stroke="#2b2118" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v7M12 14v7M3 12h7M14 12h7"/></svg><span id="wheelTxt">Ruleta</span></button>
+  <main class="game">
     <header class="top">
       <h1 id="title">Ricopio</h1>
       <p class="score" id="scoreBox"><i class="coin-icon"></i><span id="coins">0</span></p>
@@ -57,9 +58,7 @@
           <ellipse cx="100" cy="222" rx="62" ry="8" fill="rgba(43,33,24,.22)"/>
           <path d="M84 208 v14 M116 208 v14" stroke="#ff8a1f" stroke-width="7" stroke-linecap="round"/>
           <g class="a" data-a="capa"><path d="M60 110Q100 100 140 110L166 215Q100 232 34 215Z" fill="#d8303f" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/></g>
-          <g class="a" data-a="capaconde"><path d="M50 120Q100 108 150 120L176 214Q100 236 24 214Z" fill="#3b1a5a" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/><path d="M60 132Q100 122 140 132L160 205Q100 224 40 205Z" fill="#a8142f"/></g>
           <g class="a" data-a="alas"><path d="M44 120Q-8 66 8 152Q22 140 44 152Z" fill="#fff" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/><path d="M156 120Q208 66 192 152Q178 140 156 152Z" fill="#fff" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/></g>
-          <g class="a" data-a="alasmurcielago"><path d="M44 118Q-18 56 -6 150L12 132 22 156 34 136 44 150Z" fill="#2a1840" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/><path d="M156 118Q218 56 206 150L188 132 178 156 166 136 156 150Z" fill="#2a1840" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/></g>
           <g class="a" data-a="mochila"><rect x="128" y="118" width="46" height="60" rx="12" fill="#6b8e3d" stroke="#2b2118" stroke-width="4"/><rect x="136" y="140" width="30" height="18" rx="5" fill="#8fb04f" stroke="#2b2118" stroke-width="3"/></g>
           <g class="e" data-e="2"><path d="M168 130q38-30 24-66-12 26-32 36z" fill="#ff8a1f" stroke="#2b2118" stroke-width="4" stroke-linejoin="round"/></g>
           <g class="a" data-a="jetpack"><rect x="128" y="116" width="18" height="52" rx="8" fill="#b9c2cf" stroke="#2b2118" stroke-width="3.5"/><rect x="150" y="116" width="18" height="52" rx="8" fill="#b9c2cf" stroke="#2b2118" stroke-width="3.5"/><path d="M130 170l5 22 6-22zM152 170l5 22 6-22z" fill="#ff8a1f" stroke="#2b2118" stroke-width="2"/></g>
@@ -112,9 +111,6 @@
           <g class="a" data-a="cadena"><path d="M60 160Q100 194 140 160" fill="none" stroke="#ffd84a" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 10"/><circle cx="100" cy="186" r="9" fill="#ffd84a" stroke="#2b2118" stroke-width="3"/></g>
           <g class="a" data-a="perlas"><path d="M60 160Q100 194 140 160" fill="none" stroke="#2b2118" stroke-width="11" stroke-linecap="round" stroke-dasharray="1 12"/><path d="M60 160Q100 194 140 160" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 12"/></g>
           <g class="a" data-a="patines"><rect x="66" y="212" width="34" height="10" rx="4" fill="#d8303f" stroke="#2b2118" stroke-width="3"/><rect x="100" y="212" width="34" height="10" rx="4" fill="#d8303f" stroke="#2b2118" stroke-width="3"/><circle cx="74" cy="228" r="4.5" fill="#fff" stroke="#2b2118" stroke-width="2.5"/><circle cx="92" cy="228" r="4.5" fill="#fff" stroke="#2b2118" stroke-width="2.5"/><circle cx="108" cy="228" r="4.5" fill="#fff" stroke="#2b2118" stroke-width="2.5"/><circle cx="126" cy="228" r="4.5" fill="#fff" stroke="#2b2118" stroke-width="2.5"/></g>
-          <g class="a" data-a="calabaza"><ellipse cx="100" cy="50" rx="30" ry="24" fill="#ff8a00" stroke="#2b2118" stroke-width="4"/><path d="M100 27v46M84 31q-8 18 0 38M116 31q8 18 0 38" fill="none" stroke="#c75f00" stroke-width="3"/><path d="M96 27q0-14 12-14" fill="none" stroke="#3a7d2c" stroke-width="5" stroke-linecap="round"/></g>
-          <g class="a" data-a="ojosespiritu"><circle cx="76" cy="124" r="13" fill="#b05cff" stroke="#2b2118" stroke-width="3"/><circle cx="124" cy="124" r="13" fill="#b05cff" stroke="#2b2118" stroke-width="3"/><circle cx="76" cy="124" r="5" fill="#fff"/><circle cx="124" cy="124" r="5" fill="#fff"/></g>
-          <g class="a" data-a="humovioleta"><circle cx="72" cy="226" r="9" fill="#b05cff" opacity=".7"/><circle cx="58" cy="232" r="7" fill="#9b5de5" opacity=".6"/><circle cx="128" cy="226" r="9" fill="#b05cff" opacity=".7"/><circle cx="142" cy="232" r="7" fill="#9b5de5" opacity=".6"/></g>
         </svg>
       </button>
       <div id="floaters" aria-hidden="true"></div>
@@ -131,11 +127,11 @@
       <div id="combo" class="combo"><b id="comboN">x1.0</b><div class="bar"><div id="comboBar"></div></div></div>
       <div id="bubble" class="bubble" hidden></div>
       <div id="pets" class="pets"></div>
+      <div id="boss" class="boss" hidden></div>
       <div id="slots" class="slots" aria-label="Cofres"></div>
     </section>
 
     <nav class="rail" aria-label="Menús">
-      <button id="wheelBtn" class="wheelbtn" data-open="m-wheel" aria-label="Ruleta"><svg viewBox="0 0 24 24" fill="none" stroke="#2b2118" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 3v7M12 14v7M3 12h7M14 12h7"/></svg><span id="wheelTxt">Ruleta</span></button>
       <button class="rbtn" data-open="m-set"><svg viewBox="0 0 24 24" fill="none" stroke="#2b2118" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg><span>Ajustes</span></button>
       <button class="rbtn" data-open="m-ach"><svg viewBox="0 0 24 24" fill="none" stroke="#2b2118" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H3c0 4 2 5 4 5M17 6h4c0 4-2 5-4 5M12 14v4M8 21h8M9 18h6"/></svg><span>Logros</span></button>
       <button class="rbtn" data-open="m-hub"><svg viewBox="0 0 24 24" fill="none" stroke="#2b2118" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span>Más</span></button>
@@ -146,8 +142,6 @@
       <button id="skinBtn" class="btn wide" data-open="m-skins">Aspectos</button>
       <button id="wardBtn" class="btn wide wardb">Armario</button>
       <section class="panel"><button id="rebBtn" class="btn wide reb" data-open="m-reb">Renacer</button><div class="bar"><div id="rebMini"></div></div><small id="rebTxt"></small></section>
-      <button id="passBtn" class="btn wide passb" data-open="m-pass">Pase de Temporada 🎫</button>
-      <button id="haloBtn" class="btn wide halob" data-open="m-halo" hidden>🎃 Truco o Trato</button>
     </div>
   </main>
 
