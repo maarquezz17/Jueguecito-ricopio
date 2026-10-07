@@ -1838,7 +1838,7 @@ const ONLINE_URL = "https://ricopio-45b4d-default-rtdb.europe-west1.firebasedata
 function genId() { let s = ""; for (let i = 0; i < 7; i++) s += ID_CH[Math.floor(Math.random() * ID_CH.length)]; return s; }
 function ensurePid() { if (!state.pid) { state.pid = genId(); save(); } return state.pid; }
 const pname = () => state.name || "Jugador " + ensurePid();
-const srvUrl = () => (state.srv || ONLINE_URL || "").trim().replace(/\/+$/, "");
+const srvUrl = () => (state.srv || ONLINE_URL || "https://ricopio-45b4d-default-rtdb.europe-west1.firebasedatabase.app/").trim().replace(/\/+$/, "");
 const meData = () => ({ id: ensurePid(), n: pname(), t: state.total, r: state.reb, a: state.asc, w: weekKey(), ws: wkScore(), u: Date.now() });
 const myCard = () => "RC1." + enc(JSON.stringify(meData()));
 function copyText(c, msg) { (typeof navigator !== "undefined" && navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast(msg), () => prompt("Copia el código:", c)); }
