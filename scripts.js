@@ -1,26 +1,72 @@
 // Ricopio: toca, encadena combos, abre cofres, colecciona objetos y sube de rango.
 const ICONS = {
-  grano: '<path fill="none" d="M12 22V9"/><path d="M12 9c-4-1-5-4-5-6 4 0 5 3 5 6zM12 9c4-1 5-4 5-6-4 0-5 3-5 6zM12 15c-4-1-5-4-5-6 4 0 5 3 5 6zM12 15c4-1 5-4 5-6-4 0-5 3-5 6z"/>',
-  nido: '<path d="M3 12c1 8 17 8 18 0z"/><path fill="none" d="M6 13c4-3 8-3 12 0"/>',
-  gallinero: '<path d="M3 11l9-8 9 8v10H3z"/><rect x="9" y="13" width="6" height="8"/>',
-  granja: '<path d="M3 21V10l9-7 9 7v11z"/><path fill="none" d="M9 21v-8h6v8M9 13l6 8M15 13l-6 8"/>',
-  banco: '<path d="M2 9l10-6 10 6z"/><path fill="none" d="M5 11v8M10 11v8M14 11v8M19 11v8M2 21h20"/>',
-  trebol: '<circle cx="9" cy="9" r="4"/><circle cx="15" cy="9" r="4"/><circle cx="9" cy="15" r="4"/><circle cx="15" cy="15" r="4"/><path fill="none" d="M12 14l2 8"/>',
-  llave: '<circle cx="8" cy="8" r="5"/><path fill="none" d="M12 12l9 9M17 17l3-3M20 20l2-2"/>',
-  bolsa: '<path d="M7 9h10l2 12H5z"/><path fill="none" d="M9 9c1-6 5-6 6 0"/>',
-  anillo: '<circle cx="12" cy="15" r="6" fill="none" stroke-width="3"/><path d="M9 6l3-3 3 3-3 4z"/>',
-  reloj: '<circle cx="12" cy="12" r="9"/><path fill="none" d="M12 6v6l4 3"/>',
-  gema: '<path d="M12 3l8 6-8 13L4 9z"/><path fill="none" d="M4 9h16M9 9l3 13 3-13"/>',
-  estrella: '<path d="M12 2l3 7 7 .5-5.500 4.500 2 7.500-6.500-4-6.500 4 2-7.500L2 9.500 9 9z"/>',
-  rayo: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
-  diamante: '<path d="M12 2c6 0 8 10 8 13a8 8 0 0 1-16 0C4 12 6 2 12 2z"/><path fill="none" d="M8 14c0 2 1 4 3 5"/>',
+  grano: '<path d="M12 2C7 2 4 8 4 14c0 4.5 4 8 8 8s8-3.5 8-8c0-6-3-12-8-12z" fill="#ffd84a"/><path d="M7 14c0-3 2-6 5-8" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.6"/><path d="M12 22c-4 0-8-3.500-8-8 2 3 5 4 8 4z" fill="#000" opacity=".12" stroke="none"/>',
+  nido: '<path d="M2 12c0 6 4 9 10 9s10-3 10-9z" fill="#c98a3b"/><ellipse cx="8.500" cy="10" rx="3" ry="4" fill="#fff8e6"/><ellipse cx="15.500" cy="10" rx="3" ry="4" fill="#ffe9bd"/><path d="M7.500 8.500c.5-1 1-1.500 1.500-1.500" stroke="#fff" fill="none" opacity=".8"/><path d="M4 15c4 2 12 2 16 0M6 18c3.500 1.500 8.500 1.500 12 0" fill="none" stroke="#8a5a1f" stroke-width="1"/><path d="M2 12c4 2 16 2 20 0" fill="none" stroke="#8a5a1f" stroke-width="1.600"/>',
+  gallinero: '<path d="M2 11l10-8 10 8z" fill="#c0392b"/><rect x="4" y="11" width="16" height="10" fill="#e0b070"/><path d="M4 14.500h16M4 18h16" stroke="#a87a3a" stroke-width=".8" fill="none"/><path d="M9 21v-6a3 3 0 0 1 6 0v6z" fill="#5a3a1a"/><circle cx="12" cy="8" r="1.500" fill="#fff8e6"/><path d="M4 11l8-6.500" stroke="#fff" opacity=".35" fill="none"/>',
+  comedero: '<path d="M6 3h12l-2 9H8z" fill="#b9c2cf"/><path d="M8 12h8l1 3H7z" fill="#8a96a6"/><path d="M3 17h18l-2 4H5z" fill="#c27a3a"/><circle cx="8" cy="16" r="1" fill="#ffd84a" stroke="none"/><circle cx="12" cy="16" r="1" fill="#ffd84a" stroke="none"/><circle cx="16" cy="16" r="1" fill="#ffd84a" stroke="none"/><path d="M9 5.500h4" stroke="#fff" opacity=".7" fill="none"/>',
+  granja: '<path d="M2 21V10l10-7 10 7v11z" fill="#d8303f"/><path d="M2 10l10-7 10 7" fill="none" stroke="#fff8e6" stroke-width="1.500"/><rect x="7" y="12" width="10" height="9" fill="#fff8e6"/><path d="M7 12l10 9M17 12L7 21" stroke="#d8303f" stroke-width="1.200" fill="none"/><circle cx="12" cy="8" r="1.500" fill="#fff8e6"/>',
+  incubadora: '<path d="M4 20V12a8 8 0 0 1 16 0v8z" fill="#bfe9ff" opacity=".85"/><path d="M2 20h20v2.500H2z" fill="#8a96a6"/><ellipse cx="12" cy="16" rx="3" ry="4" fill="#fff8e6"/><path d="M9 2.500h6l-1 3h-4z" fill="#ff7a2e"/><path d="M8 8c1-1.500 2-2 3-2" stroke="#fff" stroke-width="1.200" fill="none" opacity=".8"/><path d="M10 8l-1 2M14 8l1 2M12 8v2" stroke="#ff7a2e" stroke-width="1" fill="none"/>',
+  silo: '<path d="M6 8a6 6 0 0 1 12 0v13H6z" fill="#b9c2cf"/><path d="M6 12h12M6 16h12" stroke="#8a96a6" fill="none"/><path d="M9 6c1-2 5-2 6 0" stroke="#fff" opacity=".7" fill="none"/><path d="M10 21v-4h4v4z" fill="#5a6a7a"/><path d="M18 3l3.500 1.500-1 4.500-3-1.500z" fill="#ffd84a"/><path d="M16 14h2" stroke="#fff" opacity=".5" fill="none"/>',
+  banco: '<path d="M2 9l10-6 10 6z" fill="#e8d8a0"/><rect x="4" y="10" width="2.500" height="8" fill="#fff8e6"/><rect x="8.500" y="10" width="2.500" height="8" fill="#fff8e6"/><rect x="13" y="10" width="2.500" height="8" fill="#fff8e6"/><rect x="17.500" y="10" width="2.500" height="8" fill="#fff8e6"/><rect x="2" y="18" width="20" height="3" fill="#c9b878"/><ellipse cx="12" cy="7" rx="1.500" ry="2" fill="#fff8e6"/>',
+  tractor: '<rect x="11" y="6" width="9" height="8" rx="1" fill="#3a9a4a"/><rect x="3" y="9" width="9" height="6" fill="#3a9a4a"/><rect x="12.500" y="7.500" width="5" height="4" fill="#bfe9ff"/><path d="M5 9V5h2v4" fill="#8a96a6"/><circle cx="17" cy="17" r="4.500" fill="#2b2118"/><circle cx="17" cy="17" r="2" fill="#ffd84a" stroke="none"/><circle cx="6" cy="18" r="3" fill="#2b2118"/><circle cx="6" cy="18" r="1.200" fill="#ffd84a" stroke="none"/>',
+  mercadillo: '<path d="M2 8l2-5h16l2 5z" fill="#d8303f"/><path d="M6 3L5 8M10 3l-.5 5M14 3l.5 5M18 3l1 5" stroke="#fff8e6" stroke-width="1.800" fill="none"/><rect x="3" y="12" width="18" height="3" fill="#c27a3a"/><rect x="4" y="15" width="2" height="6" fill="#8a5a1f"/><rect x="18" y="15" width="2" height="6" fill="#8a5a1f"/><ellipse cx="9" cy="10.500" rx="2" ry="2.500" fill="#fff8e6"/><ellipse cx="14" cy="10.500" rx="2" ry="2.500" fill="#ffe9bd"/>',
+  lonja: '<path d="M2 12h20l-2 8H4z" fill="#c9b080"/><ellipse cx="6.500" cy="10" rx="2.500" ry="3.200" fill="#fff8e6"/><ellipse cx="12" cy="10" rx="2.500" ry="3.200" fill="#ffe9bd"/><ellipse cx="17.500" cy="10" rx="2.500" ry="3.200" fill="#fff8e6"/><path d="M5 15.500h14" stroke="#a89060" fill="none"/><circle cx="20" cy="4.500" r="3" fill="#ffd84a"/><path d="M20 3v3" stroke="#a87a00" fill="none"/>',
+  cooperativa: '<circle cx="12" cy="12" r="8" fill="none" stroke="#6fd06f" stroke-width="2.500"/><ellipse cx="12" cy="5" rx="2.300" ry="3" fill="#fff8e6"/><g transform="rotate(120 12 12)"><ellipse cx="12" cy="5" rx="2.300" ry="3" fill="#ffe9bd"/></g><g transform="rotate(240 12 12)"><ellipse cx="12" cy="5" rx="2.300" ry="3" fill="#fff8e6"/></g><circle cx="12" cy="12" r="2" fill="#ffd84a"/>',
+  tortillas: '<rect x="3" y="11" width="18" height="10" fill="#c9b080"/><rect x="15" y="3" width="4" height="8" fill="#8a96a6"/><circle cx="17" cy="1.500" r="1.500" fill="#fff" opacity=".8" stroke="none"/><circle cx="12" cy="16" r="3.500" fill="#fff8e6"/><circle cx="12" cy="16" r="1.600" fill="#ffd84a" stroke="none"/><rect x="5" y="13" width="3" height="3" fill="#bfe9ff"/>',
+  camion: '<rect x="1" y="7" width="13" height="10" fill="#fff8e6"/><path d="M14 10h5l3 4v3H14z" fill="#d8303f"/><path d="M16 11h3l1.500 2.500H16z" fill="#bfe9ff" stroke="none"/><ellipse cx="7.500" cy="12" rx="2" ry="2.600" fill="#ffe9bd"/><circle cx="6" cy="18" r="2.600" fill="#2b2118"/><circle cx="18" cy="18" r="2.600" fill="#2b2118"/><circle cx="6" cy="18" r="1" fill="#ccc" stroke="none"/><circle cx="18" cy="18" r="1" fill="#ccc" stroke="none"/>',
+  super: '<path d="M2 4h3l3 11h11l2-8H6.500" fill="#6fd3ff"/><path d="M9 9h9M9.500 12h8" stroke="#fff" opacity=".7" fill="none"/><ellipse cx="12" cy="5.500" rx="1.500" ry="2" fill="#fff8e6"/><circle cx="9" cy="19.500" r="1.800" fill="#2b2118"/><circle cx="18" cy="19.500" r="1.800" fill="#2b2118"/>',
+  logistica: '<path d="M2 9l10-5 10 5v12H2z" fill="#8a96a6"/><rect x="5" y="12" width="14" height="9" fill="#c4ccd6"/><path d="M5 15h14M5 18h14" stroke="#8a96a6" fill="none"/><rect x="14" y="17" width="4" height="4" fill="#d9a15b"/><rect x="7" y="18" width="4.500" height="3" fill="#c27a3a"/>',
+  bolsavalores: '<rect x="2" y="3" width="20" height="18" rx="2" fill="#16302a"/><rect x="5" y="14" width="2" height="4" fill="#d8303f" stroke="none"/><rect x="10" y="12" width="2" height="6" fill="#6fd06f" stroke="none"/><rect x="15" y="9" width="2" height="9" fill="#6fd06f" stroke="none"/><path d="M4 16l5-5 3 3 7-8" fill="none" stroke="#fff8e6" stroke-width="2"/><path d="M15 6h4v4" fill="none" stroke="#fff8e6" stroke-width="2"/>',
+  torre: '<rect x="8" y="2" width="8" height="19" fill="#6a8fcf"/><rect x="3" y="10" width="5" height="11" fill="#4a6fb0"/><rect x="16" y="7" width="5" height="14" fill="#4a6fb0"/><path d="M10 6h1.500M12.500 6H14M10 9h1.500M12.500 9H14M10 12h1.500M12.500 12H14M10 15h1.500M12.500 15H14" stroke="#ffe9bd" stroke-width="1.200" fill="none"/><circle cx="12" cy="2" r="2" fill="#ffd84a"/>',
+  puerto: '<path d="M2 15h20l-3 5H5z" fill="#2b4a7a"/><rect x="5" y="9" width="4" height="6" fill="#d8303f"/><rect x="9.500" y="9" width="4" height="6" fill="#ffd84a"/><rect x="14" y="9" width="4" height="6" fill="#3d9bff"/><rect x="7" y="4" width="4" height="5" fill="#6fd06f"/><path d="M2 21.500c3-1 4 1 7 0s4 1 7 0 4 1 6 0" stroke="#6fd3ff" fill="none" stroke-width="1.500"/>',
+  tren: '<rect x="2" y="9" width="14" height="8" rx="1" fill="#3a3a48"/><rect x="14" y="6" width="7" height="11" fill="#d8303f"/><rect x="16" y="8" width="3" height="3" fill="#bfe9ff"/><rect x="4" y="5" width="3" height="4" fill="#8a96a6"/><circle cx="5" cy="3" r="1.500" fill="#fff" opacity=".7" stroke="none"/><circle cx="6" cy="18" r="2.500" fill="#2b2118"/><circle cx="12" cy="18" r="2.500" fill="#2b2118"/><circle cx="18" cy="18" r="2.500" fill="#2b2118"/>',
+  mina: '<path d="M3 7c4-4 14-4 18 0l-2 1.800c-4-3-10-3-14 0z" fill="#b9c2cf"/><path d="M10.500 6h3L15 21H9z" fill="#8a5a1f"/><path d="M2 21l3.500-5 3 5zM15 21l3.500-6 3.500 6z" fill="#ffd84a"/><path d="M5 19l1 .5M18 19l1 .5" stroke="#fff" fill="none"/>',
+  refineria: '<path d="M2 21l2-5h7l2 5z" fill="#ffd84a"/><path d="M11 21l2-5h7l2 5z" fill="#e0a800"/><path d="M6.500 15l2-5h7l2 5z" fill="#ffe27a"/><path d="M5 18.500h6M14 18.500h5M9 12.500h5" stroke="#fff" opacity=".7" fill="none"/><path d="M12 1c1 2 3 3 3 5a3 3 0 0 1-6 0c0-1 1-1.500 1-3 1 0 1.500-1 2-2z" fill="#ff7a2e"/>',
+  laboratorio: '<path d="M9 2h6v6l5 11a2 2 0 0 1-2 3H6a2 2 0 0 1-2-3l5-11z" fill="#d6f4ff"/><path d="M6.500 15h11l2.500 5a1.200 1.200 0 0 1-1 2H5a1.200 1.200 0 0 1-1-2z" fill="#ffd84a"/><circle cx="10" cy="18" r="1" fill="#fff" stroke="none"/><circle cx="14" cy="17" r=".8" fill="#fff" stroke="none"/><path d="M8 2h8" stroke-width="2" fill="none"/>',
+  clonadora: '<circle cx="16" cy="14" r="5.500" fill="#ffc928" opacity=".55" stroke-dasharray="2 1.500"/><circle cx="8" cy="14" r="5.500" fill="#ffc928"/><circle cx="6.500" cy="13" r="1" fill="#2b2118" stroke="none"/><circle cx="14.500" cy="13" r="1" fill="#2b2118" stroke="none"/><path d="M8 15.500l-2 1 2 1zM16 15.500l-2 1 2 1z" fill="#ff8a1f"/><path d="M7 8.500q1-3 2 0" fill="#ff5d73"/><path d="M9 4h6M13 2.500L15 4l-2 1.500" fill="none" stroke-width="1.500"/>',
+  orbital: '<rect x="1.500" y="3" width="6" height="3" fill="#2b4a7a" transform="rotate(-20 4.500 4.500)"/><rect x="16.500" y="18" width="6" height="3" fill="#2b4a7a" transform="rotate(-20 19.500 19.500)"/><circle cx="12" cy="12" r="6" fill="#3d9bff"/><path d="M8 10c2-2 5-2 6.500 0-1 2-4.500 3-6.500 0z" fill="#6fd06f" stroke="none"/><ellipse cx="12" cy="12" rx="10.500" ry="3.500" fill="none" stroke="#b9c2cf" stroke-width="1.800" transform="rotate(-20 12 12)"/>',
+  lunar: '<circle cx="12" cy="13" r="9" fill="#d9dde6"/><circle cx="6.500" cy="9" r="1.800" fill="#aab0bc" stroke="none"/><circle cx="18" cy="16" r="2.200" fill="#aab0bc" stroke="none"/><path d="M8 14a4 4 0 0 1 8 0z" fill="#bfe9ff"/><rect x="8" y="14" width="8" height="3" fill="#fff8e6"/><path d="M12 10V5" fill="none"/><path d="M12 5l4 1.500-4 1.500z" fill="#d8303f"/>',
+  marte: '<circle cx="12" cy="12" r="9" fill="#d6552a"/><path d="M4 9c3 1 5-1 8 0s5 0 8 1" fill="none" stroke="#a83a18"/><circle cx="7.500" cy="16" r="2" fill="#a83a18" stroke="none"/><circle cx="17" cy="7.500" r="1.500" fill="#a83a18" stroke="none"/><path d="M10 18a3.500 3.500 0 0 1 7 0z" fill="#d6f4ff"/><path d="M8 4c2-1 4-1.500 6-1" stroke="#fff" opacity=".4" fill="none"/>',
+  antimateria: '<ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="#b05cff" stroke-width="1.500"/><ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="#6fd3ff" stroke-width="1.500" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="#ff5d73" stroke-width="1.500" transform="rotate(120 12 12)"/><circle cx="12" cy="12" r="3" fill="#fff"/><circle cx="12" cy="12" r="1.200" fill="#2b2118" stroke="none"/>',
+  reactor: '<circle cx="12" cy="12" r="10" fill="#2b2118"/><circle cx="12" cy="12" r="7" fill="#ffd84a"/><circle cx="12" cy="12" r="3.500" fill="#fff8e6"/><path d="M12 5v3M12 16v3M5 12h3M16 12h3" stroke="#ff7a2e" stroke-width="1.800" fill="none"/>',
+  portal: '<ellipse cx="12" cy="12" rx="7" ry="10" fill="#2a0f55"/><ellipse cx="12" cy="12" rx="5" ry="8" fill="none" stroke="#b05cff" stroke-width="2"/><ellipse cx="12" cy="12" rx="2.500" ry="5" fill="none" stroke="#6fd3ff" stroke-width="1.800"/><circle cx="12" cy="12" r="1.200" fill="#fff" stroke="none"/><path d="M4 5l2 2M20 4l-2 2M3 19l2-2M21 20l-2-2" stroke="#ffd84a" fill="none"/>',
+  cuantica: '<ellipse cx="12" cy="12" rx="11" ry="4" fill="none" stroke="#6fd3ff" stroke-width="1.200" transform="rotate(-30 12 12)"/><ellipse cx="12" cy="12" rx="11" ry="4" fill="none" stroke="#b05cff" stroke-width="1.200" transform="rotate(30 12 12)"/><circle cx="12" cy="13" r="6" fill="#ffc928"/><circle cx="10" cy="12" r="1" fill="#2b2118" stroke="none"/><circle cx="14" cy="12" r="1" fill="#2b2118" stroke="none"/><path d="M11 14.500h2l-1 1.800z" fill="#ff8a1f"/><path d="M10.500 7q1.500-3 3 0" fill="#ff5d73"/><circle cx="21" cy="8" r="1.500" fill="#fff"/>',
+  agujero: '<ellipse cx="12" cy="13" rx="6.500" ry="8" fill="#0b0b10"/><ellipse cx="12" cy="13" rx="11" ry="3" fill="none" stroke="#ff9d2e" stroke-width="2" transform="rotate(-15 12 13)"/><ellipse cx="12" cy="13" rx="9" ry="2" fill="none" stroke="#ffd84a" stroke-width="1" opacity=".8" transform="rotate(-15 12 13)"/><path d="M9 7c1-2 3-2 4-1" stroke="#fff" opacity=".4" fill="none"/>',
+  forja: '<path d="M3 10h15c0 3-3 4-5 4v3h4v4H6v-4h4v-3c-3 0-6-1-7-4z" fill="#5a6270"/><path d="M18 10h4c-1 2-2 3-4 3z" fill="#5a6270"/><path d="M5 11h11" stroke="#fff" opacity=".4" fill="none"/><path d="M14 1.500l1 2.500 2.500 1-2.500 1-1 2.500-1-2.500-2.500-1 2.500-1z" fill="#ffd84a"/>',
+  esfera: '<circle cx="12" cy="11" r="9" fill="#6fd3ff"/><path d="M3 11h18M12 2c-4 4-4 14 0 18M12 2c4 4 4 14 0 18" fill="none" stroke="#fff" opacity=".7"/><path d="M2 20h20" stroke="#8a5a1f" stroke-width="1.500" fill="none"/><path d="M4 17v5M8 17v5M12 17v5M16 17v5M20 17v5" stroke="#8a5a1f" stroke-width="1.500" fill="none"/>',
+  telar: '<rect x="3" y="3" width="18" height="18" rx="2" fill="#c27a3a"/><path d="M7 4v10M10 4v10M13 4v10M17 4v10" stroke="#ffe9bd" fill="none"/><path d="M4 7h16M4 10h16" stroke="#b05cff" stroke-width="2" fill="none"/><circle cx="12" cy="17" r="3.500" fill="#fff8e6"/><path d="M12 15v2h1.500" fill="none" stroke-width="1"/>',
+  viajero: '<circle cx="12" cy="12" r="9" fill="#fff8e6"/><circle cx="12" cy="12" r="9" fill="none" stroke="#b05cff" stroke-width="2"/><path d="M12 6v6l4 2" fill="none" stroke-width="1.800"/><path d="M2.500 7.500A10 10 0 0 1 8 2.500" fill="none" stroke="#6fd3ff" stroke-width="1.800"/><path d="M1 5l3 4 3-3z" fill="#6fd3ff"/>',
+  oraculo: '<path d="M7 21l1-4h8l1 4z" fill="#8a5a1f"/><circle cx="12" cy="11" r="8" fill="#b05cff"/><path d="M6.500 8c1-3 5-4 7-3" stroke="#fff" stroke-width="1.500" fill="none" opacity=".7"/><path d="M9 15c0-5 4-8 7-8-1 4-2 7-7 8z" fill="#fff8e6"/><path d="M9 15l5-6" stroke="#b05cff" fill="none"/>',
+  templo: '<path d="M2 9l10-6 10 6z" fill="#e8d8a0"/><rect x="4" y="10" width="3" height="8" fill="#fff8e6"/><rect x="10.500" y="10" width="3" height="8" fill="#fff8e6"/><rect x="17" y="10" width="3" height="8" fill="#fff8e6"/><rect x="2" y="18" width="20" height="3" fill="#c9b878"/><ellipse cx="12" cy="6.500" rx="1.700" ry="2.200" fill="#ffd84a"/><path d="M12 1.500v1M8 3l1 1M16 3l-1 1" stroke="#ffd84a" fill="none"/>',
+  semidios: '<ellipse cx="11" cy="2.500" rx="5" ry="1.500" fill="none" stroke="#ffd84a" stroke-width="1.500"/><path d="M19 13c3-1 4-6 3-9-3 2-4 5-4 9z" fill="#3d9bff"/><circle cx="11" cy="13" r="7.500" fill="#e0482f"/><circle cx="11" cy="9" r="5" fill="#e0482f"/><path d="M8 6C7 3 9 2 10 4c0-2 2-2 2 0 1-2 3-1 2 2z" fill="#d8303f"/><path d="M15 9l4 1-4 1.500z" fill="#ffd84a"/><circle cx="12.500" cy="8" r="1" fill="#2b2118" stroke="none"/><path d="M15 12c1 2 0 3-1 3z" fill="#d8303f"/>',
+  panteon: '<path d="M2 12a10 8 0 0 1 20 0z" fill="#e8d8a0"/><rect x="2" y="12" width="20" height="2" fill="#c9b878"/><rect x="3.500" y="14" width="2.500" height="6" fill="#fff8e6"/><rect x="8" y="14" width="2.500" height="6" fill="#fff8e6"/><rect x="13.500" y="14" width="2.500" height="6" fill="#fff8e6"/><rect x="18" y="14" width="2.500" height="6" fill="#fff8e6"/><rect x="2" y="20" width="20" height="2" fill="#c9b878"/><path d="M12 3c-1.500 3-1.500 5 0 7 1.500-2 1.500-4 0-7z" fill="#fff8e6"/>',
+  galaxias: '<circle cx="12" cy="12" r="10" fill="#14123f"/><path d="M12 12c0-4 5-5 7-2s-1 8-7 8-9-5-8-10" fill="none" stroke="#b05cff" stroke-width="2.500"/><path d="M12 12c0 3-4 4-6 2" stroke="#6fd3ff" fill="none" stroke-width="1.800"/><circle cx="12" cy="12" r="2.500" fill="#fff"/><circle cx="19" cy="5" r=".8" fill="#fff" stroke="none"/><circle cx="5" cy="6" r=".8" fill="#fff" stroke="none"/><path d="M16 3c4 1 6 4 5 8l-2.500-3z" fill="#b9c2cf"/>',
+  imperio: '<circle cx="12" cy="15" r="7" fill="#3d6cff"/><ellipse cx="12" cy="15" rx="10" ry="2.500" fill="none" stroke="#ffd84a" stroke-width="1.500" transform="rotate(-15 12 15)"/><path d="M5 10l1-7 3.500 3 2.500-4 2.500 4 3.500-3 1 7z" fill="#ffd84a"/><circle cx="12" cy="7" r="1.200" fill="#d8303f" stroke="none"/>',
+  universos: '<ellipse cx="12" cy="6" rx="9" ry="1.500" fill="none" stroke="#fff" opacity=".6"/><circle cx="12" cy="6" r="4" fill="#3d9bff"/><circle cx="5.500" cy="7" r="2" fill="#ff7a2e"/><circle cx="18.500" cy="5.500" r="2.500" fill="#b05cff"/><path d="M4 12l3 2 3-2.500 3 2.500 3-2.500 4 2.500a8 8 0 0 1-16 0z" fill="#fff8e6"/><path d="M8 18c2 1.500 6 1.500 8 0" stroke="#e0d0b0" fill="none"/>',
+  multiverso: '<ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="#b05cff" stroke-width="2" transform="rotate(45 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" fill="none" stroke="#6fd3ff" stroke-width="2" transform="rotate(-45 12 12)"/><circle cx="12" cy="12" r="3" fill="#fff"/><circle cx="12" cy="12" r="1.200" fill="#b05cff" stroke="none"/>',
+  arquitecto: '<path d="M12 9l6 3v6l-6 3-6-3v-6z" fill="#6fd3ff"/><path d="M12 9v12M6 12l6 3 6-3" fill="none" stroke="#fff" opacity=".7"/><circle cx="12" cy="3.500" r="1.800" fill="#ffd84a"/><path d="M12 5L6 20M12 5l6 15" fill="none" stroke="#8a96a6" stroke-width="1.800"/>',
+  hilo: '<path d="M20 2L6 16" stroke="#e8e8f0" stroke-width="2.200" fill="none"/><ellipse cx="19" cy="3" rx="1" ry="2.500" transform="rotate(45 19 3)" fill="#fff8e6"/><path d="M6 16c-5 1-3 6 1 5s3-6-1-3" fill="none" stroke="#ff2d6f" stroke-width="1.800"/><path d="M18 14l1 2.500 2.500 1-2.500 1-1 2.500-1-2.500-2.500-1 2.500-1z" fill="#ffd84a"/>',
+  fenix: '<path d="M10 10C7 8 4 7 1 8c1 4 4 8 9 9z" fill="#ff5d1a"/><path d="M14 10c3-2 6-3 9-2-1 4-4 8-9 9z" fill="#ff5d1a"/><path d="M12 17l-3 6 3-2 3 2z" fill="#ffd84a"/><ellipse cx="12" cy="13" rx="3.500" ry="6" fill="#ff7a2e"/><ellipse cx="12" cy="14" rx="1.800" ry="3.500" fill="#ffd84a" stroke="none"/><circle cx="12" cy="6.500" r="3" fill="#ffa733"/><path d="M12 6.500l3.500 1-3.500 1z" fill="#ffd84a"/><path d="M10 4c0-2 1-3 2-3-.5 1 0 2 .5 2.500C13 2.500 14 2 14 1c1 2 0 4-1 4z" fill="#ffd84a"/><circle cx="11" cy="6" r=".8" fill="#2b2118" stroke="none"/>',
+  cosmico: '<path d="M12 2c5 0 8 7 8 12a8 8 0 0 1-16 0C4 9 7 2 12 2z" fill="#3b2a8c"/><path d="M6 15c3-4 7 2 12-2" fill="none" stroke="#6fd3ff" stroke-width="1.500"/><path d="M7 10c3-3 6 0 9-2" fill="none" stroke="#ff7ad5" stroke-width="1.200"/><circle cx="9" cy="18" r=".8" fill="#fff" stroke="none"/><circle cx="15" cy="6" r=".8" fill="#fff" stroke="none"/><circle cx="16" cy="17" r=".8" fill="#fff" stroke="none"/><path d="M8 5c1-1 2-1.500 3-1.500" stroke="#fff" opacity=".5" fill="none"/>',
+  absoluto: '<path d="M12 .5v2.500M3 4l2 2M21 4l-2 2" stroke="#ffd84a" stroke-width="1.600" fill="none"/><circle cx="12" cy="15" r="7" fill="#ffc928"/><path d="M7 10l1-5 2 2 2-3 2 3 2-2 1 5z" fill="#ffd84a"/><circle cx="9.500" cy="14" r="1.100" fill="#2b2118" stroke="none"/><circle cx="14.500" cy="14" r="1.100" fill="#2b2118" stroke="none"/><path d="M11 16h2l-1 2z" fill="#ff8a1f"/>',
+  origen: '<circle cx="12" cy="12" r="10" fill="#0e0a2a"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M19 5l-4 4M5 19l4-4M19 19l-4-4" stroke="#ffd84a" stroke-width="1.800" fill="none"/><circle cx="12" cy="12" r="4" fill="#fff"/><circle cx="12" cy="12" r="2" fill="#ffd84a" stroke="none"/>',
+  trebol: '<circle cx="9" cy="9" r="4"/><circle cx="15" cy="9" r="4"/><circle cx="9" cy="15" r="4"/><circle cx="15" cy="15" r="4"/><path d="M12 14c0 4 1 6 3 8" fill="none" stroke="#2f7a3a" stroke-width="2"/><path d="M7.500 8c1-1 2-1.500 3-1" stroke="#fff" opacity=".6" fill="none"/><circle cx="12" cy="12" r="1.500" fill="#2f7a3a" stroke="none"/>',
+  llave: '<path d="M11.500 11.500L21 21l-1.800 1.800-2-2-1.700 1.700-2.200-2.200 1.700-1.700-3.500-3.500z"/><circle cx="8" cy="8" r="5.500"/><circle cx="8" cy="8" r="2.200" fill="#2b2118" opacity=".4" stroke="none"/><path d="M4.500 5.500c1-1.500 2-2 3-2" stroke="#fff" opacity=".7" fill="none"/>',
+  bolsa: '<path d="M7 7h10l3 14H4z"/><path d="M6.500 7C8 5 10 4 12 4s4 1 5.500 3z" fill="#fff8e6" opacity=".45"/><path d="M9 7c0-2.500 1.500-4 3-4s3 1.500 3 4" fill="none"/><rect x="8" y="12" width="8" height="6" rx="1" fill="#fff8e6" stroke="none"/><path d="M12 17v-3.500M12 14c-2-.5-2-2 0-2.500 2 .5 2 2 0 2.500z" fill="#6fd06f" stroke="#2f7a3a" stroke-width=".8"/>',
+  anillo: '<path fill-rule="evenodd" d="M12 8.500a6.500 6.500 0 1 0 0 13 6.500 6.500 0 1 0 0-13zm0 3a3.500 3.500 0 1 1 0 7 3.500 3.500 0 1 1 0-7z"/><path d="M9 6l1.500-3h3L15 6l-3 3z" fill="#6fd3ff"/><path d="M9 6h6M12 3v3" fill="none" stroke="#fff" stroke-width=".8" opacity=".8"/><path d="M6.500 13.500a6 6 0 0 1 2.500-3" stroke="#fff" opacity=".7" fill="none"/>',
+  reloj: '<circle cx="12" cy="14" r="8"/><circle cx="12" cy="14" r="5.500" fill="#fff8e6"/><path d="M12 10.500v3.500l3 2" fill="none" stroke-width="1.500"/><rect x="10.500" y="2" width="3" height="3.500" rx="1" fill="#d9a400"/><path d="M17.500 8l2-2" stroke-width="2.200" fill="none"/><path d="M7 9c1-1 2-1.500 3-1.500" stroke="#fff" opacity=".7" fill="none"/>',
+  gema: '<path d="M7 3h10l5 6-10 13L2 9z"/><path d="M7 3h10l-2 6H9z" fill="#fff" opacity=".35" stroke="none"/><path d="M2 9h20M7 3L5 9l7 13M17 3l2 6-7 13M9 9l3-6 3 6" fill="none" stroke="#fff" stroke-width=".9" opacity=".7"/>',
+  estrella: '<path d="M12 2l3.100 6.300 6.900 1-5 4.900 1.200 6.900L12 17.800 5.800 21.100 7 14.200 2 9.300l6.900-1z"/><path d="M12 2l3.100 6.300L12 12z" fill="#fff" opacity=".4" stroke="none"/><path d="M12 12l-5 2.200 1.200-5.900z" fill="#000" opacity=".1" stroke="none"/>',
+  rayo: '<path d="M13 2L4 14h6l-1 8 10-13h-6z"/><path d="M13 2l-4 12h2z" fill="#fff" opacity=".4" stroke="none"/>',
+  diamante: '<path d="M12 2c5 0 8 8 8 12a8 8 0 0 1-16 0C4 10 7 2 12 2z"/><path d="M12 2l-4 7 4 13 4-13z" fill="#fff" opacity=".45" stroke="none"/><path d="M4.300 12h15.400M8 9l4 13M16 9l-4 13" fill="none" stroke="#fff" opacity=".8"/>',
+  huevonegro: '<path d="M12 2c5 0 8 8 8 12a8 8 0 0 1-16 0C4 10 7 2 12 2z"/><path d="M8 6c1-2 2-3 4-3.500" stroke="#fff" opacity=".35" stroke-width="1.500" fill="none"/><path d="M7 13c2 3 8 3 10 0" stroke="#ff2d6f" opacity=".7" fill="none"/><circle cx="14" cy="9" r="1" fill="#ff2d6f" opacity=".7" stroke="none"/>',
+  banda: '<path d="M3 8h18v8H3z"/><path d="M3 8c2 1 2 7 0 8M21 8c-2 1-2 7 0 8" fill="none"/><path d="M12 10l1 2h2l-1.600 1.500.6 2.500-2-1.300-2 1.300.6-2.500L9 12h2z" fill="#ff2d6f" stroke="none"/><path d="M4 9.500h16" stroke="#fff" opacity=".3" fill="none"/>',
 };
-ICONS.huevonegro = ICONS.diamante; ICONS.banda = ICONS.anillo;
-const svg = (n, c = "#fff8e6") => `<svg viewBox="0 0 24 24" fill="${c}" stroke="#2b2118" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${ICONS[n]}</svg>`;
+const TIER_IC = ["grano", "nido", "gallinero", "comedero", "granja", "incubadora", "silo", "banco", "tractor", "mercadillo", "lonja", "cooperativa", "tortillas", "camion", "super", "logistica", "bolsavalores", "torre", "puerto", "tren", "mina", "refineria", "laboratorio", "clonadora", "orbital", "lunar", "marte", "antimateria", "reactor", "portal", "cuantica", "agujero", "forja", "esfera", "telar", "viajero", "oraculo", "templo", "semidios", "panteon", "galaxias", "imperio", "universos", "multiverso", "arquitecto", "hilo", "fenix", "cosmico", "absoluto", "origen"];
+const svg = (n, c = "#fff8e6") => `<svg viewBox="0 0 24 24" fill="${c}" stroke="#2b2118" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${ICONS[n]}</svg>`;
 
 const TIER_NAMES = ["Grano de oro", "Nido cómodo", "Gallinero", "Comedero automático", "Granja", "Incubadora", "Silo de maíz", "Banco de huevos", "Tractor pollo", "Mercadillo", "Lonja de huevos", "Cooperativa", "Fábrica de tortillas", "Camión de reparto", "Supermercado", "Centro logístico", "Bolsa de valores", "Torre financiera", "Puerto de exportación", "Tren de mercancías", "Mina de oro", "Refinería dorada", "Laboratorio de yemas", "Clonadora de gallinas", "Granja orbital", "Base lunar", "Colonia marciana", "Fábrica de antimateria", "Reactor de yema", "Portal dimensional", "Gallina cuántica", "Huevo de agujero negro", "Forja estelar", "Esfera de corral", "Telar del tiempo", "Viajero temporal", "Oráculo de plumas", "Templo del Gran Huevo", "Gallo semidiós", "Panteón avícola", "Cosechadora de galaxias", "Imperio galáctico", "Cría de universos", "Máquina del multiverso", "Arquitecto de realidades", "Hilo del destino", "Fénix primigenio", "Huevo cósmico", "Ricopio absoluto", "El origen de todo"];
-const IC = Object.keys(ICONS);
-const UPGRADES = TIER_NAMES.map((name, i) => ({ id: "t" + i, name, ic: IC[i % IC.length], col: `hsl(${(i * 47) % 360} 70% 85%)`, base: 15 * Math.pow(3.8, i), click: i % 5 ? 0 : (i ? .25 * Math.pow(3.3, i) : 1), sec: i % 5 ? .8 * Math.pow(3.3, i) : 0 }));
+const UPGRADES = TIER_NAMES.map((name, i) => ({ id: "t" + i, name, ic: TIER_IC[i], col: `hsl(${(i * 47) % 360} 70% 85%)`, base: 15 * Math.pow(3.8, i), click: i % 5 ? 0 : (i ? .25 * Math.pow(3.3, i) : 1), sec: i % 5 ? .8 * Math.pow(3.3, i) : 0 }));
 const RAR = {
   comun:      { n: "Común",      c: "#8aa4b8", w: 60, b: .02 },
   raro:       { n: "Raro",       c: "#3d9bff", w: 28, b: .06 },
@@ -798,14 +844,29 @@ const mutLvl = (id) => state.mut[id] || 0;
 function mutI(r) { return 1 + .25 * mutLvl("i_" + r); }
 function mutC(k) { return 1 + .3 * mutLvl("c_" + k); }
 const mutCost = (m) => Math.ceil(m.base * Math.pow(2.2, mutLvl(m.id)));
+function bulkMutCost(m) {
+  if (buyQty === "max" || buyQty === 1) return mutCost(m);
+  let t = 0;
+  for (let i = 0; i < buyQty; i++) {
+    t += Math.ceil(m.base * Math.pow(2.2, mutLvl(m.id) + i));
+  }
+  return t;
+}
 function chestCoins(k) { return CHESTS[k].cb * Math.max(100, perSec() * 30) * mutC(k) * (1 + skinBn("chest")) * (1 + petBn("chest") + worldBn("chest")) * wkM("chest"); }
 $("muts").innerHTML = MUTS.map((m) => `<li><button class="item" data-m="${m.id}"><span class="ico">${svg(m.ic, m.id[0] === "i" ? "#ffe45c" : "#d9a15b")}</span><span><b>${m.n} (<span class="n">0</span>)</b><small></small></span><span class="cost"></span></button></li>`).join("");
 $("muts").addEventListener("click", (e) => {
   const b = e.target.closest("[data-m]");
   if (!b) return;
-  const m = MUTS.find((x) => x.id === b.dataset.m), c = mutCost(m);
-  if (state.coins < c || mutLvl(m.id) >= MUT_MAX) return;
-  state.coins -= c; state.mut[m.id] = mutLvl(m.id) + 1;
+  const m = MUTS.find((x) => x.id === b.dataset.m);
+  let n = 0;
+  while ((buyQty === "max" || n < buyQty) && mutLvl(m.id) < MUT_MAX) {
+    const c = mutCost(m); // El coste actual de ese nivel
+    if (state.coins < c) break;
+    state.coins -= c;
+    state.mut[m.id] = mutLvl(m.id) + 1;
+    n++;
+  }
+  if (!n) return;
   replay(b, "bought"); sfx(660, .1); setTimeout(() => sfx(990, .14), 80); save(); render();
 });
 function updMuts() {
@@ -814,8 +875,8 @@ function updMuts() {
     const b = $("muts").querySelector(`[data-m="${m.id}"]`), l = mutLvl(m.id), c = mutCost(m);
     b.querySelector(".n").textContent = l;
     b.querySelector("small").textContent = m.id[0] === "i" ? "Bonus de esos objetos x" + mutI(m.id.slice(2)).toFixed(2) : "Ricoins del cofre x" + mutC(m.id.slice(2)).toFixed(1);
-    b.querySelector(".cost").textContent = l >= MUT_MAX ? "Máx." : fmt(c);
-    b.disabled = l >= MUT_MAX || state.coins < c;
+    b.querySelector(".cost").textContent = l >= MUT_MAX ? "Máx." : fmt(bulkMutCost(m));
+    b.disabled = l >= MUT_MAX || state.coins < bulkMutCost(m);
   });
 }
 
@@ -977,9 +1038,31 @@ function updBranches() {
   if (mShop.hidden) return;
   const e = UPGRADES.filter((u) => owned(u) >= 25), sig = e.map((u) => u.id + ":" + state.br[u.id]).join();
   if (sig === _bs) return; _bs = sig;
-  $("branches").innerHTML = e.length ? e.map((u) => `<li class="br"><b>${u.name}</b>` + (state.br[u.id] === undefined ? `<button class="btn" data-b="${u.id}:0">Vapor: producción x2, coste +20%</button><button class="btn" data-b="${u.id}:1">Taller: producción x1,5, coste -30%</button>` : `<small>Elegido: ${state.br[u.id] === 0 ? "Vapor" : "Taller"}</small>`) + `</li>`).join("") : '<li class="sum small">Aún no tienes mejoras al nivel 25.</li>';
+  $("branches").innerHTML = e.length ? e.map((u) => {
+    const current = state.br[u.id];
+    if (current === undefined) {
+      return `<li class="br"><b>${u.name}</b><button class="btn" data-b="${u.id}:0">Vapor: prod x2, coste +20%</button><button class="btn" data-b="${u.id}:1">Taller: prod x1.5, coste -30%</button></li>`;
+    } else {
+      const swapTo = current === 0 ? 1 : 0;
+      const swapName = current === 0 ? "Taller" : "Vapor";
+      const cost = 50000; // Coste fijo o dinámico para cambiar
+      return `<li class="br"><b>${u.name}</b><small>Elegido: ${current === 0 ? "Vapor" : "Taller"}</small> <button class="btn" data-swap="${u.id}:${swapTo}:${cost}">Cambiar a ${swapName} (${fmt(cost)})</button></li>`;
+    }
+  }).join("") : '<li class="sum small">Aún no tienes mejoras al nivel 25.</li>';
 }
-$("branches").addEventListener("click", (e) => { const b = e.target.closest("[data-b]"); if (!b) return; const [id, n] = b.dataset.b.split(":"); state.br[id] = +n; _bs = ""; sfx(880, .15); save(); render(); });
+$("branches").addEventListener("click", (e) => {
+  const btnSwap = e.target.closest("[data-swap]");
+  if (btnSwap) {
+    const [id, to, cost] = btnSwap.dataset.swap.split(":");
+    if (state.coins < +cost) return toast("Te faltan ricoins para cambiar de camino");
+    if (confirm(`¿Cambiar camino por ${fmt(+cost)} ricoins?`)) {
+      state.coins -= +cost;
+      state.br[id] = +to;
+      _bs = ""; save(); render(); updBranches(); sfx(880, .15);
+    }
+    return;
+  }
+  const b = e.target.closest("[data-b]"); if (!b) return; const [id, n] = b.dataset.b.split(":"); state.br[id] = +n; _bs = ""; sfx(880, .15); save(); render(); });
 
 // ---- 8 Eventos temporales
 const EVS = [
@@ -1940,7 +2023,12 @@ function hwGive(k) {
   if (k === "pet:batito") { state.pets.batito = 1; if (state.petEq.length < 3) state.petEq.push("batito"); petsStage(); return; }
   unlock(k, "¡Objeto exclusivo desbloqueado!", true);
 }
-function hwTick() { const on = liveOn("2026-10"); $("haloBtn").hidden = !on; if (on) hwS(); }
+function hwTick() {
+  const on = liveOn("2026-10"); let b = $("octBtn");
+  if (on && !b) { b = document.createElement("button"); b.id = "octBtn"; b.className = "btn ev-oct"; b.innerHTML = "🎃 Evento de Octubre"; b.onclick = () => openM("m-halo"); document.body.appendChild(b); }
+  if (b) b.hidden = !on;
+  if (on) hwS();
+}
 
 Object.assign(ICONS, {
   ojosespiritu: '<path d="M2 12c3-5 7-7 10-7s7 2 10 7c-3 5-7 7-10 7s-7-2-10-7z"/><circle cx="12" cy="12" r="4.500" fill="#b05cff"/><circle cx="12" cy="12" r="1.800" fill="#fff" stroke="none"/>',

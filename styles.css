@@ -661,3 +661,9 @@ h1 { font-size: clamp(2.4rem, 7vh, 4.4rem); } .score { margin-top: 6px; }
 .pass-quests::-webkit-scrollbar { width: 8px; }
 .pass-quests::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 4px; }
 .quests-col { flex: 1; }
+
+/* Evento de octubre y menú lateral con scroll */
+.ev-oct { position: fixed; left: 20px; bottom: 20px; z-index: 50; background: linear-gradient(90deg, #ff7a2e, #ff2d6f) !important; color: #fff; animation: wiggle 1.8s ease-in-out infinite; }
+.ev-oct[hidden] { display: none !important; }
+.side { max-height: calc(100vh - 40px); overflow-y: auto !important; }
+@media (max-width: 900px) { .ev-oct { bottom: 84px; } }
