@@ -1834,7 +1834,7 @@ $("respec").onclick = () => {
 };
 
 // ---- Social con códigos de jugador y servidor opcional
-const ONLINE_URL = "", ID_CH = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const ONLINE_URL = "https://ricopio-45b4d-default-rtdb.europe-west1.firebasedatabase.app/", ID_CH = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 function genId() { let s = ""; for (let i = 0; i < 7; i++) s += ID_CH[Math.floor(Math.random() * ID_CH.length)]; return s; }
 function ensurePid() { if (!state.pid) { state.pid = genId(); save(); } return state.pid; }
 const pname = () => state.name || "Jugador " + ensurePid();
