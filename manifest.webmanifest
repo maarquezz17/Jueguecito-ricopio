@@ -1,2 +1,22 @@
-{ "name": "Ricopio", "short_name": "Ricopio", "start_url": "./index.html", "display": "standalone", "background_color": "#7ecbf0", "theme_color": "#ffc928",
-  "icons": [ { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }, { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" } ] }
+{
+  "name": "Mi Clicker Game",
+  "short_name": "Clicker",
+  "description": "Un juego clicker completo con mejoras y minijuegos.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a1a1a",
+  "theme_color": "#4a90e2",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
