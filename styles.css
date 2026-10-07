@@ -655,5 +655,9 @@ h1 { font-size: clamp(2.4rem, 7vh, 4.4rem); } .score { margin-top: 6px; }
 .reveal, .crack, .toast, .flash { z-index: 2147483647 !important; }
 
 /* Misiones dentro del pase */
-.pass-quests { display: flex; gap: 20px; margin-top: 20px; padding: 15px; background: rgba(0, 0, 0, 0.2); border-radius: 12px; max-height: 250px; overflow-y: auto; }
+/* Ajuste responsivo para que las misiones no se corten en el modal */
+#b-pass { display: flex; flex-direction: column; max-height: 80vh; }
+.pass-quests { display: flex; gap: 20px; margin-top: 20px; padding: 15px; background: rgba(0, 0, 0, 0.2); border-radius: 12px; flex: 1; min-height: 150px; max-height: 35vh; overflow-y: auto; margin-bottom: 10px; }
+.pass-quests::-webkit-scrollbar { width: 8px; }
+.pass-quests::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 4px; }
 .quests-col { flex: 1; }
