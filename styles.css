@@ -667,3 +667,82 @@ h1 { font-size: clamp(2.4rem, 7vh, 4.4rem); } .score { margin-top: 6px; }
 .ev-oct[hidden] { display: none !important; }
 .side { max-height: calc(100vh - 40px); overflow-y: auto !important; }
 @media (max-width: 900px) { .ev-oct { bottom: 84px; } }
+
+/* ========================================================================= */
+/* MÓVIL: TÁCTIL, CAPAS Y LAYOUT (PORTRAIT / LANDSCAPE)                      */
+/* ========================================================================= */
+html, body { touch-action: manipulation; overscroll-behavior: none; }
+button, .chick, .golden, .chest, .slot, .modal { touch-action: manipulation; }
+.chick, .golden, .chest, .slot, .rbtn, .btn { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+/* Hover pegajoso fuera */
+@media (hover: none) {
+  .rbtn:hover, .btn:hover, .sk:not(.lk):hover, .item:not(:disabled):hover, .node:not(:disabled):hover, .ev-item:hover, .pcard:hover { transform: none !important; }
+  .glass .btn:hover, .glass .rbtn:hover { box-shadow: 0 6px 18px rgba(0, 0, 0, .22), inset 0 1.5px 0 rgba(255, 255, 255, .75), inset 0 -2px 6px rgba(0, 0, 0, .12) !important; }
+}
+
+/* Capas y modales a prueba de pantallas pequeñas */
+.intro { z-index: 2147483640 !important; }
+.wardrobe { z-index: 2147483645 !important; max-height: calc(100dvh - 24px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.tut { z-index: 2147483000 !important; }
+.modal { padding: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px)) max(8px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+.mbox { max-height: calc(100dvh - 16px); }
+#m-pass .mbox { height: calc(100dvh - 16px); }
+.mbody { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.cc { position: absolute !important; top: 8px !important; right: 8px !important; left: auto !important; transform: none !important; z-index: 30 !important; }
+@media (min-width: 901px) {
+  .cc { position: fixed !important; top: 40% !important; right: calc(min(320px, 90vw) + 180px) !important; transform: translateY(-50%) !important; }
+}
+
+/* 📱 VERTICAL */
+@media (max-width: 900px) and (orientation: portrait) {
+  .game { display: flex !important; flex-direction: column !important; height: 100dvh !important; min-height: 0 !important; overflow: hidden !important; gap: 4px !important; padding: calc(env(safe-area-inset-top, 0px) + 4px) 8px calc(84px + env(safe-area-inset-bottom, 0px)) 8px !important; }
+  .top { order: 1; flex: none; }
+  h1 { font-size: 2.2rem !important; -webkit-text-stroke: 5px var(--ink); text-shadow: 0 3px 0 var(--ink); }
+  .score { font-size: 1.5rem !important; margin-top: 2px !important; padding: 0 18px 0 8px !important; }
+  .rates { font-size: .8rem !important; margin-top: 2px !important; }
+  .rank { margin-top: 2px !important; } .rank b { font-size: .9rem !important; } #titleLbl { font-size: .75rem; }
+  .stage { order: 2; flex: 1 1 auto !important; min-height: 0 !important; height: auto !important; }
+  .chick { width: min(calc(260px * var(--evo, 1)), 62vw, 34dvh) !important; }
+  .combo { top: 2px !important; }
+  .slots { order: 3; flex: none; position: static !important; transform: none !important; margin: 0 !important; width: 100% !important; justify-content: center !important; gap: 8px !important; }
+  .slot { width: 66px !important; min-height: 72px !important; }
+  .side { order: 4; flex: none; position: static !important; width: 100% !important; max-height: 26dvh; margin: 0 !important; display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px !important; overflow-y: auto !important; scrollbar-width: none; }
+  .side::-webkit-scrollbar { display: none; }
+  .side .shopb, .side .passb, .side .panel { grid-column: 1 / -1; }
+  .side .shopb { height: 46px !important; font-size: 1.3rem !important; }
+  .side > .btn.wide { height: 42px !important; font-size: 1rem !important; width: auto !important; }
+  .side .passb { font-size: 1.05rem !important; }
+  .side .panel { padding: 6px 10px !important; } .panel .btn.wide { height: 38px !important; font-size: 1.1rem !important; margin-bottom: 4px !important; }
+  .rail { top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: auto !important; flex-direction: row !important; justify-content: space-evenly !important; align-items: center !important; gap: 0 !important; padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px)) !important; background: rgba(126, 203, 240, .92) !important; border-top: 3px solid var(--ink) !important; border-radius: 22px 22px 0 0 !important; z-index: 100 !important; }
+  .glass .rail { background: linear-gradient(135deg, rgba(255, 255, 255, .65), rgba(255, 255, 255, .3)) !important; -webkit-backdrop-filter: blur(20px) saturate(1.9) !important; backdrop-filter: blur(20px) saturate(1.9) !important; }
+  .rbtn, .wheelbtn { width: 58px !important; height: 58px !important; font-size: .62rem !important; border-radius: 14px !important; }
+  .rbtn svg, .wheelbtn svg { width: 24px !important; height: 24px !important; }
+  .ev-oct { top: calc(env(safe-area-inset-top, 0px) + 4px) !important; left: 6px !important; bottom: auto !important; font-size: .65rem !important; padding: 3px 8px !important; min-height: 0 !important; }
+  .pets { padding: 0 2% !important; }
+}
+
+/* 📱 HORIZONTAL */
+@media (orientation: landscape) and (max-height: 600px) {
+  .game { height: 100dvh !important; overflow: hidden !important; padding: env(safe-area-inset-top, 0px) calc(env(safe-area-inset-right, 0px) + 158px) env(safe-area-inset-bottom, 0px) calc(env(safe-area-inset-left, 0px) + 74px) !important; }
+  h1 { display: none !important; }
+  .top { display: flex !important; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px 12px; padding-top: 4px; }
+  .score { margin: 0 !important; font-size: 1.3rem !important; padding: 0 14px 0 8px !important; }
+  .rates { font-size: .75rem !important; margin: 0 !important; }
+  .rank { margin: 0 !important; width: 170px !important; } .rank b { font-size: .85rem !important; } #titleLbl { display: none; }
+  .stage { min-height: 0 !important; height: 100% !important; }
+  .chick { width: min(calc(190px * var(--evo, 1)), 46vh) !important; }
+  .rail { top: env(safe-area-inset-top, 0px) !important; bottom: env(safe-area-inset-bottom, 0px) !important; left: env(safe-area-inset-left, 0px) !important; right: auto !important; width: 68px !important; flex-direction: column !important; justify-content: flex-start !important; gap: 6px !important; padding: 4px !important; overflow-y: auto !important; scrollbar-width: none; }
+  .rail::-webkit-scrollbar, .side::-webkit-scrollbar { display: none; }
+  .rbtn, .wheelbtn { width: 58px !important; height: 58px !important; font-size: .62rem !important; flex: none; }
+  .rbtn svg, .wheelbtn svg { width: 24px !important; height: 24px !important; }
+  .side { top: env(safe-area-inset-top, 0px) !important; bottom: env(safe-area-inset-bottom, 0px) !important; right: env(safe-area-inset-right, 0px) !important; left: auto !important; width: 150px !important; max-height: none !important; display: flex !important; flex-direction: column !important; gap: 6px !important; padding: 4px 0 !important; overflow-y: auto !important; scrollbar-width: none; }
+  .side .shopb { height: 44px !important; font-size: 1.15rem !important; flex: none; }
+  .side > .btn.wide { height: 38px !important; font-size: .9rem !important; flex: none; }
+  .side .panel { padding: 6px !important; flex: none; } .panel .btn.wide { height: 36px !important; font-size: 1rem !important; }
+  .slots { bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important; left: calc(74px + (100vw - 232px) / 2) !important; transform: translateX(-50%) scale(.8) !important; transform-origin: bottom center !important; }
+  .ev-oct { bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important; left: calc(78px + env(safe-area-inset-left, 0px)) !important; font-size: .7rem !important; padding: 3px 8px !important; min-height: 0 !important; }
+  .cc b { font-size: 2rem !important; }
+  .bubble { top: 4px !important; font-size: .8rem !important; padding: 3px 10px !important; }
+  .tut { bottom: 6px !important; }
+}

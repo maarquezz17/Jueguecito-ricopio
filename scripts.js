@@ -1834,11 +1834,11 @@ $("respec").onclick = () => {
 };
 
 // ---- Social con códigos de jugador y servidor opcional
-const ONLINE_URL = "https://ricopio-45b4d-default-rtdb.europe-west1.firebasedatabase.app/", ID_CH = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const ONLINE_URL = "https://ricopio-45b4d-default-rtdb.europe-west1.firebasedatabase.app", ID_CH = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 function genId() { let s = ""; for (let i = 0; i < 7; i++) s += ID_CH[Math.floor(Math.random() * ID_CH.length)]; return s; }
 function ensurePid() { if (!state.pid) { state.pid = genId(); save(); } return state.pid; }
 const pname = () => state.name || "Jugador " + ensurePid();
-const srvUrl = () => (state.srv || ONLINE_URL || "https://ricopio-45b4d-default-rtdb.europe-west1.firebasedatabase.app/").trim().replace(/\/+$/, "");
+const srvUrl = () => (state.srv || ONLINE_URL || "").trim().replace(/\/+$/, "");
 const meData = () => ({ id: ensurePid(), n: pname(), t: state.total, r: state.reb, a: state.asc, w: weekKey(), ws: wkScore(), u: Date.now() });
 const myCard = () => "RC1." + enc(JSON.stringify(meData()));
 function copyText(c, msg) { (typeof navigator !== "undefined" && navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast(msg), () => prompt("Copia el código:", c)); }
@@ -2077,3 +2077,66 @@ syncIntro(); renderColl(); renderWard();
 rank = rankIndex();
 render();
 if (loadFlag) toast("Partida corrupta o modificada");
+
+// =========================================================================
+// PARCHE UX MÓVIL Y ACCESIBILIDAD
+// =========================================================================
+
+// 1. Eliminar la latencia al tocar (0ms delay) y soporte multitouch
+const touchEls = ["chick", "golden", "chest"];
+touchEls.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    // Evita que el click nativo posterior se cuente dos veces
+    el.addEventListener("click", (e) => {
+      if (e.isTrusted && Date.now() - (el._tp || 0) < 700) e.stopImmediatePropagation();
+    }, true);
+    el.addEventListener("pointerdown", (e) => {
+      // Solo aplicamos la intercepción si el dispositivo es táctil
+      if (e.pointerType !== "touch") return;
+      
+      e.preventDefault(); // Evitamos el retardo y el click fantasma del navegador
+      el._tp = Date.now();
+      
+      // Feedback visual rápido (ya que preventDefault bloquea el :active de CSS)
+      el.classList.add("pop");
+      setTimeout(() => el.classList.remove("pop"), 100);
+      
+      // Lanzamos el click para que tus 5 listeners originales hagan su trabajo sin reescribir la lógica
+      el.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: e.clientX, clientY: e.clientY }));
+    });
+  }
+});
+
+// 2. Alternativa táctil para los Easter Eggs de teclado
+const origRenderEggs = renderEggs;
+renderEggs = function() {
+  origRenderEggs(); // Llama a la función original de dibujado
+  
+  // Si no existe, añadimos un botón al final de los secretos para escribir con el teclado virtual
+  if(!document.getElementById("kbBtn")) {
+    const btn = document.createElement("button");
+    btn.id = "kbBtn"; 
+    btn.className = "btn wide"; 
+    btn.style.marginTop = "14px";
+    btn.innerHTML = "⌨️ Introducir código secreto (Móvil)";
+    
+    btn.onclick = () => {
+      const res = prompt("Escribe una palabra o código secreto:");
+      if(!res) return;
+      const r = res.toLowerCase().replace(/\s+/g, "");
+      
+      if (r === "ricopio") { gain(1000); render(); toast("¡Me has llamado! +1000"); egg("ricopio", true); confetti(stage.clientWidth / 2, stage.clientHeight / 2, 30); }
+      if (r === "marcos") egg("marcos");
+      if (r === "gallina") egg("gallina");
+      if (r.endsWith("piopio")) egg("pio");
+      if (r === "upupdowndownleftrightleftrightba" || r === "arribaarribaabajooabajoizquierdaderechaizquierdaderechaba") {
+        if (!state.cosm.own.includes("skin:arcoiris")) state.cosm.own.push("skin:arcoiris");
+        toast("¡Código secreto! Plumaje arcoíris"); egg("konami", true);
+        for (let i = 0; i < 8; i++) setTimeout(() => burst(Math.random() * stage.clientWidth, 0, 6), i * 120);
+        renderWard();
+      }
+    };
+    document.getElementById("eggHint").after(btn);
+  }
+};
