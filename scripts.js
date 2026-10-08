@@ -267,7 +267,7 @@ function render() {
   const r = rankIndex(), next = RANKS[r + 1];
   setT(E.rankName, RANKS[r].name);
   if (r !== _uiR) {   // Interfaz progresiva según el rango
-    _uiR = r; $("wheelBtn").hidden = r < 1; $("skinBtn").hidden = r < 1; $("wardBtn").hidden = r < 2; $("rebBtn").parentElement.hidden = r < 3;
+    _uiR = r; $("wheelBtn").hidden = r < 1; $("skinBtn").hidden = false; $("wardBtn").hidden = false; $("rebBtn").parentElement.hidden = r < 3;
   }
   setW(E.rankBar, (next ? ((state.total - RANKS[r].at) / (next.at - RANKS[r].at)) * 100 : 100) + "%");
   $("chick").dataset.rank = r;
