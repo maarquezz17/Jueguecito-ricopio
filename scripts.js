@@ -66,7 +66,7 @@ const TIER_IC = ["grano", "nido", "gallinero", "comedero", "granja", "incubadora
 const svg = (n, c = "#fff8e6") => `<svg viewBox="0 0 24 24" fill="${c}" stroke="#2b2118" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${ICONS[n]}</svg>`;
 
 const TIER_NAMES = ["Grano de oro", "Nido cómodo", "Gallinero", "Comedero automático", "Granja", "Incubadora", "Silo de maíz", "Banco de huevos", "Tractor pollo", "Mercadillo", "Lonja de huevos", "Cooperativa", "Fábrica de tortillas", "Camión de reparto", "Supermercado", "Centro logístico", "Bolsa de valores", "Torre financiera", "Puerto de exportación", "Tren de mercancías", "Mina de oro", "Refinería dorada", "Laboratorio de yemas", "Clonadora de gallinas", "Granja orbital", "Base lunar", "Colonia marciana", "Fábrica de antimateria", "Reactor de yema", "Portal dimensional", "Gallina cuántica", "Huevo de agujero negro", "Forja estelar", "Esfera de corral", "Telar del tiempo", "Viajero temporal", "Oráculo de plumas", "Templo del Gran Huevo", "Gallo semidiós", "Panteón avícola", "Cosechadora de galaxias", "Imperio galáctico", "Cría de universos", "Máquina del multiverso", "Arquitecto de realidades", "Hilo del destino", "Fénix primigenio", "Huevo cósmico", "Ricopio absoluto", "El origen de todo"];
-const UPGRADES = TIER_NAMES.map((name, i) => ({ id: "t" + i, name, ic: TIER_IC[i], col: `hsl(${(i * 47) % 360} 70% 85%)`, base: 15 * Math.pow(3.8, i), click: i % 5 ? 0 : (i ? .25 * Math.pow(3.3, i) : 1), sec: i % 5 ? .8 * Math.pow(3.3, i) : 0 }));
+const UPGRADES = TIER_NAMES.map((name, i) => ({ id: "t" + i, name, ic: TIER_IC[i], col: `hsl(${(i * 47) % 360} 70% 85%)`, g: 1.18, base: 15 * Math.pow(3.8, i), click: i % 5 ? 0 : (i ? .25 * Math.pow(3.3, i) : 1), sec: i % 5 ? .1 * Math.pow(3.3, i) : 0 }));
 const RAR = {
   comun:      { n: "Común",      c: "#8aa4b8", w: 60, b: .02 },
   raro:       { n: "Raro",       c: "#3d9bff", w: 28, b: .06 },
@@ -197,12 +197,15 @@ function save() {
 
 const owned = (u) => state.owned[u.id] || 0;
 const tl = (id) => state.tree[id] || 0;
-const cost = (u) => Math.ceil(u.base * Math.pow(1.15, owned(u)) * brC(u) * (1 - .02 * tl("cost")));
+const cost = (u) => Math.ceil(u.base * Math.pow(u.g, owned(u)) * brC(u) * (1 - .02 * tl("cost")));
 const bonus = () => 1 + ITEMS.reduce((n, i) => n + (state.items[i.id] || 0) * RAR[i.r].b * mutI(i.r), 0) * (1 + .1 * tl("itemb"));
 const boostOn = (id) => state.boost[id].end > Date.now();
-const gmult = () => bonus() * (1 + .25 * state.reb) * achMult() * extraMult();
-const perClick0 = () => (1 + UPGRADES.reduce((n, u) => n + (u.click || 0) * owned(u) * brM(u), 0)) * gmult() * (1 + .1 * tl("clickpow")) * (1 + skinBn("clk")) * clkX() * (boostOn("clic") ? 2 : 1);
-const perSec0 = () => UPGRADES.reduce((n, u) => n + (u.sec || 0) * owned(u) * brM(u), 0) * gmult() * (1 + .08 * tl("prod")) * (1 + skinBn("sec")) * secX() * (boostOn("auto") ? 2 : 1);
+// Bonos ADITIVOS: se suman todos y luego se multiplica una sola vez (x2 + x2 = x3, no x4)
+const gmult = () => 1 + (bonus() - 1) + .25 * state.reb + (achMult() - 1) + (extraMult() - 1);
+const clkAdd = () => Math.max(.1, 1 + .1 * tl("clickpow") + skinBn("clk") + petBn("clk") + worldBn("clk") + (boostOn("clic") ? 1 : 0) + (evM("clk") - 1) + (wkM("clk") - 1));
+const secAdd = () => Math.max(.1, 1 + .08 * tl("prod") + skinBn("sec") + petBn("sec") + worldBn("sec") + (boostOn("auto") ? 1 : 0) + (evM("sec") - 1) + (wkM("sec") - 1));
+const perClick0 = () => (1 + UPGRADES.reduce((n, u) => n + (u.click || 0) * owned(u) * brM(u), 0)) * gmult() * clkAdd();
+const perSec0 = () => UPGRADES.reduce((n, u) => n + (u.sec || 0) * owned(u) * brM(u), 0) * gmult() * secAdd();
 const comboMult = () => 1 + Math.min(combo, 60 + 10 * tl("combo")) / 20;
 const perClick = ttl(perClick0, 100), perSec = ttl(perSec0, 100);
 const SUF = ["", "k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
@@ -221,7 +224,7 @@ const replay = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.
 function sfx(f, d = .09, type = "triangle") {
   if (state.muted) return;
   try {
-    ac = ac || new AudioContext();
+    ac = ac || new AudioContext(); if (ac.state === "suspended") ac.resume();
     const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
     o.type = state.set.snd === "auto" ? type : state.set.snd; o.frequency.value = f;
     g.gain.setValueAtTime(.1 * state.set.vol, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
@@ -265,9 +268,10 @@ function render() {
     });
   }
   const r = rankIndex(), next = RANKS[r + 1];
+  document.body.classList.toggle("onb", state.total < 15);   // onboarding: menús ocultos hasta los primeros 15 ricoins
   setT(E.rankName, RANKS[r].name);
   if (r !== _uiR) {   // Interfaz progresiva según el rango
-    _uiR = r; $("wheelBtn").hidden = r < 1; $("skinBtn").hidden = r < 1; $("wardBtn").hidden = r < 2; $("rebBtn").parentElement.hidden = r < 3;
+    _uiR = r; $("wheelBtn").hidden = r < 1; $("skinBtn").hidden = false; $("wardBtn").hidden = false; $("rebBtn").parentElement.hidden = r < 3;
   }
   setW(E.rankBar, (next ? ((state.total - RANKS[r].at) / (next.at - RANKS[r].at)) * 100 : 100) + "%");
   $("chick").dataset.rank = r;
@@ -327,12 +331,52 @@ $("chick").addEventListener("click", (e) => {
   const x = e.clientX ? e.clientX - r.left : r.width / 2; // con teclado clientX = 0
   const y = e.clientY ? e.clientY - r.top : r.height / 2;
   floater((crit ? "¡CRÍTICO! +" : "+") + fmt(g), x, y, crit);
-  burst(x, y, 6 + Math.min(combo, 14) + (crit ? 10 : 0));
+  { const rc = $("chick").getBoundingClientRect(); physBurst(e.clientX || rc.left + rc.width / 2, e.clientY || rc.top + rc.height / 2, 6 + Math.min(combo, 14) + (crit ? 10 : 0)); }
   replay($("aura"), "on"); replay($("chick"), "glow"); replay($("scoreBox"), "bump");
   if (crit) { if (state.set.shake) replay(stage, "shake"); confetti(x, y, 14); }
   sfx(480 + Math.min(combo, 30) * 14, .09, crit ? "square" : "triangle");
   render();
 });
+
+
+// ===== 2.5D (inclinación) y partículas con física =====
+(function () {
+  const ch = $("chick"), svgEl = ch.querySelector("svg"), MAX = 18; let tX = 0, tY = 0, raf = 0;
+  const apply = () => { raf = 0; svgEl.style.transform = `rotateX(${tX.toFixed(1)}deg) rotateY(${tY.toFixed(1)}deg)`; };
+  const aim = (cx, cy) => {   // distancia al centro -> ángulo, limitado a ±MAX
+    const r = ch.getBoundingClientRect(), nx = Math.max(-1, Math.min(1, (cx - r.left - r.width / 2) / r.width)), ny = Math.max(-1, Math.min(1, (cy - r.top - r.height / 2) / r.height));
+    tY = nx * MAX; tX = -ny * MAX; if (!raf) raf = requestAnimationFrame(apply);
+  };
+  const rest = () => { tX = tY = 0; if (!raf) raf = requestAnimationFrame(apply); };
+  stage.addEventListener("pointermove", (e) => aim(e.clientX, e.clientY), { passive: true });
+  stage.addEventListener("pointerdown", (e) => aim(e.clientX, e.clientY), { passive: true });
+  stage.addEventListener("pointerleave", rest);
+  stage.addEventListener("pointercancel", rest);
+  stage.addEventListener("pointerup", (e) => { if (e.pointerType !== "mouse") rest(); });   // en táctil el dedo se levanta: vuelve a 0
+  ch.addEventListener("click", () => { ch.classList.add("pop"); setTimeout(() => ch.classList.remove("pop"), 90); });   // impacto scale(.95)
+})();
+const R3D = { on: false };   // true cuando Three.js está activo
+const PP = []; let ppRaf = 0, ppT = 0;
+function ppLoop(t) {
+  const k = Math.min(3, (t - ppT) / 16.67 || 1); ppT = t;
+  for (let i = PP.length - 1; i >= 0; i--) {
+    const p = PP[i], age = t - p.t0;
+    if (age > p.life) { p.el.remove(); PP.splice(i, 1); continue; }
+    p.vy += .5 * k; p.x += p.vx * k; p.y += p.vy * k;   // gravedad constante
+    p.el.style.transform = `translate3d(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px,0) rotate(${(age * p.rot).toFixed(0)}deg)`;
+    p.el.style.opacity = Math.max(0, 1 - age / p.life);
+  }
+  ppRaf = PP.length ? requestAnimationFrame(ppLoop) : 0;
+}
+function physBurst(cx, cy, n) {   // cx, cy = coordenadas del puntero (clientX/Y)
+  if (!state.set.fx || R3D.on) return;   // en 3D las monedas salen del modelo
+  n = Math.min(n, Math.max(0, 60 - PP.length));
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement("i"); el.className = "pp"; document.body.appendChild(el);
+    PP.push({ el, x: cx - 8, y: cy - 8, vx: (Math.random() - .5) * 10, vy: -Math.random() * 10 - 5, rot: Math.random() * .8 - .4, t0: performance.now(), life: 1000 + Math.random() * 500 });
+  }
+  if (n && !ppRaf) { ppT = performance.now(); ppRaf = requestAnimationFrame(ppLoop); }
+}
 
 // Combo y producción automática
 function update() {
@@ -456,12 +500,10 @@ $("mute").addEventListener("click", () => {
   $("mute").textContent = "Sonido: " + (state.muted ? "no" : "sí");
   save();
 });
-$("reset").addEventListener("click", () => {
-  if (confirm("¿Seguro que quieres borrar tu progreso?")) {
-    state = fix({}); rank = 0; save();
-    applyLook(); renderColl(); renderWard(); render(); syncIntro();
-  }
-});
+$("reset").addEventListener("click", () => showModal("Empezar de cero", "¿Seguro que quieres borrar tu progreso?", "Borrar", () => {
+  state = fix({}); rank = 0; save();
+  applyLook(); renderColl(); renderWard(); render(); syncIntro();
+}));
 window.addEventListener("beforeunload", save);
 document.addEventListener("visibilitychange", save);
 
@@ -580,29 +622,17 @@ $("start").addEventListener("click", () => {
   $("intro").classList.add("out");
   setTimeout(() => $("intro").remove(), 900);
 });
+const importCode = (c) => {
+  c = (c || "").trim(); if (!c) return toast("Pega primero tu código");
+  try { loadState(c[0] === "{" ? JSON.parse(c) : JSON.parse(dec(c.replace(/^RC-/, "")))); } catch { toast("Código no válido"); }
+};
 $("saveBtn").addEventListener("click", () => {
-  save();
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(state)], { type: "application/json" }));
-  a.download = "ricopio-partida.json";
-  a.click();
-  toast("Partida guardada");
+  save(); const o = $("saveOut"); o.hidden = false; o.value = "RC-" + enc(JSON.stringify(state)); o.focus(); o.select();
+  toast("Código generado: cópialo y guárdalo");
 });
-$("loadBtn").onclick = $("loadBtn2").onclick = () => $("file").click();
-$("file").addEventListener("change", async (e) => {
-  const f = e.target.files[0];
-  if (!f) return;
-  try {
-    const d = JSON.parse(await f.text());
-    if (typeof d.coins !== "number") throw 0;
-    if (!verify(d)) { toast("Partida corrupta o modificada"); e.target.value = ""; return; }
-    state = fix(d); save(); rank = rankIndex();
-    applyLook(); renderColl(); renderWard(); render(); syncIntro();
-    $("mute").textContent = "Sonido: " + (state.muted ? "no" : "sí");
-    toast("Partida cargada");
-  } catch { toast("Ese archivo no es una partida válida"); }
-  e.target.value = "";
-});
+$("loadBtn2").onclick = () => $("saveIn").focus();
+$("importBtn").onclick = () => importCode($("saveIn").value);
+$("loadBtn").onclick = () => showModal("Cargar partida", "Pega tu código de partida:", "Cargar", importCode, "text");
 
 // ===== Menús (tienda, ajustes, logros, secretos, renacer) =====
 let openM = (id) => {
@@ -781,7 +811,7 @@ const TREE = [
   { id: "gold", g: "Fortuna", n: "Brillo dorado", d: "Huevos de oro +20% y más seguidos", max: 8 },
   { id: "xpg", g: "Fortuna", n: "Aprendizaje", d: "+10% de experiencia al renacer", max: 5, req: ["gold", 2] },
 ];
-const rebGoal = (n = state.reb) => 1e6 * Math.pow(2.8, n);
+const rebGoal = (n = state.reb) => 1e9 * Math.pow(2.8, n);
 const rebXp = () => Math.floor((3 + 2 * state.reb) * (1 + .1 * tl("xpg")) * (1 + .25 * gl("gxp")) * (1 + petBn("xp") + skinBn("xp")));
 const nodeCost = (n) => tl(n.id) + 1;
 function renderTree() {
@@ -814,13 +844,16 @@ function updReb() {
   $("rebGo").disabled = !can;
 }
 $("rebGo").onclick = () => {
-  if (state.run < rebGoal() || !confirm("Vas a renacer. Pierdes ricoins y mejoras de la tienda. Conservas aspectos, logros, objetos, árbol y experiencia. ¿Seguro?")) return;
-  state.xp += rebXp(); state.reb++;
-  state.coins = tl("start") ? 500 * Math.pow(6, tl("start") - 1) : 0;
-  state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
-  confetti(innerWidth / 2, innerHeight / 3, 60); [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => setTimeout(() => sfx(f, .25), i * 90));
-  toast("¡Has renacido! Renacimiento " + state.reb); addChest(rollChest()); passXp(50);
-  save(); renderTree(); renderWard(); render();
+  if (state.run < rebGoal()) return;
+  showModal("Renacer", "Pierdes ricoins y mejoras de la tienda. Conservas aspectos, logros, objetos, árbol y experiencia.", "Renacer", () => {
+    if (state.run < rebGoal()) return;
+    state.xp += rebXp(); state.reb++;
+    state.coins = tl("start") ? 500 * Math.pow(6, tl("start") - 1) : 0;
+    state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
+    confetti(innerWidth / 2, innerHeight / 3, 60); [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => setTimeout(() => sfx(f, .25), i * 90));
+    toast("¡Has renacido! Renacimiento " + state.reb); addChest(rollChest()); passXp(50);
+    save(); renderTree(); renderWard(); render();
+  });
 };
 function renderExtra() { updReb(); updMuts(); updBranches(); }
 
@@ -935,7 +968,10 @@ slotsEl.addEventListener("click", (e) => {
   if (s.end <= Date.now()) { state.slots[i] = null; save(); updSlots(); return openChestNow(s.k); }
   const left = (s.end - Date.now()) / 1000, c = Math.ceil(left * Math.max(5, perSec()) * .6);
   if (state.coins < c) return toast("Para abrirlo ya necesitas " + fmt(c) + " ricoins");
-  if (confirm("¿Abrir ya por " + fmt(c) + " ricoins?")) { state.coins -= c; state.slots[i] = null; save(); updSlots(); render(); openChestNow(s.k); }
+  showModal("Abrir cofre", "¿Abrir ya por " + fmt(c) + " ricoins?", "Abrir", () => {
+    if (state.slots[i] !== s || state.coins < c) return;
+    state.coins -= c; state.slots[i] = null; save(); updSlots(); render(); openChestNow(s.k);
+  });
 });
 
 // ===== Ruleta (cada 5 min) =====
@@ -1017,6 +1053,23 @@ const seedRand = (s) => { let h = 2166136261; for (const c of s) h = Math.imul(h
 const fmtH = (s) => Math.floor(s / 3600) + " h " + Math.floor((s % 3600) / 60) + " min";
 function mkModal(id, title, body) { const d = document.createElement("div"); d.id = "m-" + id; d.className = "modal"; d.hidden = true; d.innerHTML = `<div class="mbox"><header><h2>${title}</h2><button class="btn" data-close>Cerrar</button></header><div class="mbody" id="b-${id}">${body || ""}</div></div>`; document.body.appendChild(d); }
 function gl(id) { return (state.gp && state.gp[id]) || 0; }
+// showModal(titulo, mensaje, textoOk, callback, input?, valor?)  input: "text"|"number"|"area"|"copy"
+function showModal(title, msg, okText, cb, input, value) {
+  const d = document.createElement("div"); d.className = "cgdlg";
+  const field = !input ? "" : input === "copy" || input === "area"
+    ? `<textarea class="cgta" id="cgIn"${input === "copy" ? " readonly" : ""}></textarea>`
+    : `<input class="cgin" id="cgIn" type="${input}" autocomplete="off">`;
+  d.innerHTML = `<div class="mbox" style="width:min(440px,100%)"><header><h2></h2></header><div class="mbody"><p class="sum"></p>${field}<div class="foot">${input === "copy" ? "" : '<button class="btn" data-x="0">Cancelar</button>'}<button class="btn" data-x="1"></button></div></div></div>`;
+  d.querySelector("h2").textContent = title; d.querySelector(".sum").textContent = msg;
+  d.querySelector('[data-x="1"]').textContent = okText || "Aceptar";
+  const f = d.querySelector("#cgIn"); if (f && value) f.value = value;
+  const kd = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(false); } else if (e.key === "Enter" && f && f.tagName === "INPUT") close(true); };
+  const close = (ok) => { document.removeEventListener("keydown", kd, true); d.remove(); if (ok && cb) cb(f ? f.value : undefined); };
+  document.addEventListener("keydown", kd, true);
+  d.addEventListener("click", (e) => { const b = e.target.closest("[data-x]"); if (b) close(b.dataset.x === "1"); else if (e.target === d) close(false); e.stopPropagation(); });
+  document.body.appendChild(d);
+  if (f) { f.focus(); if (input === "copy") f.select(); }
+}
 // ---- Menú Más
 mkModal("hub", "Más", '<div class="hubg">' + [["m-quests", "Misiones"], ["m-codes", "Códigos"], ["m-pets", "Mascotas"], ["m-fuse", "Fusión"], ["m-album", "Álbum"], ["m-gal", "Huevos de oro"], ["m-games", "Minijuegos"], ["m-stats", "Estadísticas"], ["m-asc", "Ascender"], ["m-social", "Social"]].map(([i, n]) => `<button class="btn" data-open="${i}">${n}</button>`).join("") + "</div>");
 mkModal("quests", "Misiones"); mkModal("pets", "Mascotas"); mkModal("fuse", "Fusión de objetos"); mkModal("album", "Álbum de cartas"); mkModal("gal", "Huevos de oro");
@@ -1025,7 +1078,7 @@ mkModal("stats", "Estadísticas"); mkModal("asc", "Ascender"); mkModal("social",
 
 // ---- 28 Compra masiva + 7 Caminos
 let buyQty = 1;
-function bulkCost(u) { if (buyQty === "max" || buyQty === 1) return cost(u); let t = 0; for (let i = 0; i < buyQty; i++) t += Math.ceil(u.base * Math.pow(1.15, owned(u) + i) * brC(u) * (1 - .02 * tl("cost"))); return t; }
+function bulkCost(u) { if (buyQty === "max" || buyQty === 1) return cost(u); let t = 0; for (let i = 0; i < buyQty; i++) t += Math.ceil(u.base * Math.pow(u.g, owned(u) + i) * brC(u) * (1 - .02 * tl("cost"))); return t; }
 function brM(u) { const b = state.br[u.id]; return b === 0 ? 2 : b === 1 ? 1.5 : 1; }
 function brC(u) { const b = state.br[u.id]; return b === 0 ? 1.2 : b === 1 ? .7 : 1; }
 $("qty").addEventListener("click", (e) => {
@@ -1055,11 +1108,12 @@ $("branches").addEventListener("click", (e) => {
   if (btnSwap) {
     const [id, to, cost] = btnSwap.dataset.swap.split(":");
     if (state.coins < +cost) return toast("Te faltan ricoins para cambiar de camino");
-    if (confirm(`¿Cambiar camino por ${fmt(+cost)} ricoins?`)) {
+    showModal("Cambiar camino", `¿Cambiar camino por ${fmt(+cost)} ricoins?`, "Cambiar", () => {
+      if (state.coins < +cost) return;
       state.coins -= +cost;
       state.br[id] = +to;
       _bs = ""; save(); render(); updBranches(); sfx(880, .15);
-    }
+    });
     return;
   }
   const b = e.target.closest("[data-b]"); if (!b) return; const [id, n] = b.dataset.b.split(":"); state.br[id] = +n; _bs = ""; sfx(880, .15); save(); render(); });
@@ -1330,9 +1384,12 @@ RENDER["m-asc"] = () => {
 };
 document.addEventListener("click", (e) => {
   if (e.target.id === "ascGo") {
-    if (state.reb < 5 || !confirm("Vas a ascender y reiniciar renacimientos, ricoins y mejoras (conservas el árbol y la XP). ¿Seguro?")) return;
-    state.gf += Math.max(1, Math.floor(state.reb / 5)); state.asc++; state.reb = 0; state.coins = 0; state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
-    confetti(innerWidth / 2, innerHeight / 3, 80); toast("¡Has ascendido! Ascensión " + state.asc); passXp(100); save(); render(); renderTree(); RENDER["m-asc"]();
+    if (state.reb < 5) return;
+    return showModal("Ascender", "Reinicias renacimientos, ricoins y mejoras (conservas el árbol y la XP).", "Ascender", () => {
+      if (state.reb < 5) return;
+      state.gf += Math.max(1, Math.floor(state.reb / 5)); state.asc++; state.reb = 0; state.coins = 0; state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
+      confetti(innerWidth / 2, innerHeight / 3, 80); toast("¡Has ascendido! Ascensión " + state.asc); passXp(100); save(); render(); renderTree(); RENDER["m-asc"]();
+    });
   }
   const p = e.target.closest("[data-perk]"); if (!p) return; const pk = PERKS.find((x) => x.id === p.dataset.perk), c = pk.c * (gl(pk.id) + 1);
   if (state.gf < c || gl(pk.id) >= 10) return; state.gf -= c; state.gp[pk.id] = gl(pk.id) + 1; sfx(880, .12); save(); render(); RENDER["m-asc"]();
@@ -1379,7 +1436,7 @@ function showCard(html, color) {
 let mStep = 0;
 function mus(f, d, type, g) {
   if (state.muted || !state.set.music) return;
-  try { ac = ac || new AudioContext(); const o = ac.createOscillator(), gn = ac.createGain(), t = ac.currentTime; o.type = type; o.frequency.value = f; gn.gain.setValueAtTime(g * state.set.vol, t); gn.gain.exponentialRampToValueAtTime(.0005, t + d); o.connect(gn); gn.connect(ac.destination); o.start(); o.stop(t + d); } catch {}
+  try { ac = ac || new AudioContext(); if (ac.state === "suspended") ac.resume(); const o = ac.createOscillator(), gn = ac.createGain(), t = ac.currentTime; o.type = type; o.frequency.value = f; gn.gain.setValueAtTime(g * state.set.vol, t); gn.gain.exponentialRampToValueAtTime(.0005, t + d); o.connect(gn); gn.connect(ac.destination); o.start(); o.stop(t + d); } catch {}
 }
 function musicTick() {
   if (started) {
@@ -1411,26 +1468,19 @@ function applySet() {
   for (const k in RAR) { if (!ORIGC[k]) ORIGC[k] = { r: RAR[k].c, a: AR[k] && AR[k].c }; RAR[k].c = state.set.cb ? CBC[k] : ORIGC[k].r; if (AR[k]) AR[k].c = state.set.cb ? CBC[k] : ORIGC[k].a; }
   renderColl(); applyLang();
 }
-$("m-set").querySelector(".mbody").insertAdjacentHTML("afterbegin", `<label class="row">Música <input id="music" type="checkbox"></label><label class="row">Idioma <select id="lang"><option value="es">Español</option><option value="en">English</option></select></label><label class="row">Tamaño de texto <select id="big"><option value="100">Normal</option><option value="115">Grande</option><option value="130">Muy grande</option></select></label><label class="row">Modo daltonismo <input id="cb" type="checkbox"></label><label class="row">Reducir animaciones <input id="rm" type="checkbox"></label><label class="row">Mundo según la hora <input id="auto" type="checkbox"></label><label class="row">Notificaciones <input id="notif" type="checkbox"></label><div class="foot"><button id="codeCopy" class="btn">Copiar código</button><button id="codePaste" class="btn">Pegar código</button><button id="tutBtn" class="btn">Ver tutorial</button></div><p class="sum small">Atajos: 1 Tienda · 2 Aspectos · 3 Armario · 4 Renacer · 5 Ruleta · 6 Logros · 7 Secretos · 8 Ajustes · 9 Más</p>`);
+$("m-set").querySelector(".mbody").insertAdjacentHTML("afterbegin", `<label class="row">Música <input id="music" type="checkbox"></label><label class="row">Idioma <select id="lang"><option value="es">Español</option><option value="en">English</option></select></label><label class="row">Tamaño de texto <select id="big"><option value="100">Normal</option><option value="115">Grande</option><option value="130">Muy grande</option></select></label><label class="row">Modo daltonismo <input id="cb" type="checkbox"></label><label class="row">Reducir animaciones <input id="rm" type="checkbox"></label><label class="row">Mundo según la hora <input id="auto" type="checkbox"></label><label class="row">Notificaciones <input id="notif" type="checkbox"></label><div class="foot"><button id="codeCopy" class="btn">Copiar código</button><button id="codePaste" class="btn">Pegar código</button></div><p class="sum small">Atajos: 1 Tienda · 2 Aspectos · 3 Armario · 4 Renacer · 5 Ruleta · 6 Logros · 7 Secretos · 8 Ajustes · 9 Más</p>`);
 ["music", "cb", "rm", "auto", "notif"].forEach((k) => ($(k).onchange = () => { state.set[k] = $(k).checked; if (k === "notif" && $(k).checked && typeof Notification !== "undefined") Notification.requestPermission(); if (k === "auto") applyLook(); save(); applySet(); }));
 $("lang").onchange = () => { state.set.lang = $("lang").value; save(); applySet(); };
 $("big").onchange = () => { state.set.big = +$("big").value; save(); applySet(); };
 // ---- 31 Guardado por código
 function loadState(d) { if (typeof d.coins !== "number") throw 0; if (!verify(d)) return toast("Partida corrupta o modificada"); state = fix(d); save(); rank = rankIndex(); _ap = ""; applyLook(); renderColl(); renderWard(); render(); syncIntro(); toast("Partida cargada"); }
 $("codeCopy").onclick = () => { save(); copyText("RC-" + enc(JSON.stringify(state)), "Código de partida copiado"); };
-$("codePaste").onclick = () => { const c = prompt("Pega tu código de partida:"); if (!c) return; try { loadState(JSON.parse(dec(c.trim().replace(/^RC-/, "")))); } catch { toast("Código no válido"); } };
+$("codePaste").onclick = () => showModal("Pegar código", "Pega tu código de partida:", "Cargar", importCode, "text");
 
-// ---- 34 Tutorial
-const TUT = ["¡Hola! Soy Ricopio. Toca sobre mí para ganar ricoins.", "Con los ricoins compra mejoras en la Tienda (arriba a la derecha) para que trabajen por ti.", "Los cofres caen en pantalla: se guardan abajo en 4 ranuras con temporizador.", "Arriba a la izquierda está la ruleta: una tirada gratis cada 5 minutos.", "A la izquierda tienes Ajustes, Logros, Secretos y el menú Más con misiones, mascotas, cartas y mucho más.", "Cuando llegues al objetivo, Renacer te da bonus permanentes. ¡Diviértete!"];
-const tut = document.createElement("div"); tut.id = "tut"; tut.className = "tut"; tut.hidden = true; document.body.appendChild(tut);
-let tutI = 0;
-function showTut(i) { tutI = i; if (i >= TUT.length) { tut.hidden = true; state.tut = 1; save(); return; } tut.hidden = false; tut.innerHTML = `<div class="tc">${petSvg("#ffc928")}</div><p>${TUT[i]}</p><button class="btn" data-t="n">${i === TUT.length - 1 ? "¡Vamos!" : "Siguiente"}</button><button class="btn" data-t="s">Saltar</button>`; }
-tut.addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (b) showTut(b.dataset.t === "s" ? 99 : tutI + 1); });
-$("tutBtn").onclick = () => { closeM(); showTut(0); };
 
 // Atajos de teclado
 addEventListener("keydown", (e) => {
-  if (!started || /INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || "")) return;
+  if (!started || document.body.classList.contains("onb") || /INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || "")) return;
   const ri = rankIndex(); if (("25".includes(e.key) && ri < 1) || (e.key === "3" && ri < 2) || (e.key === "4" && ri < 3)) return;   // atajos bloqueados hasta desbloquear el menú
   const m = { 1: "m-shop", 2: "m-skins", 4: "m-reb", 5: "m-wheel", 6: "m-ach", 7: "m-egg", 8: "m-set", 9: "m-hub" }[e.key];
   if (m) openM(m); else if (e.key === "3") { $("wardrobe").hidden = false; renderWard(); }
@@ -1490,13 +1540,11 @@ let pendingOff = null;
 $("start").addEventListener("click", () => {
   musicTick();
   if (pendingOff) { const p = pendingOff; pendingOff = null; setTimeout(() => showCard(`${svg("reloj", "#ffd84a")}<b>+${fmt(p.g)} ricoins</b><span class="rar">Mientras no estabas</span><small>${fmtH(p.away / 1000)} fuera (al 50%)</small>`, "#ffc928"), 1200); }
-  if (!state.tut) setTimeout(() => showTut(0), 1500);
 });
 ensureQuests(); passState(); wkScore();
-function extraMult() { return (1 + .2 * gl("gprod")) * (1 + .5 * state.asc) * (1 + cardBonus()) * (1 + petBn("all") + skinBn("all")); }
+function extraMult() { return 1 + .2 * gl("gprod") + .5 * state.asc + cardBonus() + petBn("all") + skinBn("all"); }
 function secX() { return (1 + petBn("sec")) * (1 + worldBn("sec")) * evM("sec") * wkM("sec"); }
 function clkX() { return (1 + petBn("clk")) * (1 + worldBn("clk")) * evM("clk") * wkM("clk"); }
-if (typeof navigator !== "undefined" && "serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});
 
 // ===================== RONDA 2 =====================
 // ---- Rareza y atributos de aspectos y cosméticos
@@ -1674,8 +1722,10 @@ $("b-pass").addEventListener("click", (e) => {
   const a = b.dataset.pw;
   if (a === "prem") { 
     if (state.coins < PASS_PREM) return toast("Te faltan ricoins (" + fmt(PASS_PREM) + ")"); 
-    if (!confirm("¿Comprar el pase premium por " + fmt(PASS_PREM) + " ricoins?")) return; 
-    state.coins -= PASS_PREM; passState().prem = true; confetti(innerWidth * .2, innerHeight * .8, 50); sfx(1200, .3); save(); render(); return renderPW(true); 
+    return showModal("Pase premium", "¿Comprar el pase premium por " + fmt(PASS_PREM) + " ricoins?", "Comprar", () => {
+      if (state.coins < PASS_PREM) return;
+      state.coins -= PASS_PREM; passState().prem = true; confetti(innerWidth * .2, innerHeight * .8, 50); sfx(1200, .3); save(); render(); renderPW(true);
+    });
   }
   
   if (a === "all") { 
@@ -1834,14 +1884,17 @@ $("respec").onclick = () => {
 };
 
 // ---- Social con códigos de jugador y servidor opcional
-const ONLINE_URL = "https://ricopio-45b4d-default-rtdb.europe-west1.firebasedatabase.app/", ID_CH = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const ONLINE_URL = "https://ricopio-45b4d-default-rtdb.europe-west1.firebasedatabase.app", ID_CH = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 function genId() { let s = ""; for (let i = 0; i < 7; i++) s += ID_CH[Math.floor(Math.random() * ID_CH.length)]; return s; }
 function ensurePid() { if (!state.pid) { state.pid = genId(); save(); } return state.pid; }
 const pname = () => state.name || "Jugador " + ensurePid();
-const srvUrl = () => (state.srv || ONLINE_URL || "https://ricopio-45b4d-default-rtdb.europe-west1.firebasedatabase.app/").trim().replace(/\/+$/, "");
+const srvUrl = () => (state.srv || ONLINE_URL || "").trim().replace(/\/+$/, "");
 const meData = () => ({ id: ensurePid(), n: pname(), t: state.total, r: state.reb, a: state.asc, w: weekKey(), ws: wkScore(), u: Date.now() });
 const myCard = () => "RC1." + enc(JSON.stringify(meData()));
-function copyText(c, msg) { (typeof navigator !== "undefined" && navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast(msg), () => prompt("Copia el código:", c)); }
+function copyText(c, msg) {
+  (typeof navigator !== "undefined" && navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject())
+    .then(() => toast(msg), () => showModal("Copia el texto manualmente", "El portal no permite copiar automáticamente. Selecciona y copia:", "Cerrar", null, "copy", c));
+}
 async function pub() { const u = srvUrl(); if (!u || typeof fetch === "undefined") return false; try { const r = await fetch(u + "/players/" + ensurePid() + ".json", { method: "PUT", body: JSON.stringify(meData()) }); return r.ok; } catch { return false; } }
 async function getJ(p) { const u = srvUrl(); if (!u || typeof fetch === "undefined") return null; try { const r = await fetch(u + p); return await r.json(); } catch { return null; } }
 // Orden del ranking: Ascensiones (a) > Renacimientos (r) > Ricoins totales (t)
@@ -1884,9 +1937,16 @@ $("b-social").addEventListener("click", (e) => {
   if (a === "copyid") return copyText(ensurePid(), "Código copiado: " + ensurePid());
   if (a === "card") return copyText(myCard(), "Tarjeta copiada");
   if (a === "refresh") { toast("Actualizando…"); return refreshSocial(); }
-  if (a === "add") { const c = prompt("Código del amigo (7 caracteres) o tarjeta larga:"); if (c) addFriend(c); return; }
-  if (a === "coin") { const v = Math.floor(+prompt("¿Cuántos ricoins regalas?") || 0); if (v <= 0 || v > state.coins) return toast("Cantidad no válida"); const x = Math.random().toString(36).slice(2, 9); state.coins -= v; state.gifts.push(x); save(); render(); return copyText("RG1." + enc(JSON.stringify({ t: "c", a: v, f: pname(), x })), "Regalo copiado: pásaselo a tu amigo"); }
-  if (a === "redeem") { const c = prompt("Pega el código de regalo:"); if (!c) return; try { const d = JSON.parse(dec(c.trim().replace(/^RG1\./, ""))); if (state.gifts.includes(d.x)) return toast("No puedes canjear tu propio regalo"); if (state.redeemed.includes(d.x)) return toast("Regalo ya canjeado"); state.redeemed.push(d.x); if (d.t === "c") gain(d.a); else state.items[d.id] = (state.items[d.id] || 0) + 1; confetti(stage.clientWidth / 2, stage.clientHeight / 2, 40); toast("¡Regalo de " + d.f + " recibido!"); save(); render(); renderColl(); } catch { toast("Código no válido"); } return; }
+  if (a === "add") return showModal("Añadir amigo", "Código del amigo (7 caracteres) o tarjeta larga:", "Añadir", (c) => { if (c) addFriend(c); }, "text");
+  if (a === "coin") return showModal("Regalar ricoins", "¿Cuántos ricoins regalas?", "Regalar", (s) => {
+    const v = Math.floor(+s || 0); if (v <= 0 || v > state.coins) return toast("Cantidad no válida");
+    const x = Math.random().toString(36).slice(2, 9); state.coins -= v; state.gifts.push(x); save(); render();
+    copyText("RG1." + enc(JSON.stringify({ t: "c", a: v, f: pname(), x })), "Regalo copiado: pásaselo a tu amigo");
+  }, "number");
+  if (a === "redeem") return showModal("Canjear regalo", "Pega el código de regalo:", "Canjear", (c) => {
+    if (!c) return;
+    try { const d = JSON.parse(dec(c.trim().replace(/^RG1\./, ""))); if (state.gifts.includes(d.x)) return toast("No puedes canjear tu propio regalo"); if (state.redeemed.includes(d.x)) return toast("Regalo ya canjeado"); state.redeemed.push(d.x); if (d.t === "c") gain(d.a); else state.items[d.id] = (state.items[d.id] || 0) + 1; confetti(stage.clientWidth / 2, stage.clientHeight / 2, 40); toast("¡Regalo de " + d.f + " recibido!"); save(); render(); renderColl(); } catch { toast("Código no válido"); }
+  }, "text");
   if (a.startsWith("gift:")) { const id = a.slice(5), it = ITEMS.find((i) => i.id === id), x = Math.random().toString(36).slice(2, 9); if (!state.items[id]) return; state.items[id]--; state.gifts.push(x); save(); renderColl(); RENDER["m-social"](); copyText("RG1." + enc(JSON.stringify({ t: "i", id, f: pname(), x })), "Regalo copiado: " + it.name); }
 });
 
@@ -2077,3 +2137,205 @@ syncIntro(); renderColl(); renderWard();
 rank = rankIndex();
 render();
 if (loadFlag) toast("Partida corrupta o modificada");
+
+// =========================================================================
+// PARCHE UX MÓVIL Y ACCESIBILIDAD
+// =========================================================================
+
+// 1. Eliminar la latencia al tocar (0ms delay) y soporte multitouch
+const touchEls = ["chick", "golden", "chest"];
+touchEls.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    // Evita que el click nativo posterior se cuente dos veces
+    el.addEventListener("click", (e) => {
+      if (e.isTrusted && Date.now() - (el._tp || 0) < 700) e.stopImmediatePropagation();
+    }, true);
+    el.addEventListener("pointerdown", (e) => {
+      // Solo aplicamos la intercepción si el dispositivo es táctil
+      if (e.pointerType !== "touch") return;
+      
+      e.preventDefault(); // Evitamos el retardo y el click fantasma del navegador
+      el._tp = Date.now();
+      
+      // Feedback visual rápido (ya que preventDefault bloquea el :active de CSS)
+      el.classList.add("pop");
+      setTimeout(() => el.classList.remove("pop"), 100);
+      
+      // Lanzamos el click para que tus 5 listeners originales hagan su trabajo sin reescribir la lógica
+      el.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: e.clientX, clientY: e.clientY }));
+    });
+  }
+});
+
+// 2. Alternativa táctil para los Easter Eggs de teclado
+const origRenderEggs = renderEggs;
+renderEggs = function() {
+  origRenderEggs(); // Llama a la función original de dibujado
+  
+  // Si no existe, añadimos un botón al final de los secretos para escribir con el teclado virtual
+  if(!document.getElementById("kbBtn")) {
+    const btn = document.createElement("button");
+    btn.id = "kbBtn"; 
+    btn.className = "btn wide"; 
+    btn.style.marginTop = "14px";
+    btn.innerHTML = "⌨️ Introducir código secreto (Móvil)";
+    
+    btn.onclick = () => showModal("Código secreto", "Escribe una palabra o código secreto:", "Probar", (res) => {
+      if(!res) return;
+      const r = res.toLowerCase().replace(/\s+/g, "");
+      
+      if (r === "ricopio") { gain(1000); render(); toast("¡Me has llamado! +1000"); egg("ricopio", true); confetti(stage.clientWidth / 2, stage.clientHeight / 2, 30); }
+      if (r === "marcos") egg("marcos");
+      if (r === "gallina") egg("gallina");
+      if (r.endsWith("piopio")) egg("pio");
+      if (r === "upupdowndownleftrightleftrightba" || r === "arribaarribaabajooabajoizquierdaderechaizquierdaderechaba") {
+        if (!state.cosm.own.includes("skin:arcoiris")) state.cosm.own.push("skin:arcoiris");
+        toast("¡Código secreto! Plumaje arcoíris"); egg("konami", true);
+        for (let i = 0; i < 8; i++) setTimeout(() => burst(Math.random() * stage.clientWidth, 0, 6), i * 120);
+        renderWard();
+      }
+    }, "text");
+    document.getElementById("eggHint").after(btn);
+  }
+};
+
+// ---- Guía visual única: flecha sobre Ricopio hasta el primer clic
+(function () {
+  const g = document.createElement("div"); g.className = "guide"; g.setAttribute("aria-hidden", "true"); stage.appendChild(g);
+  if (state.st.clicks > 0) return g.remove();
+  $("chick").addEventListener("click", () => g.remove(), { once: true });
+})();
+
+// ===================== 3D (Three.js): Ricopio sobre peana =====================
+(function () {
+  if (typeof THREE === "undefined") return;   // sin Three.js se queda el SVG 2D
+  const btn = $("chick"); let renderer;
+  try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" }); } catch (e) { return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const cv = renderer.domElement; cv.className = "c3d"; btn.appendChild(cv);
+  document.body.classList.add("r3d"); R3D.on = true;
+
+  const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 1, .1, 60);
+  cam.position.set(0, 1.4, 11); cam.lookAt(0, -.2, 0);
+  scene.add(new THREE.AmbientLight(0xffffff, .75));
+  const sun = new THREE.DirectionalLight(0xffffff, .9); sun.position.set(3, 7, 5); sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024); sun.shadow.radius = 4; sun.shadow.bias = -.0005;
+  Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 20 }); scene.add(sun);
+  const rim = new THREE.PointLight(0xffd36b, 1.2, 20); rim.position.set(-3.5, 2.5, -4); scene.add(rim);   // luz de recorte dorada
+
+  const M = (c, r = .55) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+  const sph = new THREE.SphereGeometry(1, 32, 24), cyl = (a, b, h, s = 24) => new THREE.CylinderGeometry(a, b, h, s);
+  const mesh = (g, c, x, y, z, rot) => { const m = new THREE.Mesh(g, c.isMaterial ? c : M(c)); m.position.set(x, y, z); if (rot) m.rotation.set(rot[0], rot[1], rot[2]); m.castShadow = true; return m; };
+
+  // Peana + sombra de suelo
+  const ped = new THREE.Group(); scene.add(ped);
+  [[2.05, 2.15, .22, -1.38, 0x7a4a2a], [1.8, 2.0, .14, -1.2, 0xffd84a], [1.72, 1.78, .06, -1.1, 0xfff1c9]].forEach(([a, b, h, y, c]) => { const m = mesh(cyl(a, b, h, 56), c, 0, y, 0); m.receiveShadow = true; ped.add(m); });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.ShadowMaterial({ opacity: .25 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -1.52; ground.receiveShadow = true; scene.add(ground);
+
+  // Ricopio: spin (giro) > rig (pivote en los pies, para el squish) > ric (cuerpo)
+  const spin = new THREE.Group(), rig = new THREE.Group(), ric = new THREE.Group();
+  rig.position.y = -1.0; ric.position.y = 1.0; rig.add(ric); spin.add(rig); scene.add(spin);
+  const mats = { body: M(0xffc928), belly: M(0xffe27a), wing: M(0xf2b300) };
+  const add = (g, m, x, y, z, sx = 1, sy = 1, sz = 1, rz = 0) => { const o = mesh(g, m, x, y, z); o.scale.set(sx, sy, sz); o.rotation.z = rz; ric.add(o); return o; };
+  add(sph, mats.body, 0, 0, 0, 1, .95, 1);
+  add(sph, mats.belly, 0, -.3, .45, .72, .62, .55);
+  add(sph, mats.wing, -1, -.15, 0, .22, .5, .42, .3); add(sph, mats.wing, 1, -.15, 0, .22, .5, .42, -.3);
+  const comb = M(0xff5d73); add(sph, comb, -.15, .95, .1, .16, .22, .16); add(sph, comb, 0, 1.05, .1, .2, .28, .2); add(sph, comb, .15, .95, .1, .16, .22, .16);
+  const pink = M(0xff9aa8); add(sph, pink, -.62, -.1, .72, .13, .1, .06); add(sph, pink, .62, -.1, .72, .13, .1, .06);
+  const feet = M(0xff8a1f); add(cyl(.12, .14, .15, 12), feet, -.38, -1.0, .25); add(cyl(.12, .14, .15, 12), feet, .38, -1.0, .25);
+  const beak = mesh(new THREE.ConeGeometry(.2, .4, 16), M(0xff8a1f), 0, -.05, 1.05, [Math.PI / 2, 0, 0]); ric.add(beak);
+  const eyes = new THREE.Group(); eyes.position.set(0, .22, 0); ric.add(eyes);
+  [-1, 1].forEach((s) => { const e = new THREE.Mesh(sph, M(0x2b2118, .3)); e.scale.setScalar(.13); e.position.set(s * .36, 0, .9); eyes.add(e); const h = new THREE.Mesh(sph, M(0xffffff, .2)); h.scale.setScalar(.04); h.position.set(s * .36 + .04, .05, 1.0); eyes.add(h); });
+
+  // Accesorios 3D (sombreros, gafas, cuello). Los demás cosméticos solo existen en el modo 2D.
+  const acc = new THREE.Group(); ric.add(acc);
+  const cap = (c, y, sy) => { const m = mesh(new THREE.SphereGeometry(1.02, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), c, 0, y, 0); m.scale.y = sy; return m; };
+  const ACC = {
+    paja: (g) => { g.add(mesh(cyl(.5, .55, .45), 0xf0d27f, 0, 1.15, 0), mesh(cyl(1.15, 1.15, .06), 0xe8c36a, 0, .93, 0), mesh(cyl(.56, .56, .1), 0xd8503f, 0, 1.02, 0)); },
+    gorra: (g) => { g.add(cap(0x3d9bff, .45, .6), mesh(new THREE.BoxGeometry(.7, .06, .5), 0x2c78d0, 0, .47, 1.0)); },
+    aureola: (g) => { const m = mesh(new THREE.TorusGeometry(.6, .07, 12, 40), new THREE.MeshStandardMaterial({ color: 0xffd84a, emissive: 0xffb400, emissiveIntensity: .8 }), 0, 1.55, 0, [Math.PI / 2, 0, 0]); g.add(m); },
+    chistera: (g) => { g.add(mesh(cyl(.5, .5, .8), 0x2b2118, 0, 1.35, 0), mesh(cyl(.51, .51, .14), 0xff5d73, 0, 1.12, 0), mesh(cyl(.9, .9, .07), 0x2b2118, 0, .97, 0)); },
+    corona: (g) => { g.add(mesh(cyl(.55, .45, .35, 8), 0xffd84a, 0, 1.1, 0)); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; g.add(mesh(new THREE.ConeGeometry(.12, .3, 8), 0xffd84a, Math.cos(a) * .5, 1.4, Math.sin(a) * .5)); } },
+    mago: (g) => { g.add(mesh(new THREE.ConeGeometry(.75, 1.6, 24), 0x5b3fc4, 0, 1.75, 0), mesh(cyl(1.0, 1.0, .06), 0x5b3fc4, 0, .95, 0)); },
+    gorro: (g) => { g.add(cap(0xe0482f, .4, .75), mesh(new THREE.TorusGeometry(.92, .12, 10, 36), 0xffffff, 0, .45, 0, [Math.PI / 2, 0, 0]), (() => { const p = mesh(sph, 0xffffff, 0, 1.2, 0); p.scale.setScalar(.18); return p; })()); },
+    gafas: (g) => { g.add(mesh(new THREE.BoxGeometry(.5, .36, .1), 0x2b2118, -.38, .22, 1.06), mesh(new THREE.BoxGeometry(.5, .36, .1), 0x2b2118, .38, .22, 1.06), mesh(new THREE.BoxGeometry(.3, .06, .08), 0x2b2118, 0, .26, 1.06)); },
+    bufanda: (g) => { g.add(mesh(new THREE.TorusGeometry(.8, .17, 12, 40), 0xd8303f, 0, -.6, 0, [Math.PI / 2, 0, 0])); },
+    pajarita: (g) => { const c = new THREE.ConeGeometry(.2, .35, 12); g.add(mesh(c, 0xd8303f, .2, -.72, .82, [0, 0, Math.PI / 2]), mesh(c, 0xd8303f, -.2, -.72, .82, [0, 0, -Math.PI / 2]), (() => { const p = mesh(sph, 0xd8303f, 0, -.72, .84); p.scale.setScalar(.08); return p; })()); },
+  };
+  let sig = "", skin = COSM.skin[0];
+  function sync() {
+    const e = state.cosm.eq, s = [e.skin, e.hat, e.eyes, e.neck].join(); if (s === sig) return; sig = s;
+    skin = COSM.skin.find((x) => x.id === e.skin) || COSM.skin[0];
+    mats.body.color.set(skin.v[0]); mats.wing.color.set(skin.v[1]); mats.belly.color.set(skin.v[2]);
+    mats.body.emissive.set(skin.cls === "shine" ? skin.v[0] : 0x000000); mats.body.emissiveIntensity = skin.cls === "shine" ? .18 : 0;
+    while (acc.children.length) { const o = acc.children[0]; acc.remove(o); o.traverse((n) => { if (n.geometry) n.geometry.dispose(); if (n.material) n.material.dispose(); }); }
+    [e.hat, e.eyes, e.neck].forEach((id) => ACC[id] && ACC[id](acc));
+  }
+
+  // Tamaño del lienzo
+  const resize = () => { const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(resize).observe(cv); addEventListener("resize", resize); resize();
+
+  // Giro 360º con arrastre e inercia
+  let drag = false, moved = 0, lx = 0, vel = 0, idleAt = performance.now();
+  cv.addEventListener("pointerdown", (e) => { drag = true; moved = 0; lx = e.clientX; vel = 0; try { cv.setPointerCapture(e.pointerId); } catch (_) {} cv.style.cursor = "grabbing"; });
+  cv.addEventListener("pointermove", (e) => { if (!drag) return; const dx = e.clientX - lx; lx = e.clientX; moved += Math.abs(dx); spin.rotation.y += dx * .012; vel = dx * .012; idleAt = performance.now(); });
+  const up = () => { drag = false; cv.style.cursor = "grab"; idleAt = performance.now(); };
+  cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+  document.addEventListener("click", (e) => { if (moved > 6 && e.target === cv) { e.stopPropagation(); e.preventDefault(); } moved = 0; }, true);   // arrastrar no cuenta como toque
+
+  // Squish & stretch + monedas 3D en el punto de impacto
+  const easeOutBack = (p) => 1 + 2.70158 * Math.pow(p - 1, 3) + 1.70158 * Math.pow(p - 1, 2);
+  let sqT = -1;
+  const ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
+  const hitPoint = (cx, cy) => {
+    if (cx) { const r = cv.getBoundingClientRect(); v2.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); ray.setFromCamera(v2, cam); const h = ray.intersectObject(rig, true)[0]; if (h) return h.point.clone(); }
+    return new THREE.Vector3(0, .3, 1.1);
+  };
+  const coinGeo = new THREE.CylinderGeometry(.13, .13, .04, 16); coinGeo.rotateX(Math.PI / 2);
+  const coinMat = new THREE.MeshStandardMaterial({ color: 0xffc928, emissive: 0xaa7000, emissiveIntensity: .5, metalness: .6, roughness: .3 });
+  const P = [];
+  function burst3(pt, n) {
+    if (!state.set.fx) return; n = Math.min(n, 30 - P.length);
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Mesh(coinGeo, coinMat); m.position.copy(pt); scene.add(m);
+      P.push({ m, vx: (Math.random() - .5) * 4, vy: 2.5 + Math.random() * 3.5, vz: 2 + Math.random() * 3.5, vr: (Math.random() - .5) * 14, t: 0, life: 1.1 + Math.random() * .4 });   // vz>0: hacia la cámara
+    }
+  }
+  btn.addEventListener("click", (e) => {
+    sqT = performance.now();
+    burst3(hitPoint(e.target === cv ? e.clientX : 0, e.clientY), 6 + Math.min(combo, 14));
+  });
+
+  // Bucle de render
+  let last = performance.now();
+  (function loop(now) {
+    requestAnimationFrame(loop);
+    const dt = Math.min(.05, (now - last) / 1000), k = dt * 60; last = now;
+    if (!started) return;
+    sync();
+    const t = now / 1000;
+    if (!drag) {
+      spin.rotation.y += vel * k; vel *= Math.pow(.94, k);   // inercia
+      if (Math.abs(vel) < .003 && now - idleAt > 2500) { const tg = Math.round(spin.rotation.y / (Math.PI * 2)) * Math.PI * 2; spin.rotation.y += (tg - spin.rotation.y) * .05 * k; }   // vuelve de frente
+    }
+    let sx = 1, sy = 1;
+    if (sqT >= 0) { const p = (now - sqT) / 450; if (p >= 1) sqT = -1; else { const s = easeOutBack(p); sy = .85 + .15 * s; sx = 1.15 - .15 * s; } }
+    const br = 1 + Math.sin(t * 2.2) * .015, ev = 1 + Math.min(.3, state.reb * .03);
+    rig.position.y = -1.0 + Math.sin(t * 2) * .05;   // idle: bamboleo + respiración
+    rig.scale.set(sx * ev, sy * br * ev, sx * ev);
+    const mood = btn.dataset.mood, want = mood === "sleep" ? .1 : mood === "bored" ? .55 : (t % 5) > 4.9 ? .1 : 1;
+    eyes.scale.y += (want - eyes.scale.y) * .25;
+    if (skin.rb) mats.body.color.setHSL((t * .15) % 1, .8, .6);
+    for (let i = P.length - 1; i >= 0; i--) {
+      const p = P[i]; p.t += dt;
+      if (p.t > p.life) { scene.remove(p.m); P.splice(i, 1); continue; }
+      p.vy -= 9.8 * dt; p.m.position.x += p.vx * dt; p.m.position.y += p.vy * dt; p.m.position.z += p.vz * dt; p.m.rotation.y += p.vr * dt;
+      p.m.scale.setScalar(p.t > p.life * .7 ? Math.max(.01, 1 - (p.t - p.life * .7) / (p.life * .3)) : 1);
+    }
+    renderer.render(scene, cam);
+  })(last);
+})();
