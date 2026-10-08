@@ -746,6 +746,7 @@ button, .chick, .golden, .chest, .slot, .modal { touch-action: manipulation; }
   .bubble { top: 4px !important; font-size: .8rem !important; padding: 3px 10px !important; }
   .tut { bottom: 6px !important; }
 }
+<<<<<<< HEAD
 
 .cgdlg { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 12px; background: rgba(43, 33, 24, .6); animation: fade .2s; }
 .glass .cgdlg { background: rgba(30, 40, 80, .45); }
@@ -778,3 +779,5 @@ button, .chick, .golden, .chest, .slot, .modal { touch-action: manipulation; }
 .btn:not(:disabled):hover::after, .rbtn:hover::after, .wheelbtn:hover::after { translate: 120% 0; }
 .btn:not(:disabled):hover, .rbtn:hover, .wheelbtn:hover { transform: scale(1.05); }
 .btn:not(:disabled):active, .rbtn:active, .wheelbtn:active { transform: scale(.95); }
+=======
+>>>>>>> d51950ade5a240cbd0925b119640c4926104bfd0

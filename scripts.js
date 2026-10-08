@@ -2181,7 +2181,12 @@ renderEggs = function() {
     btn.style.marginTop = "14px";
     btn.innerHTML = "⌨️ Introducir código secreto (Móvil)";
     
+<<<<<<< HEAD
     btn.onclick = () => showModal("Código secreto", "Escribe una palabra o código secreto:", "Probar", (res) => {
+=======
+    btn.onclick = () => {
+      const res = prompt("Escribe una palabra o código secreto:");
+>>>>>>> d51950ade5a240cbd0925b119640c4926104bfd0
       if(!res) return;
       const r = res.toLowerCase().replace(/\s+/g, "");
       
@@ -2195,6 +2200,7 @@ renderEggs = function() {
         for (let i = 0; i < 8; i++) setTimeout(() => burst(Math.random() * stage.clientWidth, 0, 6), i * 120);
         renderWard();
       }
+<<<<<<< HEAD
     }, "text");
     document.getElementById("eggHint").after(btn);
   }
@@ -2339,3 +2345,9 @@ renderEggs = function() {
     renderer.render(scene, cam);
   })(last);
 })();
+=======
+    };
+    document.getElementById("eggHint").after(btn);
+  }
+};
+>>>>>>> d51950ade5a240cbd0925b119640c4926104bfd0
