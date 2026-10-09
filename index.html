@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
   <title>Ricopio</title>
-  <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#ffc928">
-  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='34' r='26' fill='%23ffc928' stroke='%232b2118' stroke-width='4'/><path d='M27 12q-2-9 5-9t5 9' fill='%23ff5d73' stroke='%232b2118' stroke-width='3'/><circle cx='23' cy='30' r='4' fill='%232b2118'/><circle cx='41' cy='30' r='4' fill='%232b2118'/><path d='M26 38h12l-6 9z' fill='%23ff8a1f' stroke='%232b2118' stroke-width='2.5' stroke-linejoin='round'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+  <script src="scripts.js" defer></script>
 </head>
 <body>
   <div class="scene" aria-hidden="true">
@@ -39,6 +39,7 @@
       <div id="aura" class="aura"></div>
       <div id="halo" class="halo"></div>
       <button id="chick" class="chick" data-rank="0" aria-label="Tocar a Ricopio">
+        <canvas class="c3d" aria-hidden="true"></canvas>
         <svg viewBox="0 0 200 230" aria-hidden="true">
           <defs>
           <radialGradient id="g_gal" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#ff6ad5"/><stop offset=".5" stop-color="#5b3cff"/><stop offset="1" stop-color="#12103a"/></radialGradient>
@@ -175,7 +176,9 @@
     <label class="row">Partículas y confeti <input id="fx" type="checkbox"></label>
     <label class="row">Sacudida en críticos <input id="shk" type="checkbox"></label>
     <div class="foot"><button id="mute" class="btn">Sonido: sí</button><button id="saveBtn" class="btn">Guardar partida</button><button id="loadBtn2" class="btn">Cargar partida</button><button id="reset" class="btn">Empezar de cero</button></div>
-    <input id="file" type="file" accept=".json,application/json" hidden>
+    <textarea id="saveOut" class="cgta" readonly hidden placeholder="Tu código de partida"></textarea>
+    <textarea id="saveIn" class="cgta" placeholder="Pega aquí tu código de partida"></textarea>
+    <button id="importBtn" class="btn">Importar</button>
   </div></div></div>
 
   <div id="m-ach" class="modal" hidden><div class="mbox"><header><h2>Logros</h2><button class="btn" data-close>Cerrar</button></header><div class="mbody">
@@ -197,6 +200,5 @@
   <div id="intro" class="intro"><div id="rain" class="rain"></div><div id="introTitle" aria-label="Ricopio"></div><div id="introChick" class="introChick"></div><div class="menu"><button id="start" class="btn big">Iniciar</button><button id="loadBtn" class="btn">Cargar partida</button></div></div>
   <div id="reveal" class="reveal" hidden><div class="beam"></div><div id="card" class="card"></div></div>
   <div id="toast" class="toast" role="status"></div>
-  <script src="scripts.js"></script>
 </body>
 </html>

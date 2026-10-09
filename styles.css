@@ -45,6 +45,9 @@ h1 { margin: 0; font-size: clamp(3.2rem, 9vw, 5.4rem); font-weight: 800; line-he
 .chick { position: relative; z-index: 1; width: min(300px, 68vw); background: none; border: 0; padding: 0; cursor: pointer; transition: transform .1s; animation: breathe 3.2s ease-in-out infinite; }
 .chick:active, .chick.pop { transform: scale(.92, .88) rotate(-3deg); }
 .chick svg { width: 100%; display: block; overflow: visible; }
+.chick .c3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.chick .c3d:active { cursor: grabbing; }
+.chick.is-3d > svg { visibility: hidden; }
 .chick .eyes { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; }
 @keyframes breathe { 50% { translate: 0 -8px; } }
 @keyframes blink { 0%, 93%, 100% { scale: 1; } 96% { scale: 1 .1; } }
@@ -54,6 +57,7 @@ h1 { margin: 0; font-size: clamp(3.2rem, 9vw, 5.4rem); font-weight: 800; line-he
 .aura::after { content: ""; position: absolute; inset: 14%; border-radius: 50%; border: 5px solid #ffd84a; box-shadow: 0 0 24px 6px rgba(255, 216, 74, .8); }
 .aura.on { animation: aura .8s ease-out; }
 .chick.glow svg { animation: glow .6s ease-out; }
+#chick.glow .c3d { animation: glow .6s ease-out; }
 @keyframes aura { 0% { opacity: 1; scale: .55; } 100% { opacity: 0; scale: 1.45; } }
 @keyframes glow { 0% { filter: drop-shadow(0 0 4px #fff3a6) drop-shadow(0 0 28px #ffc928) brightness(1.15); } 100% { filter: drop-shadow(0 0 0 transparent); } }
 
@@ -746,3 +750,19 @@ button, .chick, .golden, .chest, .slot, .modal { touch-action: manipulation; }
   .bubble { top: 4px !important; font-size: .8rem !important; padding: 3px 10px !important; }
   .tut { bottom: 6px !important; }
 }
+
+.cgdlg { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 12px; background: rgba(43, 33, 24, .6); animation: fade .2s; }
+.glass .cgdlg { background: rgba(30, 40, 80, .45); }
+.cgin, .cgta { width: 100%; font: inherit; font-weight: 700; padding: 6px 10px; margin: 4px 0 8px; color: var(--ink); background: #fff; border: 3px solid var(--ink); border-radius: 12px; }
+.cgta { min-height: 72px; font-size: .8rem; resize: vertical; word-break: break-all; }
+* { scrollbar-width: thin; scrollbar-color: var(--ink) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 99px; border: 2px solid var(--shell); }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* El canvas comparte el botón original: sus eventos de toque y cosméticos siguen activos. */
+.stage #chick { isolation: isolate; }
+.stage #chick.is-3d { z-index: 1; }
+.stage #chick.is-3d .c3d { z-index: 0; }
+.stage #chick.is-3d > svg { position: relative; z-index: 1; pointer-events: none; }
+.stage.boosted #chick.is-3d .c3d { filter: drop-shadow(0 0 14px #ffc928) drop-shadow(0 0 36px rgba(255, 201, 40, .7)); }

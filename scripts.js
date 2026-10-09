@@ -221,7 +221,7 @@ const replay = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.
 function sfx(f, d = .09, type = "triangle") {
   if (state.muted) return;
   try {
-    ac = ac || new AudioContext();
+    ac = ac || new AudioContext(); if (ac.state === "suspended") ac.resume();
     const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
     o.type = state.set.snd === "auto" ? type : state.set.snd; o.frequency.value = f;
     g.gain.setValueAtTime(.1 * state.set.vol, t); g.gain.exponentialRampToValueAtTime(.001, t + d);
@@ -456,12 +456,10 @@ $("mute").addEventListener("click", () => {
   $("mute").textContent = "Sonido: " + (state.muted ? "no" : "sí");
   save();
 });
-$("reset").addEventListener("click", () => {
-  if (confirm("¿Seguro que quieres borrar tu progreso?")) {
-    state = fix({}); rank = 0; save();
-    applyLook(); renderColl(); renderWard(); render(); syncIntro();
-  }
-});
+$("reset").addEventListener("click", () => showModal("Empezar de cero", "¿Seguro que quieres borrar tu progreso?", "Borrar", () => {
+  state = fix({}); rank = 0; save();
+  applyLook(); renderColl(); renderWard(); render(); syncIntro();
+}));
 window.addEventListener("beforeunload", save);
 document.addEventListener("visibilitychange", save);
 
@@ -580,29 +578,17 @@ $("start").addEventListener("click", () => {
   $("intro").classList.add("out");
   setTimeout(() => $("intro").remove(), 900);
 });
+const importCode = (c) => {
+  c = (c || "").trim(); if (!c) return toast("Pega primero tu código");
+  try { loadState(c[0] === "{" ? JSON.parse(c) : JSON.parse(dec(c.replace(/^RC-/, "")))); } catch { toast("Código no válido"); }
+};
 $("saveBtn").addEventListener("click", () => {
-  save();
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(state)], { type: "application/json" }));
-  a.download = "ricopio-partida.json";
-  a.click();
-  toast("Partida guardada");
+  save(); const o = $("saveOut"); o.hidden = false; o.value = "RC-" + enc(JSON.stringify(state)); o.focus(); o.select();
+  toast("Código generado: cópialo y guárdalo");
 });
-$("loadBtn").onclick = $("loadBtn2").onclick = () => $("file").click();
-$("file").addEventListener("change", async (e) => {
-  const f = e.target.files[0];
-  if (!f) return;
-  try {
-    const d = JSON.parse(await f.text());
-    if (typeof d.coins !== "number") throw 0;
-    if (!verify(d)) { toast("Partida corrupta o modificada"); e.target.value = ""; return; }
-    state = fix(d); save(); rank = rankIndex();
-    applyLook(); renderColl(); renderWard(); render(); syncIntro();
-    $("mute").textContent = "Sonido: " + (state.muted ? "no" : "sí");
-    toast("Partida cargada");
-  } catch { toast("Ese archivo no es una partida válida"); }
-  e.target.value = "";
-});
+$("loadBtn2").onclick = () => $("saveIn").focus();
+$("importBtn").onclick = () => importCode($("saveIn").value);
+$("loadBtn").onclick = () => showModal("Cargar partida", "Pega tu código de partida:", "Cargar", importCode, "text");
 
 // ===== Menús (tienda, ajustes, logros, secretos, renacer) =====
 let openM = (id) => {
@@ -814,13 +800,16 @@ function updReb() {
   $("rebGo").disabled = !can;
 }
 $("rebGo").onclick = () => {
-  if (state.run < rebGoal() || !confirm("Vas a renacer. Pierdes ricoins y mejoras de la tienda. Conservas aspectos, logros, objetos, árbol y experiencia. ¿Seguro?")) return;
-  state.xp += rebXp(); state.reb++;
-  state.coins = tl("start") ? 500 * Math.pow(6, tl("start") - 1) : 0;
-  state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
-  confetti(innerWidth / 2, innerHeight / 3, 60); [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => setTimeout(() => sfx(f, .25), i * 90));
-  toast("¡Has renacido! Renacimiento " + state.reb); addChest(rollChest()); passXp(50);
-  save(); renderTree(); renderWard(); render();
+  if (state.run < rebGoal()) return;
+  showModal("Renacer", "Pierdes ricoins y mejoras de la tienda. Conservas aspectos, logros, objetos, árbol y experiencia.", "Renacer", () => {
+    if (state.run < rebGoal()) return;
+    state.xp += rebXp(); state.reb++;
+    state.coins = tl("start") ? 500 * Math.pow(6, tl("start") - 1) : 0;
+    state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
+    confetti(innerWidth / 2, innerHeight / 3, 60); [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => setTimeout(() => sfx(f, .25), i * 90));
+    toast("¡Has renacido! Renacimiento " + state.reb); addChest(rollChest()); passXp(50);
+    save(); renderTree(); renderWard(); render();
+  });
 };
 function renderExtra() { updReb(); updMuts(); updBranches(); }
 
@@ -935,7 +924,10 @@ slotsEl.addEventListener("click", (e) => {
   if (s.end <= Date.now()) { state.slots[i] = null; save(); updSlots(); return openChestNow(s.k); }
   const left = (s.end - Date.now()) / 1000, c = Math.ceil(left * Math.max(5, perSec()) * .6);
   if (state.coins < c) return toast("Para abrirlo ya necesitas " + fmt(c) + " ricoins");
-  if (confirm("¿Abrir ya por " + fmt(c) + " ricoins?")) { state.coins -= c; state.slots[i] = null; save(); updSlots(); render(); openChestNow(s.k); }
+  showModal("Abrir cofre", "¿Abrir ya por " + fmt(c) + " ricoins?", "Abrir", () => {
+    if (state.slots[i] !== s || state.coins < c) return;
+    state.coins -= c; state.slots[i] = null; save(); updSlots(); render(); openChestNow(s.k);
+  });
 });
 
 // ===== Ruleta (cada 5 min) =====
@@ -1017,6 +1009,23 @@ const seedRand = (s) => { let h = 2166136261; for (const c of s) h = Math.imul(h
 const fmtH = (s) => Math.floor(s / 3600) + " h " + Math.floor((s % 3600) / 60) + " min";
 function mkModal(id, title, body) { const d = document.createElement("div"); d.id = "m-" + id; d.className = "modal"; d.hidden = true; d.innerHTML = `<div class="mbox"><header><h2>${title}</h2><button class="btn" data-close>Cerrar</button></header><div class="mbody" id="b-${id}">${body || ""}</div></div>`; document.body.appendChild(d); }
 function gl(id) { return (state.gp && state.gp[id]) || 0; }
+// showModal(titulo, mensaje, textoOk, callback, input?, valor?)  input: "text"|"number"|"area"|"copy"
+function showModal(title, msg, okText, cb, input, value) {
+  const d = document.createElement("div"); d.className = "cgdlg";
+  const field = !input ? "" : input === "copy" || input === "area"
+    ? `<textarea class="cgta" id="cgIn"${input === "copy" ? " readonly" : ""}></textarea>`
+    : `<input class="cgin" id="cgIn" type="${input}" autocomplete="off">`;
+  d.innerHTML = `<div class="mbox" style="width:min(440px,100%)"><header><h2></h2></header><div class="mbody"><p class="sum"></p>${field}<div class="foot">${input === "copy" ? "" : '<button class="btn" data-x="0">Cancelar</button>'}<button class="btn" data-x="1"></button></div></div></div>`;
+  d.querySelector("h2").textContent = title; d.querySelector(".sum").textContent = msg;
+  d.querySelector('[data-x="1"]').textContent = okText || "Aceptar";
+  const f = d.querySelector("#cgIn"); if (f && value) f.value = value;
+  const kd = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(false); } else if (e.key === "Enter" && f && f.tagName === "INPUT") close(true); };
+  const close = (ok) => { document.removeEventListener("keydown", kd, true); d.remove(); if (ok && cb) cb(f ? f.value : undefined); };
+  document.addEventListener("keydown", kd, true);
+  d.addEventListener("click", (e) => { const b = e.target.closest("[data-x]"); if (b) close(b.dataset.x === "1"); else if (e.target === d) close(false); e.stopPropagation(); });
+  document.body.appendChild(d);
+  if (f) { f.focus(); if (input === "copy") f.select(); }
+}
 // ---- Menú Más
 mkModal("hub", "Más", '<div class="hubg">' + [["m-quests", "Misiones"], ["m-codes", "Códigos"], ["m-pets", "Mascotas"], ["m-fuse", "Fusión"], ["m-album", "Álbum"], ["m-gal", "Huevos de oro"], ["m-games", "Minijuegos"], ["m-stats", "Estadísticas"], ["m-asc", "Ascender"], ["m-social", "Social"]].map(([i, n]) => `<button class="btn" data-open="${i}">${n}</button>`).join("") + "</div>");
 mkModal("quests", "Misiones"); mkModal("pets", "Mascotas"); mkModal("fuse", "Fusión de objetos"); mkModal("album", "Álbum de cartas"); mkModal("gal", "Huevos de oro");
@@ -1055,11 +1064,12 @@ $("branches").addEventListener("click", (e) => {
   if (btnSwap) {
     const [id, to, cost] = btnSwap.dataset.swap.split(":");
     if (state.coins < +cost) return toast("Te faltan ricoins para cambiar de camino");
-    if (confirm(`¿Cambiar camino por ${fmt(+cost)} ricoins?`)) {
+    showModal("Cambiar camino", `¿Cambiar camino por ${fmt(+cost)} ricoins?`, "Cambiar", () => {
+      if (state.coins < +cost) return;
       state.coins -= +cost;
       state.br[id] = +to;
       _bs = ""; save(); render(); updBranches(); sfx(880, .15);
-    }
+    });
     return;
   }
   const b = e.target.closest("[data-b]"); if (!b) return; const [id, n] = b.dataset.b.split(":"); state.br[id] = +n; _bs = ""; sfx(880, .15); save(); render(); });
@@ -1330,9 +1340,12 @@ RENDER["m-asc"] = () => {
 };
 document.addEventListener("click", (e) => {
   if (e.target.id === "ascGo") {
-    if (state.reb < 5 || !confirm("Vas a ascender y reiniciar renacimientos, ricoins y mejoras (conservas el árbol y la XP). ¿Seguro?")) return;
-    state.gf += Math.max(1, Math.floor(state.reb / 5)); state.asc++; state.reb = 0; state.coins = 0; state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
-    confetti(innerWidth / 2, innerHeight / 3, 80); toast("¡Has ascendido! Ascensión " + state.asc); passXp(100); save(); render(); renderTree(); RENDER["m-asc"]();
+    if (state.reb < 5) return;
+    return showModal("Ascender", "Reinicias renacimientos, ricoins y mejoras (conservas el árbol y la XP).", "Ascender", () => {
+      if (state.reb < 5) return;
+      state.gf += Math.max(1, Math.floor(state.reb / 5)); state.asc++; state.reb = 0; state.coins = 0; state.run = 0; state.owned = {}; combo = 0; state.cc = 0; updCC();
+      confetti(innerWidth / 2, innerHeight / 3, 80); toast("¡Has ascendido! Ascensión " + state.asc); passXp(100); save(); render(); renderTree(); RENDER["m-asc"]();
+    });
   }
   const p = e.target.closest("[data-perk]"); if (!p) return; const pk = PERKS.find((x) => x.id === p.dataset.perk), c = pk.c * (gl(pk.id) + 1);
   if (state.gf < c || gl(pk.id) >= 10) return; state.gf -= c; state.gp[pk.id] = gl(pk.id) + 1; sfx(880, .12); save(); render(); RENDER["m-asc"]();
@@ -1379,7 +1392,7 @@ function showCard(html, color) {
 let mStep = 0;
 function mus(f, d, type, g) {
   if (state.muted || !state.set.music) return;
-  try { ac = ac || new AudioContext(); const o = ac.createOscillator(), gn = ac.createGain(), t = ac.currentTime; o.type = type; o.frequency.value = f; gn.gain.setValueAtTime(g * state.set.vol, t); gn.gain.exponentialRampToValueAtTime(.0005, t + d); o.connect(gn); gn.connect(ac.destination); o.start(); o.stop(t + d); } catch {}
+  try { ac = ac || new AudioContext(); if (ac.state === "suspended") ac.resume(); const o = ac.createOscillator(), gn = ac.createGain(), t = ac.currentTime; o.type = type; o.frequency.value = f; gn.gain.setValueAtTime(g * state.set.vol, t); gn.gain.exponentialRampToValueAtTime(.0005, t + d); o.connect(gn); gn.connect(ac.destination); o.start(); o.stop(t + d); } catch {}
 }
 function musicTick() {
   if (started) {
@@ -1411,22 +1424,15 @@ function applySet() {
   for (const k in RAR) { if (!ORIGC[k]) ORIGC[k] = { r: RAR[k].c, a: AR[k] && AR[k].c }; RAR[k].c = state.set.cb ? CBC[k] : ORIGC[k].r; if (AR[k]) AR[k].c = state.set.cb ? CBC[k] : ORIGC[k].a; }
   renderColl(); applyLang();
 }
-$("m-set").querySelector(".mbody").insertAdjacentHTML("afterbegin", `<label class="row">Música <input id="music" type="checkbox"></label><label class="row">Idioma <select id="lang"><option value="es">Español</option><option value="en">English</option></select></label><label class="row">Tamaño de texto <select id="big"><option value="100">Normal</option><option value="115">Grande</option><option value="130">Muy grande</option></select></label><label class="row">Modo daltonismo <input id="cb" type="checkbox"></label><label class="row">Reducir animaciones <input id="rm" type="checkbox"></label><label class="row">Mundo según la hora <input id="auto" type="checkbox"></label><label class="row">Notificaciones <input id="notif" type="checkbox"></label><div class="foot"><button id="codeCopy" class="btn">Copiar código</button><button id="codePaste" class="btn">Pegar código</button><button id="tutBtn" class="btn">Ver tutorial</button></div><p class="sum small">Atajos: 1 Tienda · 2 Aspectos · 3 Armario · 4 Renacer · 5 Ruleta · 6 Logros · 7 Secretos · 8 Ajustes · 9 Más</p>`);
+$("m-set").querySelector(".mbody").insertAdjacentHTML("afterbegin", `<label class="row">Música <input id="music" type="checkbox"></label><label class="row">Idioma <select id="lang"><option value="es">Español</option><option value="en">English</option></select></label><label class="row">Tamaño de texto <select id="big"><option value="100">Normal</option><option value="115">Grande</option><option value="130">Muy grande</option></select></label><label class="row">Modo daltonismo <input id="cb" type="checkbox"></label><label class="row">Reducir animaciones <input id="rm" type="checkbox"></label><label class="row">Mundo según la hora <input id="auto" type="checkbox"></label><label class="row">Notificaciones <input id="notif" type="checkbox"></label><div class="foot"><button id="codeCopy" class="btn">Copiar código</button><button id="codePaste" class="btn">Pegar código</button></div><p class="sum small">Atajos: 1 Tienda · 2 Aspectos · 3 Armario · 4 Renacer · 5 Ruleta · 6 Logros · 7 Secretos · 8 Ajustes · 9 Más</p>`);
 ["music", "cb", "rm", "auto", "notif"].forEach((k) => ($(k).onchange = () => { state.set[k] = $(k).checked; if (k === "notif" && $(k).checked && typeof Notification !== "undefined") Notification.requestPermission(); if (k === "auto") applyLook(); save(); applySet(); }));
 $("lang").onchange = () => { state.set.lang = $("lang").value; save(); applySet(); };
 $("big").onchange = () => { state.set.big = +$("big").value; save(); applySet(); };
 // ---- 31 Guardado por código
 function loadState(d) { if (typeof d.coins !== "number") throw 0; if (!verify(d)) return toast("Partida corrupta o modificada"); state = fix(d); save(); rank = rankIndex(); _ap = ""; applyLook(); renderColl(); renderWard(); render(); syncIntro(); toast("Partida cargada"); }
 $("codeCopy").onclick = () => { save(); copyText("RC-" + enc(JSON.stringify(state)), "Código de partida copiado"); };
-$("codePaste").onclick = () => { const c = prompt("Pega tu código de partida:"); if (!c) return; try { loadState(JSON.parse(dec(c.trim().replace(/^RC-/, "")))); } catch { toast("Código no válido"); } };
+$("codePaste").onclick = () => showModal("Pegar código", "Pega tu código de partida:", "Cargar", importCode, "text");
 
-// ---- 34 Tutorial
-const TUT = ["¡Hola! Soy Ricopio. Toca sobre mí para ganar ricoins.", "Con los ricoins compra mejoras en la Tienda (arriba a la derecha) para que trabajen por ti.", "Los cofres caen en pantalla: se guardan abajo en 4 ranuras con temporizador.", "Arriba a la izquierda está la ruleta: una tirada gratis cada 5 minutos.", "A la izquierda tienes Ajustes, Logros, Secretos y el menú Más con misiones, mascotas, cartas y mucho más.", "Cuando llegues al objetivo, Renacer te da bonus permanentes. ¡Diviértete!"];
-const tut = document.createElement("div"); tut.id = "tut"; tut.className = "tut"; tut.hidden = true; document.body.appendChild(tut);
-let tutI = 0;
-function showTut(i) { tutI = i; if (i >= TUT.length) { tut.hidden = true; state.tut = 1; save(); return; } tut.hidden = false; tut.innerHTML = `<div class="tc">${petSvg("#ffc928")}</div><p>${TUT[i]}</p><button class="btn" data-t="n">${i === TUT.length - 1 ? "¡Vamos!" : "Siguiente"}</button><button class="btn" data-t="s">Saltar</button>`; }
-tut.addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (b) showTut(b.dataset.t === "s" ? 99 : tutI + 1); });
-$("tutBtn").onclick = () => { closeM(); showTut(0); };
 
 // Atajos de teclado
 addEventListener("keydown", (e) => {
@@ -1490,13 +1496,11 @@ let pendingOff = null;
 $("start").addEventListener("click", () => {
   musicTick();
   if (pendingOff) { const p = pendingOff; pendingOff = null; setTimeout(() => showCard(`${svg("reloj", "#ffd84a")}<b>+${fmt(p.g)} ricoins</b><span class="rar">Mientras no estabas</span><small>${fmtH(p.away / 1000)} fuera (al 50%)</small>`, "#ffc928"), 1200); }
-  if (!state.tut) setTimeout(() => showTut(0), 1500);
 });
 ensureQuests(); passState(); wkScore();
 function extraMult() { return (1 + .2 * gl("gprod")) * (1 + .5 * state.asc) * (1 + cardBonus()) * (1 + petBn("all") + skinBn("all")); }
 function secX() { return (1 + petBn("sec")) * (1 + worldBn("sec")) * evM("sec") * wkM("sec"); }
 function clkX() { return (1 + petBn("clk")) * (1 + worldBn("clk")) * evM("clk") * wkM("clk"); }
-if (typeof navigator !== "undefined" && "serviceWorker" in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => {});
 
 // ===================== RONDA 2 =====================
 // ---- Rareza y atributos de aspectos y cosméticos
@@ -1674,8 +1678,10 @@ $("b-pass").addEventListener("click", (e) => {
   const a = b.dataset.pw;
   if (a === "prem") { 
     if (state.coins < PASS_PREM) return toast("Te faltan ricoins (" + fmt(PASS_PREM) + ")"); 
-    if (!confirm("¿Comprar el pase premium por " + fmt(PASS_PREM) + " ricoins?")) return; 
-    state.coins -= PASS_PREM; passState().prem = true; confetti(innerWidth * .2, innerHeight * .8, 50); sfx(1200, .3); save(); render(); return renderPW(true); 
+    return showModal("Pase premium", "¿Comprar el pase premium por " + fmt(PASS_PREM) + " ricoins?", "Comprar", () => {
+      if (state.coins < PASS_PREM) return;
+      state.coins -= PASS_PREM; passState().prem = true; confetti(innerWidth * .2, innerHeight * .8, 50); sfx(1200, .3); save(); render(); renderPW(true);
+    });
   }
   
   if (a === "all") { 
@@ -1841,7 +1847,10 @@ const pname = () => state.name || "Jugador " + ensurePid();
 const srvUrl = () => (state.srv || ONLINE_URL || "").trim().replace(/\/+$/, "");
 const meData = () => ({ id: ensurePid(), n: pname(), t: state.total, r: state.reb, a: state.asc, w: weekKey(), ws: wkScore(), u: Date.now() });
 const myCard = () => "RC1." + enc(JSON.stringify(meData()));
-function copyText(c, msg) { (typeof navigator !== "undefined" && navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast(msg), () => prompt("Copia el código:", c)); }
+function copyText(c, msg) {
+  (typeof navigator !== "undefined" && navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject())
+    .then(() => toast(msg), () => showModal("Copia el texto manualmente", "El portal no permite copiar automáticamente. Selecciona y copia:", "Cerrar", null, "copy", c));
+}
 async function pub() { const u = srvUrl(); if (!u || typeof fetch === "undefined") return false; try { const r = await fetch(u + "/players/" + ensurePid() + ".json", { method: "PUT", body: JSON.stringify(meData()) }); return r.ok; } catch { return false; } }
 async function getJ(p) { const u = srvUrl(); if (!u || typeof fetch === "undefined") return null; try { const r = await fetch(u + p); return await r.json(); } catch { return null; } }
 // Orden del ranking: Ascensiones (a) > Renacimientos (r) > Ricoins totales (t)
@@ -1884,9 +1893,16 @@ $("b-social").addEventListener("click", (e) => {
   if (a === "copyid") return copyText(ensurePid(), "Código copiado: " + ensurePid());
   if (a === "card") return copyText(myCard(), "Tarjeta copiada");
   if (a === "refresh") { toast("Actualizando…"); return refreshSocial(); }
-  if (a === "add") { const c = prompt("Código del amigo (7 caracteres) o tarjeta larga:"); if (c) addFriend(c); return; }
-  if (a === "coin") { const v = Math.floor(+prompt("¿Cuántos ricoins regalas?") || 0); if (v <= 0 || v > state.coins) return toast("Cantidad no válida"); const x = Math.random().toString(36).slice(2, 9); state.coins -= v; state.gifts.push(x); save(); render(); return copyText("RG1." + enc(JSON.stringify({ t: "c", a: v, f: pname(), x })), "Regalo copiado: pásaselo a tu amigo"); }
-  if (a === "redeem") { const c = prompt("Pega el código de regalo:"); if (!c) return; try { const d = JSON.parse(dec(c.trim().replace(/^RG1\./, ""))); if (state.gifts.includes(d.x)) return toast("No puedes canjear tu propio regalo"); if (state.redeemed.includes(d.x)) return toast("Regalo ya canjeado"); state.redeemed.push(d.x); if (d.t === "c") gain(d.a); else state.items[d.id] = (state.items[d.id] || 0) + 1; confetti(stage.clientWidth / 2, stage.clientHeight / 2, 40); toast("¡Regalo de " + d.f + " recibido!"); save(); render(); renderColl(); } catch { toast("Código no válido"); } return; }
+  if (a === "add") return showModal("Añadir amigo", "Código del amigo (7 caracteres) o tarjeta larga:", "Añadir", (c) => { if (c) addFriend(c); }, "text");
+  if (a === "coin") return showModal("Regalar ricoins", "¿Cuántos ricoins regalas?", "Regalar", (s) => {
+    const v = Math.floor(+s || 0); if (v <= 0 || v > state.coins) return toast("Cantidad no válida");
+    const x = Math.random().toString(36).slice(2, 9); state.coins -= v; state.gifts.push(x); save(); render();
+    copyText("RG1." + enc(JSON.stringify({ t: "c", a: v, f: pname(), x })), "Regalo copiado: pásaselo a tu amigo");
+  }, "number");
+  if (a === "redeem") return showModal("Canjear regalo", "Pega el código de regalo:", "Canjear", (c) => {
+    if (!c) return;
+    try { const d = JSON.parse(dec(c.trim().replace(/^RG1\./, ""))); if (state.gifts.includes(d.x)) return toast("No puedes canjear tu propio regalo"); if (state.redeemed.includes(d.x)) return toast("Regalo ya canjeado"); state.redeemed.push(d.x); if (d.t === "c") gain(d.a); else state.items[d.id] = (state.items[d.id] || 0) + 1; confetti(stage.clientWidth / 2, stage.clientHeight / 2, 40); toast("¡Regalo de " + d.f + " recibido!"); save(); render(); renderColl(); } catch { toast("Código no válido"); }
+  }, "text");
   if (a.startsWith("gift:")) { const id = a.slice(5), it = ITEMS.find((i) => i.id === id), x = Math.random().toString(36).slice(2, 9); if (!state.items[id]) return; state.items[id]--; state.gifts.push(x); save(); renderColl(); RENDER["m-social"](); copyText("RG1." + enc(JSON.stringify({ t: "i", id, f: pname(), x })), "Regalo copiado: " + it.name); }
 });
 
@@ -2071,7 +2087,7 @@ $("chick").addEventListener("click", () => { if (combo === 60 && liveOn("2026-10
 hwTick(); passBadge();
 
 applyLook();
-$("introChick").appendChild($("chick").firstElementChild.cloneNode(true));
+$("introChick").appendChild($("chick").querySelector("svg").cloneNode(true));
 $("mute").textContent = "Sonido: " + (state.muted ? "no" : "sí");
 syncIntro(); renderColl(); renderWard();
 rank = rankIndex();
@@ -2121,8 +2137,7 @@ renderEggs = function() {
     btn.style.marginTop = "14px";
     btn.innerHTML = "⌨️ Introducir código secreto (Móvil)";
     
-    btn.onclick = () => {
-      const res = prompt("Escribe una palabra o código secreto:");
+    btn.onclick = () => showModal("Código secreto", "Escribe una palabra o código secreto:", "Probar", (res) => {
       if(!res) return;
       const r = res.toLowerCase().replace(/\s+/g, "");
       
@@ -2136,7 +2151,315 @@ renderEggs = function() {
         for (let i = 0; i < 8; i++) setTimeout(() => burst(Math.random() * stage.clientWidth, 0, 6), i * 120);
         renderWard();
       }
-    };
+    }, "text");
     document.getElementById("eggHint").after(btn);
   }
 };
+
+    // Ricopio conserva su SVG como textura para que los aspectos y eventos existentes
+    // sigan actualizándose mientras el modelo gira.
+    function safeInit3D() {
+      if (typeof THREE === "undefined") {
+        console.warn("Three.js no está disponible; se mantiene el Ricopio SVG.");
+        return;
+      }
+
+      const chick = document.querySelector("#chick");
+      const canvas = chick && chick.querySelector(".c3d");
+      const svg = chick && chick.querySelector("svg");
+      if (!chick || !canvas || !svg) return;
+
+      try {
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+        camera.position.set(0, 0, 5.5);
+
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const keyLight = new THREE.DirectionalLight(0xfff5ea, 0.7);
+        keyLight.position.set(2.5, 4, 3.5);
+        keyLight.castShadow = true;
+        scene.add(keyLight);
+        const rimLight = new THREE.DirectionalLight(0x7ecbf0, 0.25);
+        rimLight.position.set(-2.5, 2, -3.5);
+        scene.add(rimLight);
+
+        const rig = new THREE.Group();
+        const spinGroup = new THREE.Group();
+        rig.add(spinGroup);
+        scene.add(rig);
+
+        const outline = new THREE.Mesh(
+          new THREE.SphereGeometry(1, 40, 32),
+          new THREE.MeshToonMaterial({ color: 0x2b2118, side: THREE.BackSide })
+        );
+        outline.scale.setScalar(1.035);
+        spinGroup.add(outline);
+
+        const body = new THREE.Mesh(
+          new THREE.SphereGeometry(1, 40, 32),
+          new THREE.MeshToonMaterial({ color: 0xffc928 })
+        );
+        body.castShadow = true;
+        body.receiveShadow = true;
+        spinGroup.add(body);
+
+        const chickMaterial = (color) => new THREE.MeshToonMaterial({ color });
+        const addOval = (parent, color, position, scale, material = chickMaterial(color)) => {
+          const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 18), material);
+          mesh.position.set(position[0], position[1], position[2]);
+          mesh.scale.set(scale[0], scale[1], scale[2]);
+          mesh.castShadow = true;
+          parent.add(mesh);
+          return mesh;
+        };
+
+        // Build the face from raised meshes on the spherical body, not a flat decal.
+        const bellyMaterial = chickMaterial(0xffe27a);
+        const wingMaterial = chickMaterial(0xf2b300);
+        addOval(spinGroup, 0xffe27a, [0, -0.28, 0.93], [0.55, 0.43, 0.2], bellyMaterial);
+
+        [-1, 1].forEach((side) => {
+          const wing = addOval(spinGroup, 0xf2b300, [side * 0.84, -0.28, 0.27], [0.3, 0.42, 0.2], wingMaterial);
+          wing.rotation.z = side * -0.42;
+
+          addOval(spinGroup, 0xff9aa8, [side * 0.48, -0.02, 0.89], [0.12, 0.15, 0.07]);
+
+          addOval(spinGroup, 0xfff8e6, [side * 0.28, 0.29, 0.96], [0.105, 0.16, 0.075]);
+          addOval(spinGroup, 0x2b2118, [side * 0.28, 0.29, 1.025], [0.055, 0.105, 0.045]);
+          addOval(spinGroup, 0xffffff, [side * 0.28 - 0.018, 0.34, 1.06], [0.022, 0.035, 0.018]);
+        });
+
+        const beak = new THREE.Mesh(
+          new THREE.ConeGeometry(0.16, 0.24, 5),
+          chickMaterial(0xff8a1f)
+        );
+        beak.position.set(0, 0.04, 1.02);
+        beak.rotation.x = Math.PI / 2;
+        beak.castShadow = true;
+        spinGroup.add(beak);
+
+        addOval(spinGroup, 0xff5d73, [0, 1.02, 0.12], [0.12, 0.23, 0.11]);
+
+        const feetMaterial = chickMaterial(0xff8a1f);
+        [-0.27, 0.27].forEach((x) => {
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.34, 12), feetMaterial);
+          leg.position.set(x, -1.08, 0.23);
+          leg.castShadow = true;
+          spinGroup.add(leg);
+          [-0.06, 0, 0.06].forEach((toeOffset) => {
+            const toe = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.04, 0.16, 10), feetMaterial);
+            toe.position.set(x + toeOffset, -1.21, 0.3);
+            toe.rotation.z = toeOffset * 2;
+            toe.castShadow = true;
+            spinGroup.add(toe);
+          });
+        });
+
+        const accessoryGroup = new THREE.Group();
+        spinGroup.add(accessoryGroup);
+
+        const hatGroup = new THREE.Group();
+        accessoryGroup.add(hatGroup);
+        const eyeAccessoryGroup = new THREE.Group();
+        accessoryGroup.add(eyeAccessoryGroup);
+        const neckGroup = new THREE.Group();
+        accessoryGroup.add(neckGroup);
+
+        const packGroup = new THREE.Group();
+        packGroup.position.set(0, -0.05, -0.83);
+        const packMain = new THREE.Mesh(
+          new THREE.BoxGeometry(0.76, 0.82, 0.36),
+          new THREE.MeshToonMaterial({ color: 0xff3b5c })
+        );
+        packMain.castShadow = true;
+        packGroup.add(packMain);
+
+        const packPocket = new THREE.Mesh(
+          new THREE.BoxGeometry(0.56, 0.42, 0.12),
+          new THREE.MeshToonMaterial({ color: 0x1ecbe1 })
+        );
+        packPocket.position.set(0, -0.17, -0.23);
+        packGroup.add(packPocket);
+
+        const emblem = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.12, 0.12, 0.045, 20),
+          new THREE.MeshToonMaterial({ color: 0xffd84a })
+        );
+        emblem.rotation.x = Math.PI / 2;
+        emblem.position.set(0, -0.17, -0.32);
+        packGroup.add(emblem);
+
+        const strapMaterial = new THREE.MeshToonMaterial({ color: 0x4a2e1b });
+        [-0.29, 0.29].forEach((x) => {
+          const strap = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.82, 0.07), strapMaterial);
+          strap.position.set(x, 0, -0.18);
+          packGroup.add(strap);
+        });
+        spinGroup.add(packGroup);
+        packGroup.visible = false;
+
+        const pedestal = new THREE.Mesh(
+          new THREE.CylinderGeometry(1.12, 1.2, 0.16, 40),
+          new THREE.MeshToonMaterial({ color: 0x5a3e2b })
+        );
+        pedestal.position.y = -1.28;
+        pedestal.receiveShadow = true;
+        scene.add(pedestal);
+
+        const resize = () => {
+          const width = Math.max(1, canvas.clientWidth);
+          const height = Math.max(1, canvas.clientHeight);
+          renderer.setSize(width, height, false);
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+        };
+        resize();
+        window.addEventListener("resize", resize);
+        if (typeof ResizeObserver !== "undefined") {
+          new ResizeObserver(resize).observe(chick);
+        }
+
+        const setMeshColor = (material, element) => {
+          if (!element) return;
+          material.color.set(getComputedStyle(element).fill);
+        };
+        const syncCharacter = () => {
+          setMeshColor(body.material, svg.querySelector(".body"));
+          setMeshColor(bellyMaterial, svg.querySelector(".belly"));
+          setMeshColor(wingMaterial, svg.querySelector(".wing"));
+
+          const equipped = state.cosm.eq;
+          packGroup.visible = equipped.back !== "ninguno";
+          hatGroup.clear();
+          eyeAccessoryGroup.clear();
+          neckGroup.clear();
+
+          const accessoryMaterial = (color) => chickMaterial(color);
+          const addHatOval = (color, y, sx, sy, sz) => {
+            addOval(hatGroup, color, [0, y, 0.12], [sx, sy, sz], accessoryMaterial(color));
+          };
+          if (equipped.hat !== "ninguno") {
+            const color = equipped.hat === "corona" ? 0xffd84a : equipped.hat === "aureola" ? 0xffe27a : 0x8a5a1f;
+            if (equipped.hat === "aureola") {
+              const halo = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.035, 8, 32), accessoryMaterial(color));
+              halo.position.set(0, 1.16, 0.12);
+              hatGroup.add(halo);
+            } else if (equipped.hat === "corona") {
+              const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.2, 5), accessoryMaterial(color));
+              crown.position.set(0, 1.08, 0.12);
+              crown.castShadow = true;
+              hatGroup.add(crown);
+            } else {
+              addHatOval(color, 0.98, 0.42, 0.12, 0.3);
+              addHatOval(color, 1.12, 0.24, 0.22, 0.22);
+            }
+          }
+
+          if (equipped.eyes === "gafas" || equipped.eyes === "monoculo") {
+            const lensMaterial = accessoryMaterial(0x2b2118);
+            const sides = equipped.eyes === "monoculo" ? [1] : [-1, 1];
+            sides.forEach((side) => {
+              const lens = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.035, 8, 24), lensMaterial);
+              lens.position.set(side * 0.28, 0.29, 1.09);
+              eyeAccessoryGroup.add(lens);
+            });
+            if (equipped.eyes === "gafas") {
+              const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.045, 0.04), lensMaterial);
+              bridge.position.set(0, 0.29, 1.09);
+              eyeAccessoryGroup.add(bridge);
+            }
+          }
+
+          if (equipped.neck !== "ninguno") {
+            const color = equipped.neck === "medalla" ? 0xffd84a : 0xff5d73;
+            const collar = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.055, 8, 32), accessoryMaterial(color));
+            collar.position.set(0, -0.62, 0.46);
+            neckGroup.add(collar);
+            if (equipped.neck === "medalla") {
+              addOval(neckGroup, color, [0, -0.82, 0.85], [0.1, 0.12, 0.05], accessoryMaterial(color));
+            }
+          }
+        };
+        syncCharacter();
+        const appearanceObserver = new MutationObserver(syncCharacter);
+        appearanceObserver.observe(chick, { attributes: true, attributeFilter: ["class", "style"] });
+        appearanceObserver.observe(svg, { attributes: true, subtree: true });
+        chick.classList.add("is-3d");
+
+        let dragging = false;
+        let activePointer = null;
+        let previousX = 0;
+        let velocity = 0;
+        let lastInteraction = Date.now();
+        let dragged = false;
+        let suppressClick = false;
+
+        canvas.addEventListener("pointerdown", (event) => {
+          if (dragging || (event.pointerType === "mouse" && event.button !== 0)) return;
+          dragging = true;
+          activePointer = event.pointerId;
+          previousX = event.clientX;
+          velocity = 0;
+          dragged = false;
+          lastInteraction = Date.now();
+        });
+        window.addEventListener("pointermove", (event) => {
+          if (!dragging || event.pointerId !== activePointer) return;
+          const deltaX = event.clientX - previousX;
+          if (Math.abs(deltaX) > 4) dragged = true;
+          spinGroup.rotation.y += deltaX * 0.012;
+          velocity = deltaX * 0.012;
+          previousX = event.clientX;
+          lastInteraction = Date.now();
+        });
+        const stopDrag = (event) => {
+          if (!dragging || event.pointerId !== activePointer) return;
+          dragging = false;
+          activePointer = null;
+          if (dragged) {
+            suppressClick = true;
+            setTimeout(() => { suppressClick = false; }, 0);
+          }
+        };
+        window.addEventListener("pointerup", stopDrag);
+        window.addEventListener("pointercancel", stopDrag);
+        canvas.addEventListener("click", (event) => {
+          if (!suppressClick) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          suppressClick = false;
+        }, true);
+
+        const animate = (now) => {
+          requestAnimationFrame(animate);
+          if (!dragging) {
+            spinGroup.rotation.y += velocity;
+            velocity *= 0.92;
+            if (Date.now() - lastInteraction > 3000) {
+              const target = Math.round(spinGroup.rotation.y / (Math.PI * 2)) * Math.PI * 2;
+              spinGroup.rotation.y += (target - spinGroup.rotation.y) * 0.05;
+            }
+          }
+          rig.position.y = Math.sin(now * 0.004) * 0.035;
+          if (chick.classList.contains("rainbow")) {
+            body.material.color.setHSL((now % 5000) / 5000, 0.85, 0.58);
+          }
+          renderer.render(scene, camera);
+        };
+        requestAnimationFrame(animate);
+      } catch (error) {
+        console.warn("No se pudo inicializar el modelo 3D; se mantiene el Ricopio SVG:", error);
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", safeInit3D, { once: true });
+    } else {
+      safeInit3D();
+    }
