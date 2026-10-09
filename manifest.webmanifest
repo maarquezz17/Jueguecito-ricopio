@@ -1,6 +1,6 @@
 {
-  "name": "Mi Clicker Game",
-  "short_name": "Clicker",
+  "name": "Ricopio Clicker",
+  "short_name": "Ricopio",
   "description": "Un juego clicker completo con mejoras y minijuegos.",
   "start_url": "./index.html",
   "display": "standalone",

@@ -9,14 +9,82 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
-  <script src="scripts.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=ricopio-3d-20261009-4">
+  <script src="vendor/three.r128.min.js?v=ricopio-3d-20261009-2" defer></script>
+  <script src="scripts.js?v=ricopio-3d-20261009-10" defer></script>
 </head>
 <body>
   <div class="scene" aria-hidden="true">
     <div class="sun"></div>
     <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+    <div class="world-art beach-art">
+      <svg viewBox="0 0 360 240" role="presentation">
+        <defs>
+          <linearGradient id="coastSea" x2="0" y2="1"><stop stop-color="#8ce6f0"/><stop offset="1" stop-color="#168cb8"/></linearGradient>
+          <linearGradient id="coastSand" x2="0" y2="1"><stop stop-color="#ffe9a9"/><stop offset="1" stop-color="#ce984d"/></linearGradient>
+        </defs>
+        <path d="M0 92Q70 80 142 94T360 88V240H0Z" fill="url(#coastSea)"/>
+        <path d="M0 122Q54 105 112 124T238 119T360 128" fill="none" stroke="#d4fbf5" stroke-width="8" opacity=".75"/>
+        <path d="M0 152Q67 128 143 149T360 146V240H0Z" fill="url(#coastSand)"/>
+        <path d="M0 156Q70 136 150 154T360 151" fill="none" stroke="#fff4d1" stroke-width="5" opacity=".9"/>
+        <path d="M280 152Q277 96 259 65M279 88Q242 48 217 61Q241 71 261 103M279 91Q294 48 324 49Q303 68 287 108" fill="none" stroke="#79502b" stroke-width="8" stroke-linecap="round"/>
+        <path d="M195 166q17-13 32 0l-4 9h-28zM305 177q15-11 28 0l-3 8h-27z" fill="#c1a16d"/>
+        <ellipse cx="275" cy="207" rx="130" ry="18" fill="#6d9b5c" opacity=".35"/>
+      </svg>
+    </div>
+    <div class="world-art volcano-art">
+      <svg viewBox="0 0 380 250" role="presentation">
+        <defs>
+          <linearGradient id="volcanicRock" x2="0" y2="1"><stop stop-color="#63382d"/><stop offset=".55" stop-color="#321e20"/><stop offset="1" stop-color="#17151b"/></linearGradient>
+          <radialGradient id="lavaGlow"><stop stop-color="#fff37a" stop-opacity=".95"/><stop offset=".35" stop-color="#ff692c" stop-opacity=".55"/><stop offset="1" stop-color="#ff3418" stop-opacity="0"/></radialGradient>
+        </defs>
+        <ellipse cx="220" cy="161" rx="142" ry="78" fill="url(#lavaGlow)"/>
+        <path d="M20 230L100 157 146 132 174 83 201 62 224 90 251 101 283 142 343 176 380 229Z" fill="url(#volcanicRock)" stroke="#241719" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M160 101Q196 126 229 98Q218 131 188 140Q163 139 143 153Z" fill="#241719"/>
+        <path d="M165 113Q193 132 224 107Q210 137 183 145Q163 141 151 153Z" fill="#f04a24"/>
+        <path d="M183 141L177 177 191 195 185 229M223 125L237 155 227 180 243 202" fill="none" stroke="#ff9c36" stroke-width="7" stroke-linecap="round"/>
+        <path d="M0 231Q96 205 180 226T380 219V250H0Z" fill="#17151b"/>
+      </svg>
+    </div>
+    <div class="world-art space-art">
+      <svg viewBox="0 0 320 320" role="presentation">
+        <defs>
+          <radialGradient id="earthOcean" cx=".3" cy=".25"><stop stop-color="#a5f5ff"/><stop offset=".3" stop-color="#3b9be8"/><stop offset=".75" stop-color="#1351ad"/><stop offset="1" stop-color="#071a48"/></radialGradient>
+          <linearGradient id="earthShade" x2="1" y2=".2"><stop stop-color="#07102c" stop-opacity=".05"/><stop offset=".62" stop-color="#07102c" stop-opacity=".08"/><stop offset="1" stop-color="#020817" stop-opacity=".85"/></linearGradient>
+          <clipPath id="earthClip"><circle cx="160" cy="160" r="117"/></clipPath>
+        </defs>
+        <circle cx="160" cy="160" r="129" fill="#4fc8ff" opacity=".16"/>
+        <circle cx="160" cy="160" r="117" fill="url(#earthOcean)" stroke="#b9f3ff" stroke-width="3"/>
+        <g clip-path="url(#earthClip)" fill="#55bd79" stroke="#92e5a1" stroke-width="3">
+          <path d="M58 83l28-18 22 8 8 19-17 11 7 21-22 17-18-8-12-24zM113 139l26-8 21 16-4 30-17 22-4 34-18 31-17-11 2-35-13-25 12-20-9-19zM183 72l25-8 14 17 22 3 15 20-16 18-21-3-13 19-19-13-16 9-14-18 17-19zM219 174l22-15 26 10 12 24-20 14-7 32-19-3-9-24-18-12z"/>
+        </g>
+        <circle cx="160" cy="160" r="117" fill="url(#earthShade)"/>
+        <path d="M65 118Q120 74 183 87" fill="none" stroke="#fff" stroke-width="5" opacity=".26"/>
+      </svg>
+    </div>
+    <div class="world-art night-art">
+      <svg viewBox="0 0 360 250" role="presentation">
+        <defs><radialGradient id="moonGlow"><stop stop-color="#fff3b2" stop-opacity=".45"/><stop offset="1" stop-color="#fff3b2" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="270" cy="78" r="76" fill="url(#moonGlow)"/>
+        <path d="M286 24A62 62 0 1 0 329 118A52 52 0 0 1 286 24Z" fill="#fff0ae" stroke="#fff9dc" stroke-width="3"/>
+        <path d="M68 204Q89 161 109 204M89 183V232M87 203L65 188M90 210L113 190" fill="none" stroke="#527c47" stroke-width="5" stroke-linecap="round"/>
+        <g fill="#ff87ad" stroke="#ffe5a0" stroke-width="2">
+          <ellipse cx="89" cy="177" rx="8" ry="15"/><ellipse cx="75" cy="187" rx="8" ry="15" transform="rotate(-55 75 187)"/>
+          <ellipse cx="103" cy="187" rx="8" ry="15" transform="rotate(55 103 187)"/><ellipse cx="79" cy="202" rx="8" ry="15" transform="rotate(-110 79 202)"/>
+          <ellipse cx="99" cy="202" rx="8" ry="15" transform="rotate(110 99 202)"/>
+        </g>
+        <circle cx="89" cy="191" r="7" fill="#ffd84a"/>
+        <path d="M55 235Q90 224 124 236" fill="none" stroke="#304e35" stroke-width="8" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="world-art winter-art">
+      <svg viewBox="0 0 420 230" role="presentation">
+        <path d="M0 190L73 107 117 148 205 54 278 137 325 91 420 185V230H0Z" fill="#c8deef" opacity=".78"/>
+        <path d="M43 140L73 107 96 128 81 126 72 119 64 131zM166 96L205 54 247 103 222 91 205 67 190 93zM299 119L325 91 354 121 337 111 324 101 315 119z" fill="#fff"/>
+        <path d="M0 194Q105 164 211 190T420 184V230H0Z" fill="#eef8ff" opacity=".82"/>
+      </svg>
+    </div>
+    <div class="world-snow" aria-hidden="true"></div>
     <svg class="hills" viewBox="0 0 1440 400" preserveAspectRatio="none">
       <path d="M0 140 C240 60 480 60 720 130 S1200 190 1440 100 V400 H0Z" class="h1"/>
       <path d="M0 220 C300 150 600 170 900 220 S1300 260 1440 200 V400 H0Z" class="h2"/>
