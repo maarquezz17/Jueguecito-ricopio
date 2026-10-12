@@ -68,9 +68,9 @@ h1 { margin: 0; font-size: clamp(3.2rem, 9vw, 5.4rem); font-weight: 800; line-he
 /* Monedas y números flotantes */
 #floaters { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
 .floater { position: absolute; font-weight: 800; font-size: 1.7rem; color: var(--shell); -webkit-text-stroke: 5px var(--ink); paint-order: stroke fill; animation: rise .9s ease-out forwards; }
-.coin { position: absolute; width: 20px; height: 20px; border-width: 2.5px; animation: burst .75s cubic-bezier(.2, .7, .4, 1) forwards; }
-@keyframes rise { to { translate: 0 -90px; opacity: 0; } }
-@keyframes burst { 0% { translate: 0 0; } 60% { opacity: 1; } 100% { translate: var(--dx) calc(var(--dy) + 60px); rotate: var(--r, 0deg); opacity: 0; } }
+.coin { position: absolute; width: 20px; height: 20px; border-width: 2.5px; transform: translate3d(0,0,0); animation: burst .75s cubic-bezier(.2, .7, .4, 1) forwards; }
+@keyframes rise { to { transform: translateY(-90px); opacity: 0; } }
+@keyframes burst { 0% { transform: translate3d(0,0,0) rotate(0deg); opacity: 1; } 60% { opacity: 1; } 100% { transform: translate(var(--dx), calc(var(--dy) + 60px)) rotate(var(--r, 0deg)); opacity: 0; } }
 
 /* Huevo de oro */
 .golden { position: absolute; width: 54px; height: 70px; border: 3px solid var(--ink); border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; background: radial-gradient(circle at 35% 30%, #fff7b5, #ffd84a 50%, #d99a00); box-shadow: 0 0 22px 6px rgba(255, 216, 74, .85); cursor: pointer; animation: bob 1s ease-in-out infinite alternate; }
@@ -101,6 +101,8 @@ h1 { margin: 0; font-size: clamp(3.2rem, 9vw, 5.4rem); font-weight: 800; line-he
   .game { grid-template-columns: 1fr; grid-template-areas: "top" "stage" "shop"; }
   .stage { min-height: 360px; }
   .sun { width: 70px; height: 70px; }
+  .chick { width: min(220px, 58vw); }
+  .chick svg { transform: scale(.9) translateY(10px); transform-origin: center bottom; }
   .moon-floral { top: 3%; left: 5%; width: clamp(135px, 35vw, 190px); }
 }
 @media (prefers-reduced-motion: reduce) {

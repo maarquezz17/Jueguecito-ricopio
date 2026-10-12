@@ -368,7 +368,7 @@ function ppLoop(t) {
   ppRaf = PP.length ? requestAnimationFrame(ppLoop) : 0;
 }
 function physBurst(cx, cy, n) {   // cx, cy = coordenadas del puntero (clientX/Y)
-  if (!state.set.fx || R3D.on) return;   // en 3D las monedas salen del modelo
+  if (!state.set.fx || R3D.on) return;
   n = Math.min(n, Math.max(0, 60 - PP.length));
   for (let i = 0; i < n; i++) {
     const el = document.createElement("i"); el.className = "pp"; document.body.appendChild(el);
