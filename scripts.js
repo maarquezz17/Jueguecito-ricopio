@@ -152,6 +152,17 @@ const BOOSTS = [
 const SAVE_KEY = "ricopio-save";
 const $ = (id) => document.getElementById(id);
 const stage = document.querySelector(".stage");
+const updateDesktopScale = () => {
+  if (window.innerWidth >= 901 && window.innerHeight >= 601) {
+    const scale = Math.min(1, window.innerWidth / 1920, window.innerHeight / 1080);
+    document.documentElement.style.setProperty("--game-scale", String(scale));
+  } else {
+    document.documentElement.style.removeProperty("--game-scale");
+  }
+};
+window.addEventListener("resize", updateDesktopScale);
+window.visualViewport?.addEventListener("resize", updateDesktopScale);
+updateDesktopScale();
 const setT = (el, t) => { if (el._t !== t) { el._t = t; el.textContent = t; } };
 const setW = (el, w) => { if (el._w !== w) { el._w = w; el.style.width = w; } };
 const setH = (el, h) => { if (el._h !== h) { el._h = h; el.innerHTML = h; } };
@@ -2442,41 +2453,245 @@ function init3D() {
   });
   const pupilLeft = pupils[0], pupilRight = pupils[1];
 
-  // Mochila 3D en la espalda (z negativo): cuerpo, solapa, bolsillo, cremallera, correas y broche con ricoin
-  const pack = new THREE.Group(); pack.position.set(0, -.05, -1.02); ric.add(pack);
-  const pRed = M(0xd8303f), pDark = M(0xa8202f), pTeal = M(0x1fb5a8), gold = new THREE.MeshStandardMaterial({ color: 0xffc928, emissive: 0xaa7000, emissiveIntensity: .4, metalness: .7, roughness: .3 });
-  ell(pRed, 0, 0, 0, .62, .74, .34, pack);
-  ell(pDark, 0, .5, -.02, .64, .3, .36, pack);
-  ell(pTeal, 0, -.25, -.28, .46, .34, .2, pack);
-  pack.add(mesh(new THREE.BoxGeometry(.52, .03, .05), 0x2b2118, 0, -.2, -.465));            // cremallera
-  pack.add(mesh(new THREE.BoxGeometry(.07, .1, .05), 0xcfd8e3, .2, -.2, -.47));              // tirador
-  const coin = mesh(cyl(.13, .13, .04, 24), gold, 0, .46, -.4, [Math.PI / 2, 0, 0]); pack.add(coin);   // emblema ricoin
-  pack.add(mesh(new THREE.TorusGeometry(.14, .02, 8, 24), gold, 0, .46, -.4));
-  [-1, 1].forEach((s) => ric.add(mesh(new THREE.TorusGeometry(.95, .065, 8, 40, Math.PI * .85), pDark, s * .42, 0, 0, [0, Math.PI / 2, 0])));   // correas
-
-  // Accesorios 3D (sombreros, gafas, cuello). Los demás cosméticos solo existen en modo 2D.
+  // Accesorios 3D equipados
   const acc = new THREE.Group(); ric.add(acc);
   const cap = (c, y, sy) => { const m = mesh(new THREE.SphereGeometry(1.02, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), c, 0, y, 0); m.scale.y = sy; return m; };
+  const pDark = M(0x2a1840), gold = new THREE.MeshStandardMaterial({ color: 0xffc928, emissive: 0xaa7000, emissiveIntensity: .4, metalness: .7, roughness: .3 });
+  const makeWingShape = () => {
+    const shape = new THREE.Shape();
+    shape.moveTo(.62, .25); shape.quadraticCurveTo(.9, .38, 1.58, .48);
+    shape.lineTo(1.5, .04); shape.quadraticCurveTo(1.42, -.1, 1.28, -.04);
+    shape.lineTo(1.2, -.38); shape.quadraticCurveTo(1.12, -.52, .98, -.34);
+    shape.lineTo(.8, -.62); shape.quadraticCurveTo(.68, -.28, .62, .25);
+    return shape;
+  };
+  const addWingPair = (g, color, z, featherColor) => {
+    [-1, 1].forEach((side) => {
+      const wingMat = new THREE.MeshToonMaterial({ color, gradientMap: grad, side: THREE.DoubleSide });
+      const membrane = new THREE.Mesh(new THREE.ExtrudeGeometry(makeWingShape(), { depth: .08, bevelEnabled: true, bevelSegments: 1, steps: 1, bevelSize: .025, bevelThickness: .02 }), wingMat);
+      membrane.scale.x = side; membrane.position.z = z; membrane.renderOrder = 2; g.add(membrane);
+      const ribPositions = [
+        [.62, .25, 1.56, .48], [.64, .16, 1.5, .04],
+        [.64, .12, 1.28, -.04], [.65, .08, 1.2, -.38],
+        [.66, .04, .98, -.34], [.65, .02, .8, -.62],
+      ];
+      const points = ribPositions.flatMap(([x1, y1, x2, y2]) => [
+        new THREE.Vector3(x1 * side, y1, z + .085),
+        new THREE.Vector3(x2 * side, y2, z + .085),
+      ]);
+      g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: featherColor })));
+    });
+  };
+  const addCape = (g, color, offset) => {
+    const rows = [
+      { y: 0, width: 0 },
+      { y: -.18, width: .42 },
+      { y: -.5, width: .62 },
+      { y: -.88, width: .76 },
+      { y: -1.12, width: .68 },
+    ];
+    const segments = 12, vertices = [0, 0, 0], indices = [];
+    rows.slice(1).forEach((row, rowIndex) => {
+      for (let column = 0; column <= segments; column++) {
+        const u = column / segments, x = (u * 2 - 1) * row.width;
+        const wave = Math.sin(u * Math.PI * 6) * .035 * rowIndex / rows.length;
+        vertices.push(x, row.y + wave, -offset - rowIndex * .035 - Math.abs(x) * .025);
+      }
+    });
+    const firstRing = 1;
+    for (let column = 0; column < segments; column++) indices.push(0, firstRing + column + 1, firstRing + column);
+    for (let row = 0; row < rows.length - 2; row++) {
+      const upper = firstRing + row * (segments + 1), lower = upper + segments + 1;
+      for (let column = 0; column < segments; column++) {
+        const a = upper + column, b = a + 1, c = lower + column, d = c + 1;
+        indices.push(a, c, b, b, c, d);
+      }
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    const mount = new THREE.Group(); mount.position.set(0, .18, -.98); g.add(mount);
+    const cape = new THREE.Mesh(geometry, new THREE.MeshToonMaterial({ color, gradientMap: grad, side: THREE.DoubleSide }));
+    cape.renderOrder = 2; mount.add(cape);
+    ell(M(color), 0, 0, .02, .14, .1, .055, mount);
+    ell(gold, 0, 0, .08, .045, .045, .025, mount);
+    return mount;
+  };
+  const frontSurfaceZ = (x, y) => Math.sqrt(Math.max(.02, 1 - x * x - (y / .95) ** 2)) + .045;
+  const addNeckArc = (g, color, halfWidth, shoulderY, drop, radius) => {
+    const points = [];
+    for (let i = 0; i <= 16; i++) {
+      const x = -halfWidth + 2 * halfWidth * i / 16;
+      const ratio = x / halfWidth, y = shoulderY - drop * (1 - ratio * ratio);
+      points.push(new THREE.Vector3(x, y, frontSurfaceZ(x, y)));
+    }
+    const curve = new THREE.CatmullRomCurve3(points);
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, radius, 8, false), M(color)));
+  };
   const ACC = {
+    hat: {
     paja: (g) => { g.add(mesh(cyl(.5, .55, .45), 0xf0d27f, 0, 1.15, 0), mesh(cyl(1.15, 1.15, .06), 0xe8c36a, 0, .93, 0), mesh(cyl(.56, .56, .1), 0xd8503f, 0, 1.02, 0)); },
     gorra: (g) => { g.add(cap(0x3d9bff, .45, .6), mesh(new THREE.BoxGeometry(.7, .06, .5), 0x2c78d0, 0, .47, 1.0)); },
     aureola: (g) => { g.add(mesh(new THREE.TorusGeometry(.6, .07, 12, 40), new THREE.MeshStandardMaterial({ color: 0xffd84a, emissive: 0xffb400, emissiveIntensity: .8 }), 0, 1.55, 0, [Math.PI / 2, 0, 0])); },
     chistera: (g) => { g.add(mesh(cyl(.5, .5, .8), 0x2b2118, 0, 1.35, 0), mesh(cyl(.51, .51, .14), 0xff5d73, 0, 1.12, 0), mesh(cyl(.9, .9, .07), 0x2b2118, 0, .97, 0)); },
     corona: (g) => { g.add(mesh(cyl(.55, .45, .35, 8), 0xffd84a, 0, 1.1, 0)); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; g.add(mesh(new THREE.ConeGeometry(.12, .3, 8), 0xffd84a, Math.cos(a) * .5, 1.4, Math.sin(a) * .5)); } },
-    mago: (g) => { g.add(mesh(new THREE.ConeGeometry(.75, 1.6, 24), 0x5b3fc4, 0, 1.75, 0), mesh(cyl(1.0, 1.0, .06), 0x5b3fc4, 0, .95, 0)); },
+    mago: (g) => { g.add(mesh(new THREE.ConeGeometry(.58, 1.1, 24), 0x5b3fc4, 0, 1.47, 0), mesh(cyl(.78, .78, .07), 0x5b3fc4, 0, .96, 0), mesh(cyl(.59, .59, .07, 24), gold, 0, 1.03, 0)); },
     gorro: (g) => { g.add(cap(0xe0482f, .4, .75), mesh(new THREE.TorusGeometry(.92, .12, 10, 36), 0xffffff, 0, .45, 0, [Math.PI / 2, 0, 0])); ell(M(0xffffff), 0, 1.2, 0, .18, .18, .18, g); },
-    gafas: (g) => { g.add(mesh(new THREE.BoxGeometry(.5, .36, .1), 0x2b2118, -.38, .22, 1.06), mesh(new THREE.BoxGeometry(.5, .36, .1), 0x2b2118, .38, .22, 1.06), mesh(new THREE.BoxGeometry(.3, .06, .08), 0x2b2118, 0, .26, 1.06)); },
-    bufanda: (g) => { g.add(mesh(new THREE.TorusGeometry(.8, .17, 12, 40), 0xd8303f, 0, -.6, 0, [Math.PI / 2, 0, 0])); },
-    pajarita: (g) => { const c = new THREE.ConeGeometry(.2, .35, 12); g.add(mesh(c, 0xd8303f, .2, -.72, .82, [0, 0, Math.PI / 2]), mesh(c, 0xd8303f, -.2, -.72, .82, [0, 0, -Math.PI / 2])); ell(M(0xd8303f), 0, -.72, .84, .08, .08, .08, g); },
+    lazo: (g) => { g.add(mesh(new THREE.ConeGeometry(.28, .42, 4), 0xff5d73, -.2, .88, .25, [0, 0, Math.PI / 2]), mesh(new THREE.ConeGeometry(.28, .42, 4), 0xff5d73, .2, .88, .25, [0, 0, -Math.PI / 2])); ell(M(0xff5d73), 0, .88, .34, .1, .12, .08, g); },
+    cuernos: (g) => { [-1, 1].forEach((s) => g.add(mesh(new THREE.ConeGeometry(.2, .65, 10), 0xd8303f, s * .55, 1.25, 0, [0, 0, -s * .55]))); },
+    flores: (g) => {
+      g.add(mesh(new THREE.TorusGeometry(.61, .045, 8, 40), 0x315a3e, 0, .9, 0, [Math.PI / 2, 0, 0]));
+      for (let i = 0; i < 7; i++) {
+        const a = i / 7 * Math.PI * 2, x = Math.cos(a) * .58, z = Math.sin(a) * .58;
+        for (let j = 0; j < 5; j++) {
+          const p = j / 5 * Math.PI * 2;
+          ell(M(0xfff8e6), x + Math.cos(p) * .09, .92 + Math.sin(p) * .09, z, .075, .075, .075, g);
+        }
+        ell(M(0xd8a24a), x, .92, z + .02, .06, .06, .06, g);
+      }
+    },
+    vikingo: (g) => {
+      const dome = mesh(new THREE.SphereGeometry(1, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), 0x657080, 0, .84, 0);
+      dome.scale.set(.72, .48, .72);
+      g.add(dome, mesh(cyl(.72, .72, .12, 12), 0x434d5c, 0, .85, 0));
+      [-1, 1].forEach((s) => g.add(mesh(new THREE.ConeGeometry(.2, .8, 10), 0xf3e6c4, s * .84, 1.08, 0, [0, 0, s * -.95])));
+    },
+    calabaza: (g) => {
+      ell(M(0xff8a00), 0, .98, 0, .62, .42, .54, g);
+      [-.3, 0, .3].forEach((x) => g.add(mesh(new THREE.TorusGeometry(.36, .035, 6, 20), 0xc75f00, x, .98, 0, [0, 0, 0])));
+      g.add(mesh(new THREE.CylinderGeometry(.07, .1, .2, 8), 0x3a7d2c, 0, 1.48, 0));
+    },
+    casco: (g) => {
+      const glass = new THREE.MeshPhysicalMaterial({ color: 0xdaf5ff, transparent: true, opacity: .1, roughness: .08, metalness: 0, clearcoat: .8, clearcoatRoughness: .08, side: THREE.FrontSide, depthWrite: false });
+      g.add(
+        mesh(new THREE.SphereGeometry(1.18, 40, 28), glass, 0, .05, 0),
+        mesh(new THREE.TorusGeometry(.95, .025, 8, 48), new THREE.MeshBasicMaterial({ color: 0x6ebad7 }), 0, -.63, 0, [Math.PI / 2, 0, 0]),
+        ell(M(0x9fd8f5), -1.12, .05, 0, .07, .12, .12, g),
+        ell(M(0x9fd8f5), 1.12, .05, 0, .07, .12, .12, g)
+      );
+    },
+    },
+    eyes: {
+    gafas: (g) => {
+      [-1, 1].forEach((s) => {
+        g.add(mesh(new THREE.TorusGeometry(.21, .045, 8, 24), 0x2b2118, s * .36, .22, 1.105));
+        ell(M(0x252535), s * .36, .22, 1.11, .18, .14, .035, g);
+      });
+      g.add(mesh(new THREE.BoxGeometry(.18, .045, .045), 0x2b2118, 0, .22, 1.11));
+    },
+    monoculo: (g) => {
+      g.add(mesh(new THREE.TorusGeometry(.22, .04, 8, 28), gold, .36, .22, 1.105));
+      const cord = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(.36, .01, 1.08), new THREE.Vector3(.43, -.2, .94),
+        new THREE.Vector3(.5, -.45, .83), new THREE.Vector3(.58, -.57, .73),
+      ]);
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(cord, 24, .014, 6, false), gold));
+    },
+    parche: (g) => {
+      ell(pDark, -.36, .22, 1.1, .2, .18, .055, g);
+      const strap = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-.54, .34, 1.0), new THREE.Vector3(-.28, .47, .91),
+        new THREE.Vector3(.02, .49, .87), new THREE.Vector3(.35, .38, .9),
+        new THREE.Vector3(.58, .24, .82),
+      ]);
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(strap, 32, .022, 6, false), M(0x2b2118)));
+    },
+    corazones: (g) => [-1, 1].forEach((s) => {
+      const heart = new THREE.Shape(); heart.moveTo(0, -.28); heart.bezierCurveTo(-.55, .02, -.35, .43, 0, .22); heart.bezierCurveTo(.35, .43, .55, .02, 0, -.28);
+      const points = heart.getPoints(40).map((p) => new THREE.Vector3(p.x, p.y, 0));
+      const frame = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points, true), 96, .025, 6, true), M(0xff3c91));
+      frame.position.set(s * .36, .22, 1.115); g.add(frame);
+    }),
+    laser: (g) => { g.add(mesh(new THREE.BoxGeometry(.96, .18, .12), 0x2b2118, 0, .22, 1.105), mesh(new THREE.BoxGeometry(.78, .055, .04), 0xff2d2d, 0, .22, 1.18)); },
+    fuegoojos: (g) => [-1, 1].forEach((s) => {
+      g.add(mesh(new THREE.ConeGeometry(.12, .34, 8), 0xff6a1a, s * .36, .49, .96, [0, 0, s * -.12]));
+      ell(M(0xffdc55), s * .36, .43, 1.02, .055, .09, .035, g);
+    }),
+    ojosespiritu: (g) => [-1, 1].forEach((s) => {
+      g.add(mesh(new THREE.TorusGeometry(.225, .035, 8, 32), 0xb05cff, s * .36, .22, 1.105));
+      g.add(mesh(new THREE.OctahedronGeometry(.055), M(0xffffff), s * .57, .41, 1.12));
+    }),
+    },
+    neck: {
+    bufanda: (g) => {
+      g.add(mesh(new THREE.TorusGeometry(.78, .14, 12, 40), 0xd8303f, 0, -.46, 0, [Math.PI / 2, 0, 0]));
+      const tail = ell(M(0xc52336), .32, -.7, frontSurfaceZ(.32, -.7), .14, .34, .07, g);
+      tail.rotation.z = -.28;
+    },
+    pajarita: (g) => { const c = new THREE.ConeGeometry(.2, .35, 12); g.add(mesh(c, 0xd8303f, .2, -.72, .86, [0, 0, Math.PI / 2]), mesh(c, 0xd8303f, -.2, -.72, .86, [0, 0, -Math.PI / 2])); ell(M(0xd8303f), 0, -.72, .9, .08, .08, .06, g); },
+    medalla: (g) => {
+      addNeckArc(g, 0xd8303f, .56, -.33, .39, .035);
+      ell(gold, 0, -.84, frontSurfaceZ(0, -.84) + .04, .16, .16, .08, g);
+    },
+    cadena: (g) => {
+      addNeckArc(g, 0xffc928, .57, -.31, .4, .03);
+      ell(gold, 0, -.87, frontSurfaceZ(0, -.87) + .035, .12, .12, .07, g);
+    },
+    perlas: (g) => {
+      for (let i = 0; i <= 14; i++) {
+        const x = -.56 + i * .08, ratio = x / .56, y = -.34 - .37 * (1 - ratio * ratio);
+        ell(M(0xfff8e6), x, y, frontSurfaceZ(x, y) + .025, .065, .065, .065, g);
+      }
+    },
+    capaconde: (g) => {
+      addCape(g, 0x3b1a5a, .035);
+    },
+    },
+    back: {
+    mochila: (g) => {
+      const pack = new THREE.Group(); pack.position.set(0, -.05, -1.08); g.add(pack);
+      const canvas = M(0x80512f), leather = M(0x4b3024), flap = M(0xb77a3f);
+      ell(canvas, 0, 0, 0, .68, .76, .38, pack);
+      ell(flap, 0, .28, -.36, .53, .23, .1, pack);
+      ell(flap, 0, -.19, -.37, .38, .28, .1, pack);
+      pack.add(
+        mesh(new THREE.BoxGeometry(.12, .8, .05), leather, -.45, .02, -.37),
+        mesh(new THREE.BoxGeometry(.12, .8, .05), leather, .45, .02, -.37),
+        mesh(new THREE.BoxGeometry(.16, .13, .04), gold, 0, .17, -.47)
+      );
+    },
+    capa: (g) => addCape(g, 0xd8303f, .035),
+    capaconde: (g) => {
+      addCape(g, 0x3b1a5a, .035);
+    },
+    alas: (g) => addWingPair(g, 0xf8f4e8, -.86, 0xc9c4b7),
+    alasmurcielago: (g) => addWingPair(g, 0x492466, -.86, 0x241333),
+    jetpack: (g) => [-1, 1].forEach((s) => {
+      g.add(mesh(cyl(.2, .25, .82), 0xb9c2cf, s * .55, -.1, -.9), mesh(new THREE.ConeGeometry(.18, .48, 8), 0xff8a1f, s * .55, -.73, -.9));
+    }),
+    alasfuego: (g) => addWingPair(g, 0xff6a1a, -.86, 0xffe27a),
+    },
+    feet: {
+    zapas: (g) => [-1, 1].forEach((s) => { const shoe = ell(M(0x3d9bff), s * .38, -1.02, .46, .25, .13, .34, g); shoe.rotation.y = s * .15; }),
+    botas: (g) => [-1, 1].forEach((s) => { ell(M(0x8a5a1f), s * .38, -.9, .4, .21, .28, .2, g); ell(M(0x5a3a1a), s * .38, -1.08, .48, .24, .08, .27, g); }),
+    patines: (g) => [-1, 1].forEach((s) => {
+      g.add(mesh(new THREE.BoxGeometry(.38, .15, .48), 0xd8303f, s * .38, -1.06, .46));
+      [-.12, .12].forEach((x) => ell(M(0xffffff), s * .38 + x, -1.18, .46, .055, .055, .055, g));
+    }),
+    humovioleta: (g) => [-1, 1].forEach((s) => {
+      ell(M(0xb05cff), s * .38, -1.15, .42, .18, .12, .18, g);
+      ell(M(0x9b5de5), s * .46, -1.23, .47, .12, .09, .12, g);
+    }),
+    },
   };
   let sig = "", skin = COSM.skin[0];
   function sync() {
-    const e = state.cosm.eq, s = [e.skin, e.hat, e.eyes, e.neck].join(); if (s === sig) return; sig = s;
+    const e = state.cosm.eq, s = [e.skin, e.hat, e.eyes, e.neck, e.back, e.feet].join(); if (s === sig) return; sig = s;
     skin = COSM.skin.find((x) => x.id === e.skin) || COSM.skin[0];
     mats.body.color.set(skin.v[0]); mats.wing.color.set(skin.v[1]); mats.belly.color.set(skin.v[2]);
     mats.body.emissive.set(skin.cls === "shine" ? skin.v[0] : 0x000000); mats.body.emissiveIntensity = skin.cls === "shine" ? .18 : 0;
-    while (acc.children.length) { const o = acc.children[0]; acc.remove(o); o.traverse((n) => { if (n.geometry && n.geometry !== sph) n.geometry.dispose(); }); }
-    [e.hat, e.eyes, e.neck].forEach((id) => ACC[id] && ACC[id](acc));
+    while (acc.children.length) {
+      const o = acc.children[0]; acc.remove(o);
+      o.traverse((n) => {
+        if (n.geometry && n.geometry !== sph) n.geometry.dispose();
+        if (n.material && n.material !== gold && n.material !== pDark) n.material.dispose();
+      });
+    }
+    [["hat", e.hat], ["eyes", e.eyes], ["neck", e.neck], ["back", e.back], ["feet", e.feet]].forEach(([cat, id]) => {
+      const draw = ACC[cat][id];
+      if (draw) draw(acc);
+    });
   }
 
   // Tamaño del lienzo
