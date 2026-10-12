@@ -16,6 +16,14 @@ button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .scene { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: linear-gradient(var(--s1) 0%, var(--s2) 48%, var(--s3) 62%); }
 .hills { position: absolute; bottom: 0; width: 100%; height: 50%; }
 .sun { position: absolute; top: 7%; left: 18%; width: 110px; height: 110px; border-radius: 50%; background: var(--sun); box-shadow: 0 0 0 14px color-mix(in srgb, var(--sun) 35%, transparent), 0 0 90px 30px color-mix(in srgb, var(--sun) 50%, transparent); }
+.moon-floral { display: none; position: absolute; top: 4%; left: 16%; width: clamp(150px, 19vw, 230px); overflow: visible; filter: drop-shadow(0 0 20px rgba(244, 241, 216, .24)); }
+.moon-shape { fill: #f4f1d8; stroke: #28243f; stroke-width: 2.5; stroke-linejoin: round; }
+.moon-vine { fill: none; stroke: #343047; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.moon-blossom { fill: #e7dced; stroke: #343047; stroke-width: 2; stroke-linejoin: round; }
+.moon-blossom circle { fill: #d8bd83; stroke-width: 1.5; }
+.moon-stars { fill: #f4f1d8; }
+.night-scene .sun, .night-scene .cloud { display: none; }
+.night-scene .moon-floral { display: block; }
 .sun::before { content: ""; position: absolute; inset: -90px; border-radius: 50%; background: repeating-conic-gradient(rgba(255, 244, 190, .45) 0 8deg, transparent 8deg 24deg); -webkit-mask: radial-gradient(circle, transparent 45px, #000 46px, transparent 90px); mask: radial-gradient(circle, transparent 45px, #000 46px, transparent 90px); animation: spin 90s linear infinite; }
 .cloud { position: absolute; width: 150px; height: 46px; background: #fff; border-radius: 46px; opacity: .92; animation: drift 80s linear infinite; }
 .cloud::before, .cloud::after { content: ""; position: absolute; background: #fff; border-radius: 50%; }
@@ -93,6 +101,7 @@ h1 { margin: 0; font-size: clamp(3.2rem, 9vw, 5.4rem); font-weight: 800; line-he
   .game { grid-template-columns: 1fr; grid-template-areas: "top" "stage" "shop"; }
   .stage { min-height: 360px; }
   .sun { width: 70px; height: 70px; }
+  .moon-floral { top: 3%; left: 5%; width: clamp(135px, 35vw, 190px); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

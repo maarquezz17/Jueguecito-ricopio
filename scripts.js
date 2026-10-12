@@ -515,6 +515,7 @@ function applyLook() {
   document.body.classList.toggle("glass", state.set.glass);
   const e = state.cosm.eq, ch = $("chick"), root = document.documentElement.style;
   const sk = COSM.skin.find((x) => x.id === e.skin) || COSM.skin[0], sc = COSM.scene.find((x) => x.id === effScene()) || COSM.scene[0];
+  document.body.classList.toggle("night-scene", sc.id === "noche");
   ["--body", "--wing", "--belly"].forEach((v, i) => ch.style.setProperty(v, sk.v[i]));
   ch.className = ch.className.replace(/ ?(rainbow|shine|ghost)/g, "") + (sk.rb ? " rainbow" : sk.cls ? " " + sk.cls : "");
   const on = [e.hat, e.eyes, e.neck, e.back, e.feet];
