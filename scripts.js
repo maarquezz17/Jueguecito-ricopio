@@ -2294,11 +2294,30 @@ function init3D() {
     return group;
   }
   const petXLimit = (z) => Math.max(.5, Math.min(3.5, (cam.position.z - z) * Math.tan(cam.fov * Math.PI / 360) * cam.aspect - .5));
-  function setPetTarget(pet) {
-    const z = -2 + Math.random() * 4.5;
-    const xLimit = petXLimit(z);
-    pet.userData.targetX = (Math.random() * 2 - 1) * xLimit;
-    pet.userData.targetZ = z;
+  const PET_SAFE_RADIUS = 3.5;
+  function segmentClearsCenter(x1, z1, x2, z2) {
+    const dx = x2 - x1, dz = z2 - z1, lengthSq = dx * dx + dz * dz;
+    const t = lengthSq ? Math.max(0, Math.min(1, -(x1 * dx + z1 * dz) / lengthSq)) : 0;
+    return Math.hypot(x1 + t * dx, z1 + t * dz) >= PET_SAFE_RADIUS;
+  }
+  function petSpot(index, from) {
+    for (let attempt = 0; attempt < 96; attempt++) {
+      const z = -2 + Math.random() * 6.5;
+      const xLimit = petXLimit(z);
+      const x = (Math.random() * 2 - 1) * xLimit;
+      if (Math.hypot(x, z) < PET_SAFE_RADIUS) continue;
+      if (from && !segmentClearsCenter(from.x, from.z, x, z)) continue;
+      if (from && from.x * x + from.z * z < 0) continue;
+      return { x, z };
+    }
+    const sign = from ? Math.sign(from.x || (from.z < 0 ? -1 : 1)) : (index % 2 ? 1 : -1);
+    const z = 4.25;
+    return { x: sign * Math.min(1.2, petXLimit(z)), z };
+  }
+  function setPetTarget(pet, index) {
+    const spot = petSpot(index, pet.position);
+    pet.userData.targetX = spot.x;
+    pet.userData.targetZ = spot.z;
   }
   let petOrbitTime = 0;
   function syncPets(t) {
@@ -2314,7 +2333,14 @@ function init3D() {
       }
       state.petEq.forEach((id, i) => {
         const pet = PETS.find((entry) => entry.id === id);
-        if (pet) petGroup.add(makePet(pet, i));
+        if (pet) {
+          const model = makePet(pet, i), start = petSpot(i);
+          model.position.set(start.x, model.userData.baseY, start.z);
+          model.userData.targetX = start.x;
+          model.userData.targetZ = start.z;
+          model.userData.nextTargetAt = t + i * .35;
+          petGroup.add(model);
+        }
       });
     }
     const frameScale = petOrbitTime ? Math.min(.05, Math.max(0, t - petOrbitTime)) * 60 : 1;
@@ -2327,7 +2353,7 @@ function init3D() {
       if (dist < .1) {
         if (t >= pet.userData.nextTargetAt) {
           pet.userData.nextTargetAt = t + .4 + Math.random() * 1.4;
-          setPetTarget(pet);
+          setPetTarget(pet, petGroup.children.indexOf(pet));
         }
       } else {
         const step = Math.min(dist, pet.userData.speed * frameScale);
@@ -2456,19 +2482,21 @@ function init3D() {
   const coinGeo = new THREE.CylinderGeometry(.13, .13, .04, 16); coinGeo.rotateX(Math.PI / 2);
   const P = [];
   function burst3(pt, n) {
-    if (!state.set.fx && !perfWas) return;
+    if (!R3D.on) return;
     n = Math.min(n, Math.max(0, 30 - P.length));
     for (let i = 0; i < n; i++) {
       const m = new THREE.Mesh(coinGeo, gold); m.position.copy(pt); scene.add(m);
       P.push({ m, vx: (Math.random() - .5) * 4, vy: 2.5 + Math.random() * 3.5, vz: 2 + Math.random() * 3.5, vr: (Math.random() - .5) * 14, t: 0, life: 1.1 + Math.random() * .4 });   // vz>0: hacia la cámara
     }
   }
-  btn.addEventListener("click", (e) => {
+  window.addEventListener("pointerdown", (e) => {
+    if (!R3D.on || e.button !== 0) return;
+    const rect = cv.getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
     sqT = flapT = performance.now();
-    const cx = e.clientX || window.innerWidth / 2, cy = e.clientY || window.innerHeight / 2;
-    try { burst3(hitPoint(cx, cy), 6 + Math.min(combo, 14)); }
-    catch (err) { console.warn("Fallo al instanciar moneda 3D", err); }
-  });
+    try { burst3(hitPoint(e.clientX, e.clientY), 6 + Math.min(combo, 14)); }
+    catch (err) { console.warn("Fuerza bruta 3D falló:", err); }
+  }, { capture: true, passive: true });
 
   // Todo construido: activar el modo 3D y ocultar el SVG
   document.body.classList.add("r3d"); R3D.on = true;
