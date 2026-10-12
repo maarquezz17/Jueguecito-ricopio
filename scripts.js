@@ -2224,6 +2224,8 @@ function init3D() {
 
   const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 1, .1, 60);
   cam.position.set(0, 1.4, 11); cam.lookAt(0, -.2, 0);
+  const petGroup = new THREE.Group(); scene.add(petGroup);
+  let petSig = "";
   scene.add(new THREE.AmbientLight(0xffffff, .9));
   const sun = new THREE.DirectionalLight(0xffffff, .9); sun.position.set(3, 7, 5); sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024); sun.shadow.radius = 4; sun.shadow.bias = -.0005;
@@ -2237,6 +2239,77 @@ function init3D() {
   const sph = new THREE.SphereGeometry(1, 32, 24), cyl = (a, b, h, s = 24) => new THREE.CylinderGeometry(a, b, h, s);
   const mesh = (g, c, x, y, z, rot) => { const m = new THREE.Mesh(g, c.isMaterial ? c : M(c)); m.position.set(x, y, z); if (rot) m.rotation.set(rot[0], rot[1], rot[2]); m.castShadow = true; return m; };
   const ell = (c, x, y, z, sx, sy, sz, parent) => { const m = mesh(sph, c, x, y, z); m.scale.set(sx, sy, sz); parent.add(m); return m; };
+  const petMat = (color) => new THREE.MeshToonMaterial({ color, gradientMap: grad });
+  function makePet(p, index) {
+    const group = new THREE.Group(), coat = petMat(p.c), dark = petMat(0x2b2118), white = petMat(0xffffff), accent = petMat(p.sp === "dragon" ? 0x7a3cff : p.sp === "unicornio" ? 0xffd84a : p.sp === "leon" ? 0xc7791a : p.c);
+    const ball = (mat, x, y, z, sx, sy, sz) => ell(mat, x, y, z, sx, sy, sz, group);
+    ball(coat, 0, -.05, 0, .34, .38, .3);
+    if (p.sp === "leon") ball(accent, 0, .25, 0, .39, .4, .22);
+    if (p.sp === "tortuga") ball(accent, 0, .08, -.04, .4, .25, .34);
+    ball(coat, 0, .32, .13, .29, .29, .25);
+    if (p.sp === "panda") {
+      ball(dark, -.12, .36, .34, .09, .12, .035); ball(dark, .12, .36, .34, .09, .12, .035);
+    }
+    const eyeMat = p.sp === "panda" ? white : dark;
+    [-1, 1].forEach((side) => {
+      ball(eyeMat, side * .105, .37, .35, .055, .065, .035);
+      if (p.sp === "panda") ball(dark, side * .105, .37, .38, .025, .035, .018);
+    });
+    ball(p.sp === "panda" ? dark : accent, 0, .22, .365, .09, .07, .055);
+    [-1, 1].forEach((side) => {
+      ball(coat, side * .2, -.32, .07, .09, .16, .11);
+      if (p.sp === "gato" || p.sp === "zorro" || p.sp === "perro" || p.sp === "dragon") {
+        group.add(mesh(new THREE.ConeGeometry(.12, .28, 8), p.sp === "dragon" ? accent : coat, side * .18, .62, .12, [0, 0, side * -.2]));
+      } else if (p.sp === "conejo") {
+        ball(coat, side * .14, .69, .1, .08, .27, .07);
+      } else if (p.sp === "elefante") {
+        ball(coat, side * .34, .3, .1, .18, .25, .07);
+      } else if (p.sp === "panda") {
+        ball(dark, side * .2, .58, .08, .12, .12, .08);
+      }
+    });
+    if (p.sp === "dragon" || p.sp === "murcielago") {
+      [-1, 1].forEach((side) => {
+        const wing = mesh(new THREE.ConeGeometry(.25, .48, 3), accent, side * .35, .14, -.08, [0, 0, side * -.85]);
+        group.add(wing);
+      });
+    } else if (p.sp === "unicornio") {
+      group.add(mesh(new THREE.ConeGeometry(.09, .3, 8), accent, 0, .66, .22));
+    } else if (p.sp === "elefante") {
+      ball(coat, 0, .04, .39, .08, .22, .08);
+    } else {
+      group.add(mesh(new THREE.ConeGeometry(.07, .3, 8), coat, -.36, .04, -.02, [0, 0, Math.PI / 2]));
+    }
+    group.position.set((index - 1) * 2.1, -1.1, .25);
+    group.userData.baseY = group.position.y;
+    group.userData.phase = index * 1.8;
+    group.userData.petId = p.id;
+    group.userData.jumpAt = -1;
+    return group;
+  }
+  function syncPets(t) {
+    const sig = state.petEq.join("|");
+    if (sig !== petSig) {
+      petSig = sig;
+      while (petGroup.children.length) {
+        const child = petGroup.children[0]; petGroup.remove(child);
+        child.traverse((node) => {
+          if (node.geometry && node.geometry !== sph) node.geometry.dispose();
+          if (node.material) node.material.dispose();
+        });
+      }
+      state.petEq.forEach((id, i) => {
+        const pet = PETS.find((entry) => entry.id === id);
+        if (pet) petGroup.add(makePet(pet, i));
+      });
+    }
+    petGroup.children.forEach((pet) => {
+      const jump = pet.userData.jumpAt < 0 ? 0 : Math.max(0, Math.sin((t - pet.userData.jumpAt) * Math.PI * 2.5)) * .45;
+      if (t - pet.userData.jumpAt > .5) pet.userData.jumpAt = -1;
+      pet.position.y = pet.userData.baseY + Math.sin(t * 3 + pet.userData.phase) * .06 + jump;
+      pet.rotation.y = Math.sin(t * 1.5 + pet.userData.phase) * .12;
+    });
+  }
 
   // Peana + sombra de suelo
   const ped = new THREE.Group(); scene.add(ped);
@@ -2330,6 +2403,20 @@ function init3D() {
   const easeOutBack = (p) => 1 + 2.70158 * Math.pow(p - 1, 3) + 1.70158 * Math.pow(p - 1, 2);
   let sqT = -1;
   const ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
+  cv.addEventListener("click", (e) => {
+    const rect = cv.getBoundingClientRect();
+    v2.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+    ray.setFromCamera(v2, cam);
+    const hit = ray.intersectObjects(petGroup.children, true)[0];
+    if (!hit) return;
+    let pet = hit.object;
+    while (pet.parent && pet.parent !== petGroup) pet = pet.parent;
+    const companion = lob.list.find((entry) => entry.p.id === pet.userData.petId);
+    if (!companion) return;
+    e.stopPropagation(); e.preventDefault();
+    pet.userData.jumpAt = performance.now() / 1000;
+    petCuddle(companion);
+  }, true);
   const hitPoint = (cx, cy) => {
     if (cx) { const r = cv.getBoundingClientRect(); v2.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); ray.setFromCamera(v2, cam); const h = ray.intersectObject(rig, true)[0]; if (h) return h.point.clone(); }
     return new THREE.Vector3(0, .3, 1.1);
@@ -2359,6 +2446,7 @@ function init3D() {
       if (!started) return;
       sync();
       const t = now / 1000, TAU = Math.PI * 2;
+      syncPets(t);
       if (!drag) {
         if (now - idleAt > 3000) { const tg = Math.round(spin.rotation.y / TAU) * TAU; vel += (tg - spin.rotation.y) * .03 * k; vel *= Math.pow(.9, k); }   // muelle elástico hacia el frente
         else vel *= Math.pow(.94, k);   // inercia

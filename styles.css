@@ -774,6 +774,8 @@ button, .chick, .golden, .chest, .slot, .modal { touch-action: manipulation; }
 
 /* ===== 3D ===== */
 .r3d .chick svg { visibility: hidden; }
+.r3d .pets .pb, .r3d .pets .psh { visibility: hidden; }
+.r3d .pets .pet { opacity: 0; pointer-events: none; }
 .c3d { position: absolute; left: 50%; top: 50%; width: 150%; height: 150%; translate: -50% -50%; display: block; touch-action: none; cursor: grab; }
 .stage.boosted .c3d { filter: drop-shadow(0 0 14px #ffc928); }
 
