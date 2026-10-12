@@ -543,8 +543,8 @@ h1 { font-size: clamp(2.4rem, 7vh, 4.4rem); } .score { margin-top: 6px; }
 /* ==================== Liquid glass: SOLO en elementos individuales ==================== */
 .glass :is(.panel, .mbox, .rbtn, .score, .item, .boost, .chip, .node, .ach, .sk, .slot, .hintbox, .wardrobe, .card, .coll li, .egg, .rank .bar, .combo .bar, .wheelbtn, .btn) {
   background: linear-gradient(135deg, rgba(255, 255, 255, .5), rgba(255, 255, 255, .16));
-  -webkit-backdrop-filter: blur(20px) saturate(1.9);
-  backdrop-filter: blur(20px) saturate(1.9);
+  -webkit-backdrop-filter: blur(12px) saturate(1.9);
+  backdrop-filter: blur(12px) saturate(1.9);
   border: 1.5px solid rgba(255, 255, 255, .6);
   box-shadow: 0 8px 30px rgba(30, 50, 120, .2), inset 0 1.5px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(255, 255, 255, .25);
 }
@@ -715,7 +715,7 @@ button, .chick, .golden, .chest, .slot, .modal { touch-action: manipulation; }
   .side .passb { font-size: 1.05rem !important; }
   .side .panel { padding: 6px 10px !important; } .panel .btn.wide { height: 38px !important; font-size: 1.1rem !important; margin-bottom: 4px !important; }
   .rail { top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: auto !important; flex-direction: row !important; justify-content: space-evenly !important; align-items: center !important; gap: 0 !important; padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px)) !important; background: rgba(126, 203, 240, .92) !important; border-top: 3px solid var(--ink) !important; border-radius: 22px 22px 0 0 !important; z-index: 100 !important; }
-  .glass .rail { background: linear-gradient(135deg, rgba(255, 255, 255, .65), rgba(255, 255, 255, .3)) !important; -webkit-backdrop-filter: blur(20px) saturate(1.9) !important; backdrop-filter: blur(20px) saturate(1.9) !important; }
+  .glass .rail { background: linear-gradient(135deg, rgba(255, 255, 255, .65), rgba(255, 255, 255, .3)) !important; -webkit-backdrop-filter: blur(12px) saturate(1.9) !important; backdrop-filter: blur(12px) saturate(1.9) !important; }
   .rbtn, .wheelbtn { width: 58px !important; height: 58px !important; font-size: .62rem !important; border-radius: 14px !important; }
   .rbtn svg, .wheelbtn svg { width: 24px !important; height: 24px !important; }
   .ev-oct { top: calc(env(safe-area-inset-top, 0px) + 4px) !important; left: 6px !important; bottom: auto !important; font-size: .65rem !important; padding: 3px 8px !important; min-height: 0 !important; }
@@ -746,7 +746,6 @@ button, .chick, .golden, .chest, .slot, .modal { touch-action: manipulation; }
   .bubble { top: 4px !important; font-size: .8rem !important; padding: 3px 10px !important; }
   .tut { bottom: 6px !important; }
 }
-<<<<<<< HEAD
 
 .cgdlg { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 12px; background: rgba(43, 33, 24, .6); animation: fade .2s; }
 .glass .cgdlg { background: rgba(30, 40, 80, .45); }
@@ -768,16 +767,10 @@ button, .chick, .golden, .chest, .slot, .modal { touch-action: manipulation; }
 .stage.boosted .c3d { filter: drop-shadow(0 0 14px #ffc928); }
 
 /* ===== Onboarding y guía ===== */
-.rail, .side, .pw, .slots { transition: opacity .6s; }
-.onb .rail, .onb .side, .onb .pw, .onb .slots { opacity: 0; pointer-events: none; }
 .guide { position: absolute; left: 50%; top: calc(50% - min(26vh, 170px) - 64px); z-index: 5; width: 0; height: 0; border: 22px solid transparent; border-top: 38px solid var(--comb); border-bottom: 0; translate: -22px 0; pointer-events: none; filter: drop-shadow(0 3px 0 var(--ink)); animation: gbob .7s ease-in-out infinite alternate; }
 @keyframes gbob { to { translate: -22px 16px; } }
 
-/* ===== Botones: hover/active con escala y destello ===== */
-.btn, .rbtn, .wheelbtn { position: relative; overflow: hidden; }
-.btn::after, .rbtn::after, .wheelbtn::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, .55) 50%, transparent 65%); translate: -120% 0; transition: translate .5s; }
-.btn:not(:disabled):hover::after, .rbtn:hover::after, .wheelbtn:hover::after { translate: 120% 0; }
-.btn:not(:disabled):hover, .rbtn:hover, .wheelbtn:hover { transform: scale(1.05); }
-.btn:not(:disabled):active, .rbtn:active, .wheelbtn:active { transform: scale(.95); }
-=======
->>>>>>> d51950ade5a240cbd0925b119640c4926104bfd0
+/* ===== Botones: hover/active con escala y destello por brillo (sin tocar position/overflow) ===== */
+.btn, .rbtn, .wheelbtn { transition: transform .12s, box-shadow .12s, filter .15s; }
+.btn:not(:disabled):hover, .rbtn:hover, .wheelbtn:hover { transform: scale(1.05); filter: brightness(1.12) saturate(1.1); }
+.btn:not(:disabled):active, .rbtn:active, .wheelbtn:active { transform: scale(.95); filter: brightness(1.2); }

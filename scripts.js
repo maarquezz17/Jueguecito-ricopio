@@ -268,7 +268,6 @@ function render() {
     });
   }
   const r = rankIndex(), next = RANKS[r + 1];
-  document.body.classList.toggle("onb", state.total < 15);   // onboarding: menús ocultos hasta los primeros 15 ricoins
   setT(E.rankName, RANKS[r].name);
   if (r !== _uiR) {   // Interfaz progresiva según el rango
     _uiR = r; $("wheelBtn").hidden = r < 1; $("skinBtn").hidden = false; $("wardBtn").hidden = false; $("rebBtn").parentElement.hidden = r < 3;
@@ -1480,7 +1479,7 @@ $("codePaste").onclick = () => showModal("Pegar código", "Pega tu código de pa
 
 // Atajos de teclado
 addEventListener("keydown", (e) => {
-  if (!started || document.body.classList.contains("onb") || /INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || "")) return;
+  if (!started || /INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || "")) return;
   const ri = rankIndex(); if (("25".includes(e.key) && ri < 1) || (e.key === "3" && ri < 2) || (e.key === "4" && ri < 3)) return;   // atajos bloqueados hasta desbloquear el menú
   const m = { 1: "m-shop", 2: "m-skins", 4: "m-reb", 5: "m-wheel", 6: "m-ach", 7: "m-egg", 8: "m-set", 9: "m-hub" }[e.key];
   if (m) openM(m); else if (e.key === "3") { $("wardrobe").hidden = false; renderWard(); }
@@ -2181,12 +2180,7 @@ renderEggs = function() {
     btn.style.marginTop = "14px";
     btn.innerHTML = "⌨️ Introducir código secreto (Móvil)";
     
-<<<<<<< HEAD
     btn.onclick = () => showModal("Código secreto", "Escribe una palabra o código secreto:", "Probar", (res) => {
-=======
-    btn.onclick = () => {
-      const res = prompt("Escribe una palabra o código secreto:");
->>>>>>> d51950ade5a240cbd0925b119640c4926104bfd0
       if(!res) return;
       const r = res.toLowerCase().replace(/\s+/g, "");
       
@@ -2200,7 +2194,6 @@ renderEggs = function() {
         for (let i = 0; i < 8; i++) setTimeout(() => burst(Math.random() * stage.clientWidth, 0, 6), i * 120);
         renderWard();
       }
-<<<<<<< HEAD
     }, "text");
     document.getElementById("eggHint").after(btn);
   }
@@ -2213,27 +2206,36 @@ renderEggs = function() {
   $("chick").addEventListener("click", () => g.remove(), { once: true });
 })();
 
-// ===================== 3D (Three.js): Ricopio sobre peana =====================
-(function () {
-  if (typeof THREE === "undefined") return;   // sin Three.js se queda el SVG 2D
-  const btn = $("chick"); let renderer;
-  try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" }); } catch (e) { return; }
+// ===================== 3D (Three.js): se carga de forma síncrona desde index.html =====================
+// Si WebGL falla, safeInit3D deja el SVG 2D y el resto del juego intacto.
+function safeInit3D() {
+  try { init3D(); }
+  catch (err) { console.warn("Escena 3D no disponible, modo 2D:", err); document.body.classList.remove("r3d"); R3D.on = false; const c = document.querySelector(".c3d"); if (c) c.remove(); }
+}
+if (typeof THREE !== "undefined") safeInit3D();
+
+function init3D() {
+  const btn = $("chick");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const cv = renderer.domElement; cv.className = "c3d"; btn.appendChild(cv);
-  document.body.classList.add("r3d"); R3D.on = true;
 
   const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 1, .1, 60);
   cam.position.set(0, 1.4, 11); cam.lookAt(0, -.2, 0);
-  scene.add(new THREE.AmbientLight(0xffffff, .75));
+  scene.add(new THREE.AmbientLight(0xffffff, .9));
   const sun = new THREE.DirectionalLight(0xffffff, .9); sun.position.set(3, 7, 5); sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024); sun.shadow.radius = 4; sun.shadow.bias = -.0005;
   Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 20 }); scene.add(sun);
   const rim = new THREE.PointLight(0xffd36b, 1.2, 20); rim.position.set(-3.5, 2.5, -4); scene.add(rim);   // luz de recorte dorada
 
-  const M = (c, r = .55) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+  // Materiales toon (cel-shading de 3 tonos)
+  const grad = new THREE.DataTexture(new Uint8Array([110, 190, 255]), 3, 1, THREE.LuminanceFormat);
+  grad.minFilter = grad.magFilter = THREE.NearestFilter; grad.generateMipmaps = false; grad.needsUpdate = true;
+  const M = (c) => new THREE.MeshToonMaterial({ color: c, gradientMap: grad });
   const sph = new THREE.SphereGeometry(1, 32, 24), cyl = (a, b, h, s = 24) => new THREE.CylinderGeometry(a, b, h, s);
   const mesh = (g, c, x, y, z, rot) => { const m = new THREE.Mesh(g, c.isMaterial ? c : M(c)); m.position.set(x, y, z); if (rot) m.rotation.set(rot[0], rot[1], rot[2]); m.castShadow = true; return m; };
+  const ell = (c, x, y, z, sx, sy, sz, parent) => { const m = mesh(sph, c, x, y, z); m.scale.set(sx, sy, sz); parent.add(m); return m; };
 
   // Peana + sombra de suelo
   const ped = new THREE.Group(); scene.add(ped);
@@ -2241,35 +2243,64 @@ renderEggs = function() {
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.ShadowMaterial({ opacity: .25 }));
   ground.rotation.x = -Math.PI / 2; ground.position.y = -1.52; ground.receiveShadow = true; scene.add(ground);
 
-  // Ricopio: spin (giro) > rig (pivote en los pies, para el squish) > ric (cuerpo)
+  // Ricopio: spin (giro) > rig (pivote en los pies) > ric (cuerpo)
   const spin = new THREE.Group(), rig = new THREE.Group(), ric = new THREE.Group();
   rig.position.y = -1.0; ric.position.y = 1.0; rig.add(ric); spin.add(rig); scene.add(spin);
   const mats = { body: M(0xffc928), belly: M(0xffe27a), wing: M(0xf2b300) };
-  const add = (g, m, x, y, z, sx = 1, sy = 1, sz = 1, rz = 0) => { const o = mesh(g, m, x, y, z); o.scale.set(sx, sy, sz); o.rotation.z = rz; ric.add(o); return o; };
-  add(sph, mats.body, 0, 0, 0, 1, .95, 1);
-  add(sph, mats.belly, 0, -.3, .45, .72, .62, .55);
-  add(sph, mats.wing, -1, -.15, 0, .22, .5, .42, .3); add(sph, mats.wing, 1, -.15, 0, .22, .5, .42, -.3);
-  const comb = M(0xff5d73); add(sph, comb, -.15, .95, .1, .16, .22, .16); add(sph, comb, 0, 1.05, .1, .2, .28, .2); add(sph, comb, .15, .95, .1, .16, .22, .16);
-  const pink = M(0xff9aa8); add(sph, pink, -.62, -.1, .72, .13, .1, .06); add(sph, pink, .62, -.1, .72, .13, .1, .06);
-  const feet = M(0xff8a1f); add(cyl(.12, .14, .15, 12), feet, -.38, -1.0, .25); add(cyl(.12, .14, .15, 12), feet, .38, -1.0, .25);
-  const beak = mesh(new THREE.ConeGeometry(.2, .4, 16), M(0xff8a1f), 0, -.05, 1.05, [Math.PI / 2, 0, 0]); ric.add(beak);
-  const eyes = new THREE.Group(); eyes.position.set(0, .22, 0); ric.add(eyes);
-  [-1, 1].forEach((s) => { const e = new THREE.Mesh(sph, M(0x2b2118, .3)); e.scale.setScalar(.13); e.position.set(s * .36, 0, .9); eyes.add(e); const h = new THREE.Mesh(sph, M(0xffffff, .2)); h.scale.setScalar(.04); h.position.set(s * .36 + .04, .05, 1.0); eyes.add(h); });
+  ell(mats.body, 0, 0, 0, 1, .95, 1, ric);
+  ell(mats.belly, 0, -.3, .45, .72, .62, .55, ric);
+  const wingL = ell(mats.wing, -1, -.15, 0, .22, .5, .42, ric), wingR = ell(mats.wing, 1, -.15, 0, .22, .5, .42, ric);
+  const red = M(0xff5d73);   // cresta de tres puntas suaves
+  [[-.15, .95, .16, .26, -.25], [0, 1.05, .2, .34, 0], [.15, .95, .16, .26, .25]].forEach(([x, y, sx, sy, rz]) => { const c = ell(red, x, y, .1, sx, sy, sx, ric); c.rotation.z = rz; });
+  const pink = M(0xff9aa8); ell(pink, -.62, -.1, .72, .13, .1, .06, ric); ell(pink, .62, -.1, .72, .13, .1, .06, ric);
+  // Patitas amarillas
+  const yel = M(0xffd84a);
+  [-1, 1].forEach((s) => { const l = mesh(cyl(.06, .07, .22, 10), yel, s * .38, -.97, .25); ric.add(l); ell(yel, s * .38, -1.04, .33, .18, .07, .24, ric); });
+  // Pico curvado (se dobla ligeramente hacia abajo)
+  const bg = new THREE.ConeGeometry(.2, .4, 16), bp = bg.attributes.position;
+  for (let i = 0; i < bp.count; i++) { const t = (bp.getY(i) + .2) / .4; bp.setZ(i, bp.getZ(i) + t * t * .08); }
+  bg.computeVertexNormals();
+  ric.add(mesh(bg, 0xff8a1f, 0, -.05, 1.05, [Math.PI / 2, 0, 0]));
 
-  // Accesorios 3D (sombreros, gafas, cuello). Los demás cosméticos solo existen en el modo 2D.
+  // Ojos: cuenca + globo ocular + pupila independiente (pupilLeft / pupilRight)
+  const eyes = new THREE.Group(); eyes.position.set(0, .22, 0); ric.add(eyes);
+  const white = M(0xffffff), dark = M(0x2b2118), sock = M(0xe0a800), pivots = [], pupils = [];
+  [-1, 1].forEach((s) => {
+    ell(sock, s * .36, 0, .9, .22, .22, .1, eyes);
+    const pv = new THREE.Group(); pv.position.set(s * .36, 0, .88); eyes.add(pv);
+    const ball = mesh(sph, white, 0, 0, 0); ball.scale.setScalar(.17); pv.add(ball);
+    const pu = mesh(sph, dark, 0, 0, .125); pu.scale.setScalar(.085); pv.add(pu);
+    const hi = new THREE.Mesh(sph, new THREE.MeshBasicMaterial({ color: 0xffffff })); hi.position.set(.35, .4, .85); hi.scale.setScalar(.3); pu.add(hi);
+    pivots.push(pv); pupils.push(pu);
+  });
+  const pupilLeft = pupils[0], pupilRight = pupils[1];
+
+  // Mochila 3D en la espalda (z negativo): cuerpo, solapa, bolsillo, cremallera, correas y broche con ricoin
+  const pack = new THREE.Group(); pack.position.set(0, -.05, -1.02); ric.add(pack);
+  const pRed = M(0xd8303f), pDark = M(0xa8202f), pTeal = M(0x1fb5a8), gold = new THREE.MeshStandardMaterial({ color: 0xffc928, emissive: 0xaa7000, emissiveIntensity: .4, metalness: .7, roughness: .3 });
+  ell(pRed, 0, 0, 0, .62, .74, .34, pack);
+  ell(pDark, 0, .5, -.02, .64, .3, .36, pack);
+  ell(pTeal, 0, -.25, -.28, .46, .34, .2, pack);
+  pack.add(mesh(new THREE.BoxGeometry(.52, .03, .05), 0x2b2118, 0, -.2, -.465));            // cremallera
+  pack.add(mesh(new THREE.BoxGeometry(.07, .1, .05), 0xcfd8e3, .2, -.2, -.47));              // tirador
+  const coin = mesh(cyl(.13, .13, .04, 24), gold, 0, .46, -.4, [Math.PI / 2, 0, 0]); pack.add(coin);   // emblema ricoin
+  pack.add(mesh(new THREE.TorusGeometry(.14, .02, 8, 24), gold, 0, .46, -.4));
+  [-1, 1].forEach((s) => ric.add(mesh(new THREE.TorusGeometry(.95, .065, 8, 40, Math.PI * .85), pDark, s * .42, 0, 0, [0, Math.PI / 2, 0])));   // correas
+
+  // Accesorios 3D (sombreros, gafas, cuello). Los demás cosméticos solo existen en modo 2D.
   const acc = new THREE.Group(); ric.add(acc);
   const cap = (c, y, sy) => { const m = mesh(new THREE.SphereGeometry(1.02, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), c, 0, y, 0); m.scale.y = sy; return m; };
   const ACC = {
     paja: (g) => { g.add(mesh(cyl(.5, .55, .45), 0xf0d27f, 0, 1.15, 0), mesh(cyl(1.15, 1.15, .06), 0xe8c36a, 0, .93, 0), mesh(cyl(.56, .56, .1), 0xd8503f, 0, 1.02, 0)); },
     gorra: (g) => { g.add(cap(0x3d9bff, .45, .6), mesh(new THREE.BoxGeometry(.7, .06, .5), 0x2c78d0, 0, .47, 1.0)); },
-    aureola: (g) => { const m = mesh(new THREE.TorusGeometry(.6, .07, 12, 40), new THREE.MeshStandardMaterial({ color: 0xffd84a, emissive: 0xffb400, emissiveIntensity: .8 }), 0, 1.55, 0, [Math.PI / 2, 0, 0]); g.add(m); },
+    aureola: (g) => { g.add(mesh(new THREE.TorusGeometry(.6, .07, 12, 40), new THREE.MeshStandardMaterial({ color: 0xffd84a, emissive: 0xffb400, emissiveIntensity: .8 }), 0, 1.55, 0, [Math.PI / 2, 0, 0])); },
     chistera: (g) => { g.add(mesh(cyl(.5, .5, .8), 0x2b2118, 0, 1.35, 0), mesh(cyl(.51, .51, .14), 0xff5d73, 0, 1.12, 0), mesh(cyl(.9, .9, .07), 0x2b2118, 0, .97, 0)); },
     corona: (g) => { g.add(mesh(cyl(.55, .45, .35, 8), 0xffd84a, 0, 1.1, 0)); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; g.add(mesh(new THREE.ConeGeometry(.12, .3, 8), 0xffd84a, Math.cos(a) * .5, 1.4, Math.sin(a) * .5)); } },
     mago: (g) => { g.add(mesh(new THREE.ConeGeometry(.75, 1.6, 24), 0x5b3fc4, 0, 1.75, 0), mesh(cyl(1.0, 1.0, .06), 0x5b3fc4, 0, .95, 0)); },
-    gorro: (g) => { g.add(cap(0xe0482f, .4, .75), mesh(new THREE.TorusGeometry(.92, .12, 10, 36), 0xffffff, 0, .45, 0, [Math.PI / 2, 0, 0]), (() => { const p = mesh(sph, 0xffffff, 0, 1.2, 0); p.scale.setScalar(.18); return p; })()); },
+    gorro: (g) => { g.add(cap(0xe0482f, .4, .75), mesh(new THREE.TorusGeometry(.92, .12, 10, 36), 0xffffff, 0, .45, 0, [Math.PI / 2, 0, 0])); ell(M(0xffffff), 0, 1.2, 0, .18, .18, .18, g); },
     gafas: (g) => { g.add(mesh(new THREE.BoxGeometry(.5, .36, .1), 0x2b2118, -.38, .22, 1.06), mesh(new THREE.BoxGeometry(.5, .36, .1), 0x2b2118, .38, .22, 1.06), mesh(new THREE.BoxGeometry(.3, .06, .08), 0x2b2118, 0, .26, 1.06)); },
     bufanda: (g) => { g.add(mesh(new THREE.TorusGeometry(.8, .17, 12, 40), 0xd8303f, 0, -.6, 0, [Math.PI / 2, 0, 0])); },
-    pajarita: (g) => { const c = new THREE.ConeGeometry(.2, .35, 12); g.add(mesh(c, 0xd8303f, .2, -.72, .82, [0, 0, Math.PI / 2]), mesh(c, 0xd8303f, -.2, -.72, .82, [0, 0, -Math.PI / 2]), (() => { const p = mesh(sph, 0xd8303f, 0, -.72, .84); p.scale.setScalar(.08); return p; })()); },
+    pajarita: (g) => { const c = new THREE.ConeGeometry(.2, .35, 12); g.add(mesh(c, 0xd8303f, .2, -.72, .82, [0, 0, Math.PI / 2]), mesh(c, 0xd8303f, -.2, -.72, .82, [0, 0, -Math.PI / 2])); ell(M(0xd8303f), 0, -.72, .84, .08, .08, .08, g); },
   };
   let sig = "", skin = COSM.skin[0];
   function sync() {
@@ -2277,7 +2308,7 @@ renderEggs = function() {
     skin = COSM.skin.find((x) => x.id === e.skin) || COSM.skin[0];
     mats.body.color.set(skin.v[0]); mats.wing.color.set(skin.v[1]); mats.belly.color.set(skin.v[2]);
     mats.body.emissive.set(skin.cls === "shine" ? skin.v[0] : 0x000000); mats.body.emissiveIntensity = skin.cls === "shine" ? .18 : 0;
-    while (acc.children.length) { const o = acc.children[0]; acc.remove(o); o.traverse((n) => { if (n.geometry) n.geometry.dispose(); if (n.material) n.material.dispose(); }); }
+    while (acc.children.length) { const o = acc.children[0]; acc.remove(o); o.traverse((n) => { if (n.geometry && n.geometry !== sph) n.geometry.dispose(); }); }
     [e.hat, e.eyes, e.neck].forEach((id) => ACC[id] && ACC[id](acc));
   }
 
@@ -2285,12 +2316,13 @@ renderEggs = function() {
   const resize = () => { const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
   if (typeof ResizeObserver !== "undefined") new ResizeObserver(resize).observe(cv); addEventListener("resize", resize); resize();
 
-  // Giro 360º con arrastre e inercia
-  let drag = false, moved = 0, lx = 0, vel = 0, idleAt = performance.now();
+  // Giro 360º libre con inercia + auto-alineación elástica a los 3 s
+  let drag = false, moved = 0, lx = 0, vel = 0, idleAt = performance.now(), px = null, py = 0;
   cv.addEventListener("pointerdown", (e) => { drag = true; moved = 0; lx = e.clientX; vel = 0; try { cv.setPointerCapture(e.pointerId); } catch (_) {} cv.style.cursor = "grabbing"; });
   cv.addEventListener("pointermove", (e) => { if (!drag) return; const dx = e.clientX - lx; lx = e.clientX; moved += Math.abs(dx); spin.rotation.y += dx * .012; vel = dx * .012; idleAt = performance.now(); });
   const up = () => { drag = false; cv.style.cursor = "grab"; idleAt = performance.now(); };
   cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+  addEventListener("pointermove", (e) => { px = e.clientX; py = e.clientY; }, { passive: true });   // mirada
   document.addEventListener("click", (e) => { if (moved > 6 && e.target === cv) { e.stopPropagation(); e.preventDefault(); } moved = 0; }, true);   // arrastrar no cuenta como toque
 
   // Squish & stretch + monedas 3D en el punto de impacto
@@ -2302,52 +2334,62 @@ renderEggs = function() {
     return new THREE.Vector3(0, .3, 1.1);
   };
   const coinGeo = new THREE.CylinderGeometry(.13, .13, .04, 16); coinGeo.rotateX(Math.PI / 2);
-  const coinMat = new THREE.MeshStandardMaterial({ color: 0xffc928, emissive: 0xaa7000, emissiveIntensity: .5, metalness: .6, roughness: .3 });
   const P = [];
   function burst3(pt, n) {
     if (!state.set.fx) return; n = Math.min(n, 30 - P.length);
     for (let i = 0; i < n; i++) {
-      const m = new THREE.Mesh(coinGeo, coinMat); m.position.copy(pt); scene.add(m);
+      const m = new THREE.Mesh(coinGeo, gold); m.position.copy(pt); scene.add(m);
       P.push({ m, vx: (Math.random() - .5) * 4, vy: 2.5 + Math.random() * 3.5, vz: 2 + Math.random() * 3.5, vr: (Math.random() - .5) * 14, t: 0, life: 1.1 + Math.random() * .4 });   // vz>0: hacia la cámara
     }
   }
   btn.addEventListener("click", (e) => {
-    sqT = performance.now();
-    burst3(hitPoint(e.target === cv ? e.clientX : 0, e.clientY), 6 + Math.min(combo, 14));
+    sqT = flapT = performance.now();
+    try { burst3(hitPoint(e.target === cv ? e.clientX : 0, e.clientY), 6 + Math.min(combo, 14)); } catch (_) {}
   });
 
-  // Bucle de render
-  let last = performance.now();
+  // Todo construido: activar el modo 3D y ocultar el SVG
+  document.body.classList.add("r3d"); R3D.on = true;
+  let flapT = -1, last = performance.now(), dead = false, eyeX = 0, eyeY = 0;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   (function loop(now) {
-    requestAnimationFrame(loop);
-    const dt = Math.min(.05, (now - last) / 1000), k = dt * 60; last = now;
-    if (!started) return;
-    sync();
-    const t = now / 1000;
-    if (!drag) {
-      spin.rotation.y += vel * k; vel *= Math.pow(.94, k);   // inercia
-      if (Math.abs(vel) < .003 && now - idleAt > 2500) { const tg = Math.round(spin.rotation.y / (Math.PI * 2)) * Math.PI * 2; spin.rotation.y += (tg - spin.rotation.y) * .05 * k; }   // vuelve de frente
-    }
-    let sx = 1, sy = 1;
-    if (sqT >= 0) { const p = (now - sqT) / 450; if (p >= 1) sqT = -1; else { const s = easeOutBack(p); sy = .85 + .15 * s; sx = 1.15 - .15 * s; } }
-    const br = 1 + Math.sin(t * 2.2) * .015, ev = 1 + Math.min(.3, state.reb * .03);
-    rig.position.y = -1.0 + Math.sin(t * 2) * .05;   // idle: bamboleo + respiración
-    rig.scale.set(sx * ev, sy * br * ev, sx * ev);
-    const mood = btn.dataset.mood, want = mood === "sleep" ? .1 : mood === "bored" ? .55 : (t % 5) > 4.9 ? .1 : 1;
-    eyes.scale.y += (want - eyes.scale.y) * .25;
-    if (skin.rb) mats.body.color.setHSL((t * .15) % 1, .8, .6);
-    for (let i = P.length - 1; i >= 0; i--) {
-      const p = P[i]; p.t += dt;
-      if (p.t > p.life) { scene.remove(p.m); P.splice(i, 1); continue; }
-      p.vy -= 9.8 * dt; p.m.position.x += p.vx * dt; p.m.position.y += p.vy * dt; p.m.position.z += p.vz * dt; p.m.rotation.y += p.vr * dt;
-      p.m.scale.setScalar(p.t > p.life * .7 ? Math.max(.01, 1 - (p.t - p.life * .7) / (p.life * .3)) : 1);
-    }
-    renderer.render(scene, cam);
+    if (dead) return; requestAnimationFrame(loop);
+    try {
+      const dt = Math.min(.05, (now - last) / 1000), k = dt * 60; last = now;
+      if (!started) return;
+      sync();
+      const t = now / 1000, TAU = Math.PI * 2;
+      if (!drag) {
+        if (now - idleAt > 3000) { const tg = Math.round(spin.rotation.y / TAU) * TAU; vel += (tg - spin.rotation.y) * .03 * k; vel *= Math.pow(.9, k); }   // muelle elástico hacia el frente
+        else vel *= Math.pow(.94, k);   // inercia
+        spin.rotation.y += vel * k;
+      }
+      let sx = 1, sy = 1;
+      if (sqT >= 0) { const p = (now - sqT) / 450; if (p >= 1) sqT = -1; else { const s = easeOutBack(p); sy = .8 + .2 * s; sx = 1.2 - .2 * s; } }
+      const br = 1 + Math.sin(t * 2.2) * .015, ev = 1 + Math.min(.3, state.reb * .03);
+      rig.position.y = -1.0 + Math.sin(t * 2) * .05;   // idle: bamboleo + respiración
+      rig.scale.set(sx * ev, sy * br * ev, sx * ev);
+      // Alitas: aleteo sutil en idle y fuerte al hacer clic
+      let f = Math.sin(t * 3) * .06; if (flapT >= 0) { const p = (now - flapT) / 500; if (p >= 1) flapT = -1; else f += Math.sin(p * Math.PI * 5) * (1 - p) * .7; }
+      wingL.rotation.z = .3 + f; wingR.rotation.z = -.3 - f;
+      // Ojos: las pupilas persiguen el cursor / dedo
+      const mood = btn.dataset.mood, want = mood === "sleep" ? .1 : mood === "bored" ? .55 : (t % 5) > 4.9 ? .1 : 1;
+      eyes.scale.y += (want - eyes.scale.y) * .25;
+      let tgY = 0, tgX = 0;
+      if (px !== null) {
+        const r = cv.getBoundingClientRect(), nx = clamp((px - r.left - r.width / 2) / (r.width * .5), -1, 1), ny = clamp((py - r.top - r.height * .45) / (r.height * .5), -1, 1);
+        const yaw = ((spin.rotation.y + Math.PI) % TAU + TAU) % TAU - Math.PI;   // giro del modelo, entre -π y π
+        if (Math.abs(yaw) < 1.4) { tgY = clamp(nx * .55 - yaw * .5, -.6, .6); tgX = ny * .4; }
+      }
+      eyeY += (tgY - eyeY) * .15; eyeX += (tgX - eyeX) * .15;
+      pivots.forEach((pv) => { pv.rotation.y = eyeY; pv.rotation.x = eyeX; });
+      if (skin.rb) mats.body.color.setHSL((t * .15) % 1, .8, .6);
+      for (let i = P.length - 1; i >= 0; i--) {
+        const p = P[i]; p.t += dt;
+        if (p.t > p.life) { scene.remove(p.m); P.splice(i, 1); continue; }
+        p.vy -= 9.8 * dt; p.m.position.x += p.vx * dt; p.m.position.y += p.vy * dt; p.m.position.z += p.vz * dt; p.m.rotation.y += p.vr * dt;
+        p.m.scale.setScalar(p.t > p.life * .7 ? Math.max(.01, 1 - (p.t - p.life * .7) / (p.life * .3)) : 1);
+      }
+      renderer.render(scene, cam);
+    } catch (err) { dead = true; console.warn("3D desactivado:", err); document.body.classList.remove("r3d"); R3D.on = false; cv.remove(); }
   })(last);
-})();
-=======
-    };
-    document.getElementById("eggHint").after(btn);
-  }
-};
->>>>>>> d51950ade5a240cbd0925b119640c4926104bfd0
+}
