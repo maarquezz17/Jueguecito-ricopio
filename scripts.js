@@ -152,17 +152,6 @@ const BOOSTS = [
 const SAVE_KEY = "ricopio-save";
 const $ = (id) => document.getElementById(id);
 const stage = document.querySelector(".stage");
-const updateDesktopScale = () => {
-  if (window.innerWidth >= 901 && window.innerHeight >= 601) {
-    const scale = Math.min(1, window.innerWidth / 1920, window.innerHeight / 1080);
-    document.documentElement.style.setProperty("--game-scale", String(scale));
-  } else {
-    document.documentElement.style.removeProperty("--game-scale");
-  }
-};
-window.addEventListener("resize", updateDesktopScale);
-window.visualViewport?.addEventListener("resize", updateDesktopScale);
-updateDesktopScale();
 const setT = (el, t) => { if (el._t !== t) { el._t = t; el.textContent = t; } };
 const setW = (el, w) => { if (el._w !== w) { el._w = w; el.style.width = w; } };
 const setH = (el, h) => { if (el._h !== h) { el._h = h; el.innerHTML = h; } };

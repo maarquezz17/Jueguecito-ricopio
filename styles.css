@@ -767,24 +767,6 @@ button, .chick, .golden, .chest, .slot, .modal { touch-action: manipulation; }
 ::-webkit-scrollbar-thumb { background: var(--ink); border-radius: 99px; border: 2px solid var(--shell); }
 ::-webkit-scrollbar-track { background: transparent; }
 
-/* Escala de escritorio con referencia 1920x1080 */
-@media (min-width: 901px) and (min-height: 601px) {
-  .game {
-    position: fixed;
-    inset: auto;
-    top: 50%;
-    left: 50%;
-    width: 1920px;
-    height: 1080px;
-    max-width: none;
-    margin: 0;
-    transform: translate(-50%, -50%) scale(var(--game-scale, 1));
-    transform-origin: center;
-  }
-  h1 { font-size: 4.4rem; }
-  .chick { width: min(calc(300px * var(--evo, 1)), 300px); }
-}
-
 /* 2.5D: la perspectiva va en el botón (hitbox fija); solo el SVG se inclina */
 .chick { perspective: 1000px; }
 .chick svg { transform: rotateX(0) rotateY(0); transition: transform .1s ease-out; will-change: transform; }
