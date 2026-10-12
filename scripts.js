@@ -594,7 +594,7 @@ function unlock(key, msg, equip) {
   [784, 988, 1175, 1568].forEach((f, i) => setTimeout(() => sfx(f, .2), i * 90));
   save(); renderWard();
 }
-let keys = [], tc = 0, tt = 0;
+let keys = [], halloweenBuffer = "", tc = 0, tt = 0;
 const KONAMI = "ArrowUp,ArrowUp,ArrowDown,ArrowDown,ArrowLeft,ArrowRight,ArrowLeft,ArrowRight,b,a";
 addEventListener("keydown", (e) => {
   keys = [...keys, e.key.length === 1 ? e.key.toLowerCase() : e.key].slice(-10);
@@ -605,6 +605,14 @@ addEventListener("keydown", (e) => {
   if (keys.slice(-7).join("") === "ricopio") {
     gain(1000); render(); toast("¡Me has llamado! +1000"); egg("ricopio", true);
     confetti(stage.clientWidth / 2, stage.clientHeight / 2, 30);
+  }
+  if (e.key.length === 1 && !/INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || "")) {
+    halloweenBuffer = (halloweenBuffer + e.key.toLowerCase()).slice(-20);
+    const code = Object.keys(HW_CHEATS).find((word) => halloweenBuffer.endsWith(word));
+    if (code) {
+      unlockHalloweenCheat(HW_CHEATS[code]);
+      halloweenBuffer = "";
+    }
   }
 });
 $("title").addEventListener("click", () => {
@@ -2078,6 +2086,33 @@ const HW_SHOP = [
   { k: "tap:truco", n: "Impacto Truco o Trato", m: 3, f: 1.5e7, b: "+5% valor crítico" },
   { k: "pet:batito", n: "Batito (mascota voladora)", m: 4, f: 2e7, b: "+6% producción global" },
 ];
+const HW_CHEATS = {
+  spooky: "hat:calabaza",
+  dracula: "pet:batito",
+  batito: "pet:batito",
+  huesos: "skin:fantasmareal",
+  ojos: "eyes:ojosespiritu",
+  alas: "back:alasmurcielago",
+  impacto: "tap:truco",
+  conde: "neck:capaconde",
+  humo: "feet:humovioleta",
+  nocturna: "trail:nocturna",
+};
+function unlockHalloweenCheat(key) {
+  if (key === "pet:batito") {
+    state.pets.batito = Math.max(1, state.pets.batito || 0);
+    if (!state.petEq.includes("batito")) state.petEq = [...state.petEq.slice(0, 2), "batito"];
+    petsStage();
+    save();
+    render();
+    if (!$("m-pets").hidden) RENDER["m-pets"]();
+    toast("Truco activado: Batito desbloqueado y equipado (+6% global)");
+    return;
+  }
+  const item = COSM[key.split(":")[0]].find((x) => key.endsWith(":" + x.id));
+  if (!item) return console.warn("Cosmético de truco no encontrado:", key);
+  unlock(key, "Truco activado: " + item.n + " desbloqueado y equipado", true);
+}
 const hwPrice = (s) => Math.max(s.f, perSec() * 86400 * s.m);
 const hwOwned = (k) => k === "pet:batito" ? !!state.pets.batito : state.cosm.own.includes(k);
 function hwGive(k) {
