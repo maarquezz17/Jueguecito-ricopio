@@ -1989,6 +1989,7 @@ function petsStage() {
   });
 }
 function petLoop(dt) {
+  if (R3D.on) return;
   const W = stage.clientWidth || 600, H = stage.clientHeight || 420, k = dt / 50;
   lob.list.forEach((o) => {
     let moving = false;
@@ -2280,13 +2281,26 @@ function init3D() {
     } else {
       group.add(mesh(new THREE.ConeGeometry(.07, .3, 8), coat, -.36, .04, -.02, [0, 0, Math.PI / 2]));
     }
-    group.position.set((index - 1) * 2.1, -1.1, .25);
+    const startZ = (Math.random() - .5) * 3;
+    group.position.set((Math.random() * 2 - 1) * petXLimit(startZ), -1.1, startZ);
     group.userData.baseY = group.position.y;
     group.userData.phase = index * 1.8;
     group.userData.petId = p.id;
     group.userData.jumpAt = -1;
+    group.userData.targetX = group.position.x;
+    group.userData.targetZ = group.position.z;
+    group.userData.speed = .015 + Math.random() * .015;
+    group.userData.nextTargetAt = 0;
     return group;
   }
+  const petXLimit = (z) => Math.max(.5, Math.min(3.5, (cam.position.z - z) * Math.tan(cam.fov * Math.PI / 360) * cam.aspect - .5));
+  function setPetTarget(pet) {
+    const z = -2 + Math.random() * 4.5;
+    const xLimit = petXLimit(z);
+    pet.userData.targetX = (Math.random() * 2 - 1) * xLimit;
+    pet.userData.targetZ = z;
+  }
+  let petOrbitTime = 0;
   function syncPets(t) {
     const sig = state.petEq.join("|");
     if (sig !== petSig) {
@@ -2303,11 +2317,29 @@ function init3D() {
         if (pet) petGroup.add(makePet(pet, i));
       });
     }
+    const frameScale = petOrbitTime ? Math.min(.05, Math.max(0, t - petOrbitTime)) * 60 : 1;
+    petOrbitTime = t;
     petGroup.children.forEach((pet) => {
       const jump = pet.userData.jumpAt < 0 ? 0 : Math.max(0, Math.sin((t - pet.userData.jumpAt) * Math.PI * 2.5)) * .45;
       if (t - pet.userData.jumpAt > .5) pet.userData.jumpAt = -1;
+      const dx = pet.userData.targetX - pet.position.x, dz = pet.userData.targetZ - pet.position.z;
+      const dist = Math.hypot(dx, dz);
+      if (dist < .1) {
+        if (t >= pet.userData.nextTargetAt) {
+          pet.userData.nextTargetAt = t + .4 + Math.random() * 1.4;
+          setPetTarget(pet);
+        }
+      } else {
+        const step = Math.min(dist, pet.userData.speed * frameScale);
+        pet.position.x += (dx / dist) * step;
+        pet.position.z += (dz / dist) * step;
+        const targetRotation = Math.atan2(dx, dz);
+        let diff = targetRotation - pet.rotation.y;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        pet.rotation.y += diff * Math.min(1, .05 * frameScale);
+      }
       pet.position.y = pet.userData.baseY + Math.sin(t * 3 + pet.userData.phase) * .06 + jump;
-      pet.rotation.y = Math.sin(t * 1.5 + pet.userData.phase) * .12;
     });
   }
 
@@ -2424,7 +2456,8 @@ function init3D() {
   const coinGeo = new THREE.CylinderGeometry(.13, .13, .04, 16); coinGeo.rotateX(Math.PI / 2);
   const P = [];
   function burst3(pt, n) {
-    if (!state.set.fx) return; n = Math.min(n, 30 - P.length);
+    if (!state.set.fx && !perfWas) return;
+    n = Math.min(n, Math.max(0, 30 - P.length));
     for (let i = 0; i < n; i++) {
       const m = new THREE.Mesh(coinGeo, gold); m.position.copy(pt); scene.add(m);
       P.push({ m, vx: (Math.random() - .5) * 4, vy: 2.5 + Math.random() * 3.5, vz: 2 + Math.random() * 3.5, vr: (Math.random() - .5) * 14, t: 0, life: 1.1 + Math.random() * .4 });   // vz>0: hacia la cámara
@@ -2432,7 +2465,9 @@ function init3D() {
   }
   btn.addEventListener("click", (e) => {
     sqT = flapT = performance.now();
-    try { burst3(hitPoint(e.target === cv ? e.clientX : 0, e.clientY), 6 + Math.min(combo, 14)); } catch (_) {}
+    const cx = e.clientX || window.innerWidth / 2, cy = e.clientY || window.innerHeight / 2;
+    try { burst3(hitPoint(cx, cy), 6 + Math.min(combo, 14)); }
+    catch (err) { console.warn("Fallo al instanciar moneda 3D", err); }
   });
 
   // Todo construido: activar el modo 3D y ocultar el SVG
