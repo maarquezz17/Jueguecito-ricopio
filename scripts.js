@@ -626,6 +626,8 @@ $("rain").innerHTML = Array.from({ length: 18 }, () => `<i style="left:${Math.ra
 const syncIntro = () => ($("start").textContent = state.total > 0 ? "Continuar" : "Iniciar");
 $("start").addEventListener("click", () => {
   started = true;
+  const canvas = document.querySelector(".c3d");
+  if (canvas) $("chick").appendChild(canvas);
   [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => sfx(f, .2), i * 80));
   $("intro").classList.add("out");
   setTimeout(() => $("intro").remove(), 900);
@@ -2167,7 +2169,7 @@ $("chick").addEventListener("click", () => { if (combo === 60 && liveOn("2026-10
 hwTick(); passBadge();
 
 applyLook();
-$("introChick").appendChild($("chick").firstElementChild.cloneNode(true));
+const introChick = $("introChick"), introSvg = $("chick").firstElementChild.cloneNode(true);
 $("mute").textContent = "Sonido: " + (state.muted ? "no" : "sí");
 syncIntro(); renderColl(); renderWard();
 rank = rankIndex();
@@ -2246,17 +2248,24 @@ renderEggs = function() {
 // ===================== 3D (Three.js): se carga de forma síncrona desde index.html =====================
 // Si WebGL falla, safeInit3D deja el SVG 2D y el resto del juego intacto.
 function safeInit3D() {
-  try { init3D(); }
-  catch (err) { console.warn("Escena 3D no disponible, modo 2D:", err); document.body.classList.remove("r3d"); R3D.on = false; const c = document.querySelector(".c3d"); if (c) c.remove(); }
+  try {
+    if (typeof THREE === "undefined") throw new Error("No se pudo cargar Three.js.");
+    init3D();
+  } catch (err) {
+    console.warn("Escena 3D no disponible, modo 2D:", err);
+    document.body.classList.remove("r3d"); R3D.on = false;
+    const c = document.querySelector(".c3d"); if (c) c.remove();
+    if (!introChick.firstChild) introChick.appendChild(introSvg);
+  }
 }
-if (typeof THREE !== "undefined") safeInit3D();
+safeInit3D();
 
 function init3D() {
   const btn = $("chick");
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  const cv = renderer.domElement; cv.className = "c3d"; btn.appendChild(cv);
+  const cv = renderer.domElement; cv.className = "c3d"; introChick.appendChild(cv);
 
   const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 1, .1, 60);
   cam.position.set(0, 1.4, 11); cam.lookAt(0, -.2, 0);
@@ -2745,7 +2754,7 @@ function init3D() {
     if (dead) return; requestAnimationFrame(loop);
     try {
       const dt = Math.min(.05, (now - last) / 1000), k = dt * 60; last = now;
-      if (!started) return;
+      if (!started) { sync(); renderer.render(scene, cam); return; }
       sync();
       const t = now / 1000, TAU = Math.PI * 2;
       syncPets(t);
